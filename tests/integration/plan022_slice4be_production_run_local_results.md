@@ -281,6 +281,50 @@ preservation, unassisted closure and delayed zero Excel Application failures pas
 Runtime/static metrics remain unchanged;363 scripts parse. This covers the
 specified read-return boundaries, not every possible source failure or yield.
 
+## Multi-key stock allocation RED
+
+`Test-Slice4beProductionRunLocal.ps1 -StockOnly` extends the common fault fixture
+with `Slice4beProductionRunStock.ps1`. It preserves the original List/Tree Apply
+handlers. Admin Seed supplies the first entity; the owning receiving writer and
+processor create a distinct second `System_Key` at the same location before
+measured local planning. Identities and quantities remain in memory.
+
+Two initial attempts are excluded before any stock action. Both have39 PASS/one
+harness FAIL, five compiles, canonical package/settings preservation, unassisted
+closure and delayed zero Excel Application1000/1001/1002 events:
+
+- Controller `production-run-local-controller/da6671d81b6f4d2eaa63e65d48c2bc48`,
+  result `slice4be-production-run-stock/8071bcc215d043a6a11dd4a059060c05/red.json`,
+  2026-10-01 07:12:09.5355313--07:13:28.7362455 UTC: SeedShape setup failure.
+- Controller `production-run-local-controller/59621de216a34cf992c567db5f383b47`,
+  result `slice4be-production-run-stock/429f40a2cf744ef1969eedebceac284e/red.json`,
+  2026-10-01 07:17:31.2161879--07:18:53.9716061 UTC: narrower diagnostics identify
+  the fixed seed-quantity assumption. These paths are beneath `reports/runtime/`.
+
+The corrected fixture derives its sizes from the available quantity returned by
+the owning Inventory read. With each entity quantity q, requirement2q+2, inputs
+q+1 and75% each force two-key expansion;2q+1 exceeds stock while remaining below
+the requirement. Zero must clear both allocations. This changes test setup only;
+it neither changes Seed behavior nor establishes a Seed quantity defect.
+
+Corrected controller `production-run-local-controller/f3d5506fd2f9440980992912bd18333a`,
+result `slice4be-production-run-stock/c9f30ef7f70b40679117770f40c2f2df/red.json`,
+2026-10-01 07:19:56.5153890--07:21:43.9162408 UTC: **82 PASS/56 expected FAIL/138
+unique checks**. All eight actual-handler allocation cases pass: quantity takes
+precedence over percentage, percentage-only input expands across both original
+keys, zero clears both, and over-stock refusal preserves the earlier plan/inputs.
+Exact identities and on-hand quantities remain unchanged; no submission occurs.
+All failures are missing observation-pair, context, redaction and terminal facts,
+including explicit exclusion of both exact keys from the observation payload.
+
+All42 prior shared GREEN identities retain exact order. Five compiles, canonical
+package pins, saved authority/operator bytes, unknown values/formula, older
+records and other-warehouse activity preservation pass. Closure is unassisted;
+delayed Excel Application1000/1001/1002 failures are zero. Runtime source and the
+validated static baseline remain unchanged; all365 repository PowerShell scripts
+returned by `rg --files -g '*.ps1'` parse. This is packaged handler evidence,
+not visible operator or human acceptance. Preserve all138 checks through GREEN.
+
 ## Remaining gates
 
 Worksheet-branch tests must distinguish quiet helper return from successful owner

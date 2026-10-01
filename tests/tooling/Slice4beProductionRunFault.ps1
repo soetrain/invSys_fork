@@ -83,7 +83,7 @@ End Sub
 '@)
 }
 
-function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
+function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$StockOnly) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
@@ -106,9 +106,9 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
         }}
         if($pair){
             $linked=$first[0].ActivityId -cne '' -and $first[0].ActivityId -ceq $last[0].ActivityId -and $first[0].RecordId -cne $last[0].RecordId
-            $severity=if($Outcome -ceq 'FAILED'){'Error'}else{'Info'};$effect=if($Outcome -ceq 'FAILED'){'Unknown'}else{'Unchanged'}
+            $severity=if($Outcome -ceq 'FAILED'){'Error'}elseif($Outcome -ceq 'REJECTED'){'Warning'}else{'Info'};$effect=if($Outcome -ceq 'FAILED'){'Unknown'}else{'Unchanged'}
             $facts=$first[0].Severity -ceq 'Info' -and $first[0].DataEffect -ceq 'Unknown' -and $last[0].Severity -ceq $severity -and $last[0].DataEffect -ceq $effect -and $last[0].EventCode -ceq ('PRODUCTION_RUN_'+$Action+'_'+$Outcome)
-            $terminal=-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($first[0]|ConvertTo-Json -Depth 20 -Compress))) -and [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($last[0]|ConvertTo-Json -Depth 20 -Compress))) -eq ($Outcome -cne 'FAILED')
+            $terminal=-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($first[0]|ConvertTo-Json -Depth 20 -Compress))) -and [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($last[0]|ConvertTo-Json -Depth 20 -Compress))) -eq ($Outcome -cin @('STAGED','REFRESHED','PRESENTED'))
         }
         Check ($Label+'.OneExactPair') $pair
         Check ($Label+'.CapturedContext') $context
@@ -123,6 +123,14 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
         SelectTarget $Fixture
         $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
         if(-not $seed.StartsWith('OK|')){throw 'Admin Seed Run fault fixture unavailable; not product RED.'}
+        if($StockOnly){
+            $ready=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockPrepareForTest' @($Fixture.Warehouse))
+            if($ready -cne 'READY'){
+                if($ready -notmatch '^FIXTURE_FAILED\|[A-Za-z]+(\|-?[0-9]+)?$'){$ready='Unavailable'}
+                throw ('Owning stock fixture unavailable: '+$ready+'; not product RED.')
+            }
+            Check 'RunStock.OwningReceiveCreatesTwoExactEntities' $true
+        }
         if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.RunPresentationPolicy' @($true))){throw 'Authorized Run fault policy unavailable; not product RED.'}
         SelectTarget $Fixture 'config-producer'
         $book=$excel.Workbooks.Add();$sheet=$book.Worksheets.Item(1)
@@ -130,13 +138,14 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
         $path=Join-Path $runRoot 'run-fault-operator.xlsb';$book.SaveAs($path,50);$book.Close($false)
         $bookPin=Hash $path;$book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();$decoy.Activate();[void](Probe 'OpenDesigner' @($book.Name))
+        if($StockOnly){[void](Probe 'RunStockConfigure' @([double](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockQtyForTest')))}
         if(-not [bool](Probe 'ReadPrepare' @($canary))){throw 'Released Run fault definitions unavailable; not product RED.'}
         if($YieldOnly){[void](Probe 'RunLocalRememberFixture')}
         foreach($root in @($Fixture.Root,$Other.Root)){
             foreach($file in Get-ChildItem -LiteralPath $root -Recurse -File|Where-Object{$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '~$*'}){$pins[$file.FullName]=Hash $file.FullName}
         }
         foreach($file in Files){$recordPins[$file]=Hash $file};$otherBefore=@(Get-Slice4beActivityFiles $Other)
-        $modes=if($YieldOnly){@()}else{@('Exception','Nested')}
+        $modes=if($YieldOnly -or $StockOnly){@()}else{@('Exception','Nested')}
         foreach($mode in $modes){
             foreach($action in $actions){
                 [void](Probe 'RunFaultResetFixture')
@@ -176,6 +185,7 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
             }
         }
         if($YieldOnly){Test-ProductionRunYield $Fixture $Other $book}
+        if($StockOnly){Test-ProductionRunStock $Fixture}
         [void](Probe 'RunFaultResetFixture')
         Check 'RunFault.UnknownValuesAndFormula' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]};Check 'RunFault.SavedAuthorityPreserved' $same
