@@ -706,6 +706,61 @@ normal unassisted closure and delayed zero Excel Application audit pass. This
 preserves the local Run baseline; it does not close the separate unresolved full
 reusable171/two-aggregate/replay37 gates or the325 missing tracking/guard checks.
 
+## Tree presentation Action Paths
+
+`Test-Slice4beProductionRunPresentation.ps1 -PathsOnly` extends the shared path
+harness through `Test-ProductionInstructionPaths -RunPresentation`. This adds
+verification of the approved D18 contract without changing runtime source or
+packages. The existing232-check RED/GREEN protects observation implementation;
+this separate gate tests downstream use of those observations.
+
+Controller `reports/runtime/production-run-presentation-controller/e24130f7075c49a195e1bbbe40ec0566`,
+result `reports/runtime/slice4be-production-run-presentation-paths/8e8adb1fb24544cdaee15a495473beb8/green.json`:
+2026-10-01 09:17:08.0888363--09:23:03.2372410 UTC, **94/94 unique checks GREEN**.
+All42 prior shared GREEN identities/order remain intact. Two independent runs
+invoke the actual Collapse then Expand handlers against synthetic local tree
+rows, retaining palette state and exact original recording order. This is not
+inventory allocation or a seeded production-chain fixture. Actual Admin
+publication retains all eight original observation records. Event Detail selects
+REQUESTED and exact PRESENTED terminal fields; authored guide intent and a reader
+without author capability bind the guide to the separate observed run. Both
+actions match, zero extra actions occur, CommandCompleted concludes and
+SourceEventsApplied remains Incomplete/SOURCE_UNAVAILABLE. How-To, Diagnostic
+and Compare both preserve the same guide/run evidence. Saved authority, operator
+bytes, unknown local values and original journals/activity remain unchanged.
+Five package compiles, canonical presentation01 pins, settings preservation,
+unassisted closure and delayed zero Excel Application audit pass.
+
+Six principal captures in that result directory were inspected: `run-presentation-`
+`editor.png`, `event-detail.png`, `how-to.png`, `diagnostic.png`, `compare-both.png`
+and `conclusion.png`. The two authored steps and local-only conclusion are
+readable. Diagnostic shows both matches and zero extra actions; scrolling Compare
+both reveals the complete identity pairs. Long Event Detail coverage text exceeds
+its initial viewport. The experimental Run Tree has visibly overlapping
+System_Key/Inventory Item headings and truncated long synthetic row text. Record
+this as **RUN-TREE-LAYOUT-01**, pending an actual-form geometry test and diagnosis;
+do not count the populated Tree layout or human acceptance as passed. No layout
+repair or new architectural exception is implemented here.
+
+Static `reports/runtime/run-presentation-paths-static-01` remains283 components/
+6156 procedures/135163 lines,9 literal/45 unresolved calls and190 duplicates,
+with28 non-growing caps. Three schemas validate and367 tooling scripts parse.
+Runtime source, package identity and constructed-button coverage57/68 are unchanged.
+
+The shared path-harness regression retains **90/90** Close checks in exact prior
+order on presentation01. Controller
+`reports/runtime/production-close-paths-controller/1537a7852acc4de8bb56e66963c50e60`,
+result `reports/runtime/slice4be-production-close-paths/7050b6d2767547cab5d88c49e571a767/green.json`,
+2026-10-01 09:23:35.6556839--09:28:06.8669800 UTC. Both actual closing gestures,
+independent recordings, publication, selected Event Detail, explicit expectation
+and separate reader views retain their previous semantics. Two matched CLOSED
+actions do not distinguish the gestures or prove saved work/Domain application.
+Five compiles, canonical candidate pins, settings/authority/recording preservation,
+normal unassisted closure and delayed zero Excel Application audit pass. Reviewed
+`close-how-to.png` and `close-conclusion.png` show both instructions, two matches,
+zero extras and the local-only conclusion; the last long identity line has a
+viewport limit. This is regression evidence, not new human/full-layout acceptance.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through
