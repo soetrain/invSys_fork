@@ -1328,6 +1328,19 @@ preservation, normal unassisted closure and delayed zero Excel audit.
 
 ## Remaining gates
 
+Before List/Tree Apply integration, the unchanged refresh01 candidate reproduces
+the original worksheet baseline: controller
+`reports/runtime/production-run-local-controller/e447938ef7a7492295dfb6c757cfc228`,
+result `reports/runtime/slice4be-production-run-worksheet/736e90b9aa0e4fdda37fe53fb0037d48/red.json`,
+2026-10-01 13:14:25.2353045--13:16:09.3919636 UTC, **156 PASS / 116 FAIL / 272
+unique**. All previous identities, order and results are retained. The approved
+268-check contract has 156 passes and 112 missing-observation failures; four
+`UnavailableSurfaceNotReportedComplete` assertions remain proposed RUN-UI-01
+wording checks, not approved implementation requirements. Five compiles,
+canonical refresh01 pins, settings/operator/authority/older-record preservation,
+normal unassisted closure and delayed zero Excel Application1000/1001/1002 audit
+pass. No runtime, algorithm, message or approval change is made in this baseline.
+
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through
 Run handler integration, together with the185 Scale checks and two binding GREEN
 checks. Positive worksheet Scale tests must distinguish quiet helper return
