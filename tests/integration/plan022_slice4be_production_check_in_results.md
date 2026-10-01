@@ -1,5 +1,67 @@
 # Slice4be Production Check In correctness and observations
 
+## Initial permission wording preservation
+
+CHECK-IN-PERMISSION-WORDING-01 is protected through the packaged actual handler
+for reusable and worksheet staging. The expanded focused gate retains all193
+prior ordered checks and adds36: exact earlier denial wording, no owner entry,
+unchanged owner/projection, recovered guards, captured-reader REQUESTED/DENIED
+records and no redirection. A separate optional-policy-failure case preserves
+denial plus its tracking notice without false records or owner execution.
+
+Corrected RED on frozen activity02:226 PASS/3 FAIL/229 unique, controller
+`production-run-local-controller/1abdf6f31d39406f905a7afd59baaaa6`, result
+`slice4be-production-check-in-activity/f0984fc565cd44338ddfb420fc715725/red.json`,
+20:59:40.0485334-21:02:37.4214682 UTC. Only the two exact permission-message checks
+and the permission-message-plus-notice check fail. The two RED captures visibly
+show the shared Begin wording. All owner, journal and preservation checks pass.
+Preliminary b975f5e0/ec09999a produced225/4 because one file-list function call
+needed parentheses before PowerShell `-join`; this fourth failure was a test
+expression error. Its cleanup/audit passed, and it is not the final protecting RED.
+
+The correction adds three runtime lines in `modProductionCheckInActions.Execute`:
+after Begin refuses with typed DENIED, restore the earlier text before Finish
+appends any notice. No permission decision or outcome is inferred from text;
+all other outcomes, binding checks and owner algorithms remain unchanged.
+Unpromoted activity03 passes229/229, controller
+`production-run-local-controller/e730db64bd8c46e8bc470880781d772c`, result
+`slice4be-production-check-in-activity/bc1e01b33ada4f1d83707bbfa3569f95/green.json`,
+21:04:46.1949108-21:07:49.3405081 UTC. All RED identities and earlier PASS checks,
+shared42/five compiles, pins/settings/authority preservation, unassisted cleanup
+and delayed zero Excel audit pass. Three GREEN captures were individually reviewed:
+the original refusal, refusal plus notice, and prior successful Check In plus
+tracking notice are legible. Long-value/full human acceptance remains open.
+
+`check-in-activity-build-03` passes cold startup/five compiles with exactly one
+changed component and282 preserved relative to activity02; the older candidate
+and settings are preserved. Its initial wrapper launch safely refused the already
+existing report directory before opening Excel; the isolated report path was
+corrected. `check-in-permission-static-01` passes290 components/6175 procedures/
+135522 lines,9 literal/45 unresolved calls,190 duplicate candidates,28 non-growing
+caps, three schemas and374 PowerShell parses. Only three runtime lines were added.
+Current activity03 smoke passes86/86 with exact prior order, both unassisted exits,
+restoration and delayed zero audit, controller
+`check-in-activity03-regression/smoke-f639afcd220c464fa9963726f701750a`.
+Layout controller `check-in-activity03-regression/layout-24951fc541f247a1b098aa085f38748a`
+passes18 requested page/size pairs, six activated/maximized pages and unchanged
+native transitions. All six PNGs are byte-identical to the reviewed activity02
+captures. Full-chain controller
+`check-in-activity03-regression/chain-460288a2bb474ed79d2192a4ecc2adf4`,
+21:10:15.6418873-21:15:25.4355732 UTC, passes32 chain/48 live-role/15 Create Warehouse
+checks in exact prior order. Settings, package pins and tracked reports are
+preserved, cleanup is unassisted and delayed native audits are zero throughout.
+The broader owner/interruption regression also passes404/404 on activity03,
+controller `production-run-local-controller/50b7c149c8ba40748bc0b7928ccee794`, result
+`slice4be-production-check-in-baseline/5440004b7165422182d5f75097efb5f6/green.json`,
+21:16:01.1076300-21:24:16.7134136 UTC. All404 prior identities retain their order
+and PASS status, including initial permission/context, exact identity/custom
+columns and18 post-read interruptions. Five compiles/shared42, pins/restoration,
+unassisted shutdown and delayed zero native audit pass. Three further captures
+were individually reviewed. The earlier212 native-closure and157 routed gates
+remain explicitly activity02 evidence; their mid-action branches are unchanged
+by this initial-DENIED display correction. Wider Check In policy/store-fault,
+recording/publication/independent reader and human/NAS acceptance remain open.
+
 ## Captured-context observations during interruption
 
 This is D13 test expansion under the existing Architecture v4.11 D18 Check In
@@ -79,15 +141,15 @@ zero. Remaining permission/policy/fault and recording/publication/independent re
 acceptance remain pending; existing activity02 smoke/layout/full-chain evidence
 continues to describe the same immutable candidate.
 
-Source-reviewed open defect CHECK-IN-PERMISSION-WORDING-01: the former
+Source-reviewed gap CHECK-IN-PERMISSION-WORDING-01, corrected in the newer
+initial-permission section above: the former
 `BindForValidation` called `CanContinue`, whose initial permission refusal was
-`Production permission changed. Reopen Production before continuing.` Current
-`Begin` uses `Production permission is required; the draft was not changed.`
+`Production permission changed. Reopen Production before continuing.` Activity02's
+`Begin` used `Production permission is required; the draft was not changed.`
 `CheckBaselinePermissionRefusedForTest` checks only the prefix, so404 GREEN does
-not prove the D18 wording-preservation requirement. Add an exact-message test
-through the actual handler before correcting this difference; retain DENIED and
-the current observation/context behavior. Architecture/Plan/controls explicitly
-record the defect; no wording exception or completed acceptance is claimed.
+not prove the D18 wording-preservation requirement. The newer exact-message
+actual-handler RED/GREEN protects restoration while retaining DENIED and the
+observation/context behavior. No wording exception or completed acceptance is claimed.
 
 ## Tracking-warning regression and correction
 

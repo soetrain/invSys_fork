@@ -11,7 +11,10 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
     On Error GoTo Failed
     priorLoading = loading: busy = True
     Set action = New cProductionWorksheetAction
-    If Not action.Begin("PRODUCTION_RUN_CHECK_IN", context, operatorBook, report) Then GoTo Done
+    If Not action.Begin("PRODUCTION_RUN_CHECK_IN", context, operatorBook, report) Then
+        If action.OutcomeCode = "DENIED" Then report = "Production permission changed. Reopen Production before continuing."
+        GoTo Done
+    End If
     If Not action.CanContinue(report) Then GoTo Done
     Set owner.RunActionContinuation = action
     action.OutcomeCode = owner.CheckInProductionRun()

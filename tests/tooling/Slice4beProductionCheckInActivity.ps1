@@ -12,6 +12,12 @@ Public Function CheckActivitySuccessAndNoticeForTest() As Boolean
     CheckActivitySuccessAndNoticeForTest = InStr(1, mTxtStatus.Text, "Checked in ", vbBinaryCompare) = 1 And _
         InStr(1, mTxtStatus.Text, "Tracking unavailable:", vbBinaryCompare) > 1
 End Function
+Public Function CheckActivityPermissionTextForTest(ByVal withNotice As Boolean) As Boolean
+    Dim expected As String
+    expected = "Production permission changed. Reopen Production before continuing."
+    If withNotice Then expected = expected & " Tracking unavailable: configuration could not be validated."
+    CheckActivityPermissionTextForTest = (StrComp(mTxtStatus.Text, expected, vbBinaryCompare) = 0)
+End Function
 '@)
     $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
 Public Sub CheckActivityUnselect()
@@ -19,6 +25,9 @@ Public Sub CheckActivityUnselect()
 End Sub
 Public Function CheckActivitySuccessAndNotice() As Boolean
     CheckActivitySuccessAndNotice = mForm.CheckActivitySuccessAndNoticeForTest()
+End Function
+Public Function CheckActivityPermissionText(ByVal withNotice As Boolean) As Boolean
+    CheckActivityPermissionText = mForm.CheckActivityPermissionTextForTest(withNotice)
 End Function
 '@)
     $core=$packages['invSys.Core.xlam'].VBProject
@@ -54,14 +63,14 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
-    function Pair([string[]]$Before,[string]$Outcome,[string]$Case){
+    function Pair([string[]]$Before,[string]$Outcome,[string]$Case,[string]$Actor='config-producer'){
         $raw=@(Files|Where-Object{$_ -cnotin $Before}|ForEach-Object{[IO.File]::ReadAllText($_)})
         $records=@($raw|ForEach-Object{$_|ConvertFrom-Json})
         $first=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED');$last=@($records|Where-Object OutcomeCode -CEQ $Outcome)
         $paired=$records.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
         $context=$paired;$safe=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 25
+            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 25
             $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){
@@ -77,7 +86,7 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         }
         if($paired){
             $linked=$first[0].ActivityId -cne '' -and $first[0].ActivityId -ceq $last[0].ActivityId -and $first[0].RecordId -cne $last[0].RecordId -and $activityIds.Add([string]$first[0].ActivityId)
-            $severity=if($Outcome -ceq 'REJECTED'){'Warning'}elseif($Outcome -ceq 'FAILED'){'Error'}else{'Info'}
+            $severity=if($Outcome -ceq 'REJECTED'){'Warning'}elseif($Outcome -ceq 'FAILED'){'Error'}elseif($Outcome -ceq 'DENIED'){'Blocked'}else{'Info'}
             $effect=if($Outcome -ceq 'FAILED'){'Unknown'}else{'Unchanged'}
             $facts=$first[0].DataEffect -ceq 'Unknown' -and $first[0].Severity -ceq 'Info' -and $last[0].DataEffect -ceq $effect -and $last[0].Severity -ceq $severity -and $first[0].EventCode -ceq 'PRODUCTION_RUN_CHECK_IN_REQUESTED' -and $last[0].EventCode -ceq ('PRODUCTION_RUN_CHECK_IN_'+$Outcome)
             $attempt=[bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($first[0]|ConvertTo-Json -Depth 20 -Compress)))
@@ -173,6 +182,45 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         Check 'CheckInActivity.MissingColumns.ActualHandlerReturned' ([bool](Probe 'CheckBaselineAct' @('')))
         Check 'CheckInActivity.MissingColumns.StagingPreserved' ([string](Probe 'CheckBaselineWorksheetState') -ceq $state)
         Pair $before 'FAILED' 'CheckInActivity.MissingColumns'
+        SelectTarget $Fixture 'config-reader'
+        [void](Probe 'CheckBaselineReopen' @($book.Name))
+        foreach($mode in @('Reusable','Worksheet')){
+            $ready=if($mode -ceq 'Reusable'){[bool](Probe 'CheckBaselineReusableStage' @('Selected'))}else{[bool](Probe 'CheckBaselineWorksheetStage' @($selectedKey,$canary))}
+            if(-not $ready){throw 'Permission observation fixture unavailable; not product RED.'}
+            if($CaptureEvidence -and $mode -ceq 'Reusable'){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))}
+            $ownerBefore=[string](Probe 'RunLocalOwnerState')
+            $projectionBefore=[string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')
+            [void](Probe 'CheckBaselineResetOwnerEntries')
+            $before=Files;$otherBefore=@(Get-Slice4beActivityFiles $Other);$label='CheckInActivity.Permission.'+$mode
+            Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
+            Check ($label+'.OwnerNotEntered') ([int](Probe 'CheckBaselineOwnerEntries') -eq 0)
+            Check ($label+'.OwnerStatePreserved') ([string](Probe 'RunLocalOwnerState') -ceq $ownerBefore)
+            Check ($label+'.ProjectionPreserved') (([string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')) -ceq $projectionBefore)
+            Check ($label+'.ExactPermissionMessage') ([bool](Probe 'CheckActivityPermissionText' @($false)))
+            Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
+            Check ($label+'.NoRedirectedRecords') ((@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
+            Pair $before 'DENIED' $label 'config-reader'
+            if($CaptureEvidence -and $mode -ceq 'Reusable'){CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-permission-denied.png'}
+        }
+        if(-not [bool](Probe 'CheckBaselineReusableStage' @('Selected'))){throw 'Permission/policy fault fixture unavailable; not product RED.'}
+        if($CaptureEvidence){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))}
+        $ownerBefore=[string](Probe 'RunLocalOwnerState')
+        $projectionBefore=[string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')
+        [void](Probe 'CheckBaselineResetOwnerEntries')
+        $before=Files;$otherBefore=@(Get-Slice4beActivityFiles $Other);$label='CheckInActivity.Permission.PolicyUnavailable'
+        [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyArm' @($true))
+        try{
+            Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
+            Check ($label+'.OwnerNotEntered') ([int](Probe 'CheckBaselineOwnerEntries') -eq 0)
+            Check ($label+'.OwnerStatePreserved') ([string](Probe 'RunLocalOwnerState') -ceq $ownerBefore)
+            Check ($label+'.ProjectionPreserved') (([string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')) -ceq $projectionBefore)
+            Check ($label+'.ExactPermissionMessageAndNotice') ([bool](Probe 'CheckActivityPermissionText' @($true)))
+            Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
+            Check ($label+'.PolicyReadReached') ([int](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyHits') -eq 1)
+            Check ($label+'.NoFalseOrRedirectedRecords') (((Files) -join '|') -ceq ($before -join '|') -and (@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
+            if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-permission-tracking-unavailable.png'}
+        }finally{[void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyArm' @($false))}
+        SelectTarget $Fixture 'config-producer'
         Check 'CheckInActivity.CanonicalEntitiesPreserved' ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockSourcePreservedForTest'))
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]}
         Check 'CheckInActivity.SavedAuthorityPreserved' $same
