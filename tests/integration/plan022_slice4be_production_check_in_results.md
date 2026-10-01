@@ -1,5 +1,79 @@
 # Slice4be Production Check In correctness and observations
 
+## Recording, publication and independent reader paths
+
+Test-only expansion under Architecture v4.11 D18,2026-10-01 UTC. The shared
+`Test-ProductionInstructionPaths` now runs reusable and worksheet Check In as
+separate isolated gates. Each prepares its prerequisites before recording, then
+invokes `frmProduction.mBtnManagerCheckIn_Click` once in each of two independent
+recordings: guide provenance and observed run. Instructions state the prerequisites
+explicitly; observations do not identify the branch, entity or quantity. This proves
+one local command per recording, not a complete Production workflow.
+
+Pre-observation routed01 produces meaningful missing-pair RED with successful
+owner behavior, preserved exact identities and no harness/compile failure:
+
+- Reusable49 PASS/1 FAIL/50 unique, controller
+  `production-run-local-controller/19043b1db96741568f50b44ef5a1ec03`, result
+  `slice4be-production-check-in-paths-reusable/f05d02c681e14fb791b679be7fd71e37/red.json`,
+  21:31:26.7091701-21:33:46.0921693 UTC.
+- Worksheet54 PASS/1 FAIL/55 unique, controller
+  `production-run-local-controller/041ec7a2031d42508471b0cd49277aac`, result
+  `slice4be-production-check-in-paths-worksheet/8f98a803f144432facc8c3f51bb167ed/red.json`,
+  21:41:03.8630692-21:43:12.9435113 UTC.
+
+Unchanged, unpromoted activity03 passes the full paths:
+
+- Reusable91/91, controller
+  `production-run-local-controller/1789cf819829484180002c7023123409`, result
+  `slice4be-production-check-in-paths-reusable/fc77de79767f4aabbb3a71ab6e7c49aa/green.json`,
+  21:34:06.8955592-21:40:46.6698290 UTC.
+- Worksheet101/101, controller
+  `production-run-local-controller/6accc0f0ee304ae6a595775472e0d046`, result
+  `slice4be-production-check-in-paths-worksheet/8d6295ed1df541ab981b48fd24f00f24/green.json`,
+  21:43:29.0505108-21:49:50.2918425 UTC.
+
+Both GREEN gates retain every RED check in order and every prior PASS, including
+the shared42 and five instrumented packaged compiles. They prove captured-actor
+REQUESTED/STAGED pairs, catalog25 local-owner facts, empty source references,
+exact recording journals, distinct source/observed runs, actual Admin publication
+and immutable original published lines. Event Detail selects exact REQUESTED and
+STAGED lines without assuming publication order. CommandCompleted concludes;
+SourceEventsApplied remains incomplete with SOURCE_UNAVAILABLE.
+
+An explicitly permitted author saves the guide. A separate reader without
+ACTION_PATH_MAINT evaluates it against the observed run and switches How-To,
+Diagnostic and Compare while retaining the same guide hash, run and evidence.
+Viewing preserves activity, journals, publication, canonical workbook bytes and
+the captured operator's unknown column and saved bytes. Reusable owner checks
+retain checked state, note freeze and no completion; worksheet checks retain the
+selected non-first received System_Key, custom value/formula, palette and headers.
+All four controllers preserve settings/packages, close unassisted and pass delayed
+Application1000/1001/1002 audits with zero Excel failures.
+
+Twelve captures were individually reviewed: Production, Event Detail, How-To,
+Diagnostic, Compare and the conclusion viewport for each mode. The visible
+conclusion is local command completion with Domain application not asserted.
+Long Production fields still clip; these fixtures do not establish multiline,
+all-size, human or NAS acceptance. Capture hashes and reviews remain ignored.
+
+`check-in-paths-static-01` passes290 components/6175 procedures/135522 lines,
+9 literal/45 unresolved calls,190 duplicate candidates,28 non-growing module caps,
+three schemas and374 PowerShell parses. Runtime source and frozen packages are
+unchanged. The shared path assertion now expects current catalog25; historical
+catalog definitions and compatibility tests remain intact. Wider policy/store-fault,
+remaining Run controls and full Release1 acceptance remain open.
+
+The shared Load Recipe path regression on the same activity03 candidate retains
+87/87 prior checks in exact order, controller
+`production-run-local-controller/ecdb31ffb5d641549a52baa7ece33c6b`, result
+`slice4be-production-run-load-paths/c4b0724eeabb45b78e18b764e60d7714/green.json`,
+21:50:04.0668293-21:56:25.3688497 UTC. Shared42/five compiles, canonical pins,
+settings/authority/operator/evidence preservation, unassisted closure and delayed
+zero Excel audit pass. The earlier activity03 build, smoke86, layout18, chain32,
+live-role48, Create Warehouse15 and owner404 evidence below applies to unchanged
+runtime packages; those gates are not claimed as fresh runs in this test-only slice.
+
 ## Initial permission wording preservation
 
 CHECK-IN-PERMISSION-WORDING-01 is protected through the packaged actual handler
