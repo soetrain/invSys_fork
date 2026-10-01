@@ -6,13 +6,19 @@ Option Private Module
 Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
                    ByVal operatorBook As Workbook, ByRef loading As Boolean, ByRef busy As Boolean)
     Dim priorLoading As Boolean, number As Long, source As String, description As String
+    Dim action As cProductionWorksheetAction, report As String
     If loading Or busy Then Exit Sub
-    If Not modProductionRunBinding.RequireCurrentContext(owner, context, operatorBook) Then Exit Sub
     On Error GoTo Failed
     priorLoading = loading: busy = True
+    Set action = New cProductionWorksheetAction
+    If Not action.BindForValidation(context, operatorBook, report) Then GoTo Done
+    Set owner.RunActionContinuation = action
     owner.CheckInProductionRun
+    If Not action.CanContinue(report) Then GoTo Done
 Done:
+    Set owner.RunActionContinuation = Nothing
     loading = priorLoading: busy = False
+    If report <> "" Then owner.ShowStatus report
     If number <> 0 Then
         On Error GoTo 0
         Err.Raise number, source, description
@@ -42,7 +48,8 @@ End Function
 ' merely because its SKU, name or location matches the selected row.
 Public Function ResolveSelectedKey(ByVal owner As frmProduction, ByVal inventoryTable As ListObject, _
                                    ByVal selectedKey As String, ByVal itemCode As String, _
-                                   ByVal itemName As String, ByVal locationValue As String) As String
+                                   ByVal itemName As String, ByVal locationValue As String, _
+                                   Optional ByVal action As cProductionWorksheetAction = Nothing) As String
     Dim entities As Variant, cSystemKey As Long, cItemCode As Long, cItem As Long, cLocation As Long
     Dim r As Long, codeMatches As Boolean, nameMatches As Boolean, locationMatches As Boolean
     If selectedKey = "" Then Exit Function
@@ -77,6 +84,7 @@ Public Function ResolveSelectedKey(ByVal owner As frmProduction, ByVal inventory
 
     On Error GoTo CleanFail
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge(itemCode)
+    If Not modProductionRunClearActions.ContinueRefresh(owner, action) Then Exit Function
     If Not IsArray(entities) Then Exit Function
     For r = LBound(entities, 1) To UBound(entities, 1)
         codeMatches = (Trim$(itemCode) <> "" And _
@@ -93,4 +101,36 @@ Public Function ResolveSelectedKey(ByVal owner As frmProduction, ByVal inventory
         End If
     Next r
 CleanFail:
+End Function
+
+Public Function QuantityExceedsDisplayedInventory(ByVal inventoryText As String, ByVal quantity As Double) As Boolean
+    inventoryText = Trim$(inventoryText)
+    If inventoryText = "" Then Exit Function
+    If Not IsNumeric(Left$(inventoryText, 1)) Then Exit Function
+    QuantityExceedsDisplayedInventory = (quantity > CDbl(Val(inventoryText)) + 0.0000001)
+End Function
+
+' Preserve the selected Process's exact-entity validation and diagnostics.
+Public Function ValidateLiveAllocation(ByVal systemKey As String, ByVal nodeId As String, _
+                                       ByVal runLocation As String, ByRef report As String, _
+                                       ByVal action As cProductionWorksheetAction) As Boolean
+    Dim liveQuantity As Double, liveLocation As String, nonCounted As Boolean, allocatedQuantity As Double
+    liveQuantity = modProductionRunEntityReads.AvailableQuantity(systemKey, liveLocation, action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    nonCounted = modProductionRunEntityReads.IsNonCounted(systemKey, action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    allocatedQuantity = modProductionReusableRun.AllocationTotalForEntityForNode(systemKey, nodeId)
+    If Not nonCounted And liveQuantity + 0.0000001 < allocatedQuantity Then
+        report = "Stale allocation rejected for System_Key " & systemKey & _
+                 ". Available=" & modProductionReusableRun.FormatRunNumberLocal(liveQuantity) & "; allocated=" & _
+                 modProductionReusableRun.FormatRunNumberLocal(allocatedQuantity) & ". Refresh Production Run."
+        Exit Function
+    End If
+    If Trim$(runLocation) <> "" And _
+       StrComp(Trim$(runLocation), liveLocation, vbTextCompare) <> 0 Then
+        report = "System_Key " & systemKey & " is at " & liveLocation & _
+                 "; the Production run location is " & Trim$(runLocation) & "."
+        Exit Function
+    End If
+    ValidateLiveAllocation = True
 End Function

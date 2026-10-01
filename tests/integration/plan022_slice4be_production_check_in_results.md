@@ -1,22 +1,130 @@
 # Slice4be Production Check In correctness prerequisites
 
-Last verified:2026-10-01 UTC. Check In now requires a selected reusable Process,
-preserves exact worksheet identity and custom columns, suppresses loading/nested
-entry, rejects stale context and aligns worksheet values beneath their headings.
-Latest unpromoted candidate is `deploy/validation-production-check-in-correctness-03`:
-chain32/32, live roles48/48, Create Warehouse15/15, smoke86/86 and six-page geometry
-pass. Its only change from correctness02 is a corrected two-batch test fixture.
-Correctness02 owns focused103/103 and worksheet257/257 evidence; correctness01 owns
-the503-check Run regression445 PASS/58 known Scale failures. Keep those candidate
-distinctions explicit. These results do not establish Check In observations,
-full populated-layout, native reusable, human or Release1 acceptance. Catalog24
-and63/68 constructed-button wiring are unchanged.
+Last verified:2026-10-01 UTC. Latest unpromoted candidate is
+`deploy/validation-production-check-in-guards-02`: focused278/278, chain32/32,
+live roles48/48, Create Warehouse15/15, smoke86/86 and six-page geometry pass.
+Check In requires a selected reusable Process and current permission, preserves
+exact worksheet identity/custom columns, suppresses loading/nested entry, aligns
+worksheet values beneath their headings and stops at the nine protected read
+returns when context or permission changes. Guards02 also retains the503-check
+Run regression445 PASS/58 known Scale failures and worksheet257/257. These
+results do not establish Check In observations, comprehensive routed/closed-book
+interruptions, full populated-layout, native reusable, human or Release1 acceptance.
+Catalog24 and63/68 constructed-button wiring are unchanged.
 
 Architecture v4.11 D18, "Check In correctness prerequisites," clarifies existing
 D14 exact identity/header-extension, D15 selected-Process execution and D18
-loading/nested-entry requirements. Plan022, controls1.410 and coverage1.150 are
+loading/nested-entry requirements. Plan022, controls1.411 and coverage1.151 are
 synchronized. No new activity catalog entry, permission, authority or alternative
 contract is established by these corrections.
+
+## Permission and read-return guard integration
+
+Initial unpromoted candidate `deploy/validation-production-check-in-guards-01`
+turns the protecting278-check RED219/59 into278/278 GREEN, retaining every ordered
+check and prior PASS, including shared42. Controller
+`production-run-local-controller/565e77456fad4f74aa925f10c921dfda`, result
+`slice4be-production-check-in-baseline/9be53f17323b4076b5d9f4f70a61247f/green.json`,
+16:38:55.7674438--16:46:44.2996744 UTC. All18 real interruption effects, both entry
+permission cases, five instrumented compiles, authority/operator/package hashes,
+authorization/settings restoration, normal unassisted closure and delayed zero
+Excel Application1000/1001/1002 failures pass. The controller waited for normal
+process exit while retaining its restoration state; no forced closure was used.
+
+`cProductionWorksheetAction.BindForValidation` binds the existing context and
+current Production/Admin permission without starting an observation. The actual
+Click wrapper passes that continuation through Check In's external allocation
+validation and projection reads, restores guards on exit and preserves refusal
+guidance. Worksheet identity reads and later refreshes use the same continuation.
+State already changed before a read interruption remains; no rollback is claimed.
+The selected Process's allocation quantity/location diagnostics are preserved in
+the extracted typed helper. Other service callers retain the optional no-action
+path. The routed upstream requirement loop itself is not changed or certified;
+its real interruption fixture and closed-workbook cases remain required before
+comprehensive Check In acceptance. Observation/catalog integration remains open.
+
+Cold build `check-in-guards-build-01` passes startup and all five compiles, changes
+only the form, Check In helper, reusable-run module and worksheet-action class,
+and preserves279 of283 compiled components. The frozen correctness03 candidate
+is preserved, settings restore and delayed native audit is zero. Static evidence
+`check-in-guards-static-01`:290 components/6175 procedures/135507 lines;
+9 literal/45 unresolved dynamic calls,190 duplicate candidates and28 non-growing
+oversized caps. Net guard implementation growth is one procedure/25 lines; the
+form and reusable-run module shrink. Three schemas and370 PowerShell parses pass.
+Eight existing process-scoped source checks pass with an explicit repository root.
+
+Three fresh principal captures were individually reviewed and hash-pinned in
+`capture-review.json` under the focused result: selected-Process success, missing
+Process guidance and worksheet heading alignment. Long values still clip. These
+captures do not show permission-refusal screens or establish human/full populated
+layout acceptance. Broader candidate regression gates are recorded separately.
+
+Guards01 also passes32/32 full-chain,48/48 live-role and15/15 Create Warehouse
+checks in exact prior order. Controller
+`check-in-guards01-regression/chain-f5107b6042cb45449c6cd5695da9f954`,
+16:47:25.3760878--16:52:41.3776730 UTC, preserves settings, packages and tracked
+reports, closes normally and passes the delayed zero native audit.
+
+Review then restored the original allocation-validation order: calculate the
+current allocated total after the two live inventory reads, using the existing
+pure total accessor through a typed call. The initial extraction had moved that
+calculation before the reads. Corrected unpromoted guards02 passes cold startup
+and five compiles in `check-in-guards-build-02`; only the Check In/reusable-run
+modules differ from guards01, retaining281 of283 compiled components and preserving
+the frozen predecessor. Settings restore and delayed native audit is zero.
+`check-in-guards-static-02` passes three schemas/370 parses, with290 components,
+6175 procedures/135506 lines, unchanged9/45/190 call/duplicate metrics and28
+non-growing oversized caps. Net growth from the pre-guard baseline is one
+procedure/24 lines.
+
+Guards02 retains278/278 in exact prior order, including shared42 and all18 actual
+read interruptions. Controller
+`production-run-local-controller/9825b41b1ca14ff6966eb71eb81daba2`, result
+`slice4be-production-check-in-baseline/18d776310f5b47a6b234ef624b4b3db3/green.json`,
+16:54:00.7540599--17:01:38.3918572 UTC, proves five instrumented compiles,
+authorization/authority/operator/package/settings preservation, normal unassisted
+closure and delayed zero native audit. Three fresh principal captures were
+individually reviewed/hash-pinned with the same guidance/alignment and clipping
+limitation. Guards02 is the latest frozen candidate; broader gates follow below.
+
+Guards02 broad gates retain exact prior ordered checks:
+
+- Chain32/32, live roles48/48 and Create Warehouse15/15:
+  `check-in-guards02-regression/chain-84d21f54f8104741a6cd2dd0b8dabfbc`,
+  17:01:52.2917047--17:07:04.2412638 UTC.
+- Layout18 requested size/page pairs, six activated/maximized pages and all prior
+  native transitions:
+  `check-in-guards02-regression/layout-424d93bbfa294802909bd3a568db93d7`,
+  17:07:17.9115873--17:07:34.9302351 UTC. All six Run List/Settings captures were
+  individually reviewed and hash-pinned. Minimum/default clamp to the same size;
+  there are two actual sizes. This is geometry evidence, not populated acceptance.
+- Smoke86/86:
+  `check-in-guards02-regression/smoke-a67627d00bfd48e0a741cd79854b477b`,
+  17:08:15.2560689--17:08:36.8391400 UTC. Both Initial/Final shutdown receipts in
+  `packaged-smoke-closure/870b74f20ba54588bd51e020153bd213` prove unassisted exits
+  without requested termination.
+
+Each gate preserves settings/packages and applicable tracked reports, closes Excel
+normally and passes its delayed zero Application1000/1001/1002 audit before the
+next gate. The older full reusable171/replay37 and ordinary run-only67 native
+failure exclusions remain unresolved; these passing gates do not replace them.
+
+Guards02 Run-local503 retains every ordered identity and exact prior result:
+445 PASS/58 known Scale failures, no new regression, shared42 and all33 owner
+cases. Controller `production-run-local-controller/81c5e61ece724633992e162cdb07753b`,
+result `slice4be-production-run-local/4fc6c359deb3427fa036f2cbcb8f25c6/green.json`,
+17:09:49.3150769--17:18:41.1928361 UTC. All seven real native closure receipts
+prove visible original-handler invocation; no surfaces were dismissed in this run.
+Five compiles, package/authority/operator/settings preservation, older-record
+immutability, normal unassisted cleanup and delayed zero native audit pass.
+The58 existing failures are not new RED, GREEN or an approved Scale exception.
+
+Guards02 worksheet-owner257 retains every prior ordered check/result,257/257 PASS.
+Controller `production-run-local-controller/0c3e583f440f48c58e80d23483e44f42`, result
+`slice4be-production-run-worksheet-owner/b3fc7ebb407b43aea77dabfed8742971/green.json`,
+17:19:55.3501747--17:24:54.4040392 UTC. Clear/Refresh owner and read-return checks,
+five compiles, package/authority/operator/settings preservation, older records,
+normal unassisted cleanup and delayed zero native audit pass.
 
 ## Permission and read-return guard RED
 

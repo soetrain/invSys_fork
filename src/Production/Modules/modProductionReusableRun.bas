@@ -703,7 +703,8 @@ End Function
 
 Public Function CheckInReusableProcess(ByVal processName As String, _
                                        ByVal runLocation As String, _
-                                       Optional ByRef report As String = "") As Boolean
+                                       Optional ByRef report As String = "", _
+                                       Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     Dim node As Object
     Dim nodeId As String
 
@@ -726,7 +727,8 @@ Public Function CheckInReusableProcess(ByVal processName As String, _
         Exit Function
     End If
     If Not ValidateProcessRequirementsReady(node, report) Then Exit Function
-    If Not ValidateProcessAllocationsLive(node, runLocation, report) Then Exit Function
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    If Not ValidateProcessAllocationsLive(node, runLocation, report, action) Then Exit Function
 
     mCheckedIn = True
     mBatchNoteFrozen = True
@@ -1512,34 +1514,17 @@ End Function
 
 Private Function ValidateProcessAllocationsLive(ByVal node As Object, _
                                                 ByVal runLocation As String, _
-                                                ByRef report As String) As Boolean
+                                                ByRef report As String, ByVal action As cProductionWorksheetAction) As Boolean
     Dim key As Variant
     Dim nodeId As String
     Dim systemKey As String
-    Dim liveQty As Double
-    Dim liveLocation As String
-    Dim allocatedForEntity As Double
-    Dim nonCounted As Boolean
 
     nodeId = RunRecordText(node, "ProcessNodeId")
     For Each key In mAllocations.Keys
         If Not AllocationBelongsToNode(CStr(key), nodeId) Then GoTo NextAllocation
         systemKey = AllocationSystemKey(CStr(key))
-        liveQty = ExactEntityAvailableQty(systemKey, liveLocation)
-        nonCounted = ExactEntityIsNonCounted(systemKey)
-        allocatedForEntity = AllocationTotalForEntityForNode(systemKey, nodeId)
-        If Not nonCounted And liveQty + QTY_TOLERANCE < allocatedForEntity Then
-            report = "Stale allocation rejected for System_Key " & systemKey & _
-                     ". Available=" & FormatRunNumberLocal(liveQty) & "; allocated=" & _
-                     FormatRunNumberLocal(allocatedForEntity) & ". Refresh Production Run."
-            Exit Function
-        End If
-        If Trim$(runLocation) <> "" And _
-           StrComp(Trim$(runLocation), liveLocation, vbTextCompare) <> 0 Then
-            report = "System_Key " & systemKey & " is at " & liveLocation & _
-                     "; the Production run location is " & Trim$(runLocation) & "."
-            Exit Function
-        End If
+        If Not modProductionCheckInActions.ValidateLiveAllocation(systemKey, nodeId, _
+                                                                 runLocation, report, action) Then Exit Function
 NextAllocation:
     Next key
     ValidateProcessAllocationsLive = True
@@ -1685,7 +1670,7 @@ Private Function AllocationCountForNode(ByVal nodeId As String) As Long
     Next key
 End Function
 
-Private Function AllocationTotalForEntityForNode(ByVal systemKey As String, _
+Public Function AllocationTotalForEntityForNode(ByVal systemKey As String, _
                                                  ByVal nodeId As String) As Double
     Dim key As Variant
     For Each key In mAllocations.Keys
@@ -2692,7 +2677,7 @@ Private Function RunRecordNumber(ByVal record As Object, ByVal fieldName As Stri
     End If
 End Function
 
-Private Function FormatRunNumberLocal(ByVal valueIn As Double) As String
+Public Function FormatRunNumberLocal(ByVal valueIn As Double) As String
     FormatRunNumberLocal = Format$(valueIn, "0.#########")
 End Function
 

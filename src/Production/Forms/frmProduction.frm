@@ -4260,9 +4260,10 @@ Public Sub CheckInProductionRun()
             Exit Sub
         End If
         If modProductionReusableRun.CheckInReusableProcess(ActiveRunProcess(), _
-                ActiveRunLocation(), reusableReport) Then
-            RefreshReusableRunControls False
+                ActiveRunLocation(), reusableReport, mRunActionContinuation) Then
+            RefreshReusableRunControls False, mRunActionContinuation
         End If
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
         ShowStatus reusableReport
         Exit Sub
     End If
@@ -4273,6 +4274,7 @@ Public Sub CheckInProductionRun()
         RefreshRunPaletteState
     End If
     checkInStage = "PalettePresence"
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     If mLstRunPalette Is Nothing Or mLstRunPalette.ListCount = 0 Then
         ShowStatus "Load a recipe and choose acceptable inventory before checking inventory into Production."
         Exit Sub
@@ -4286,12 +4288,14 @@ Public Sub CheckInProductionRun()
 
     checkInStage = "BuildPayload"
     usedPayloadJson = BuildRunUsedPayloadJson(stagedTotal)
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     If stagedTotal <= 0 Then
         ShowStatus "No inventory was checked in. Enter allocation quantities first."
         Exit Sub
     End If
     checkInStage = "WriteCheckRows"
     If Not WriteProductionCheckRowsFromRunPalette() Then
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
         ShowStatus "Check In failed. The Inventory Check list could not be updated. " & _
             "Refresh Production Run before completing. " & mCheckRowsDiagnostic
         Exit Sub
@@ -4299,6 +4303,7 @@ Public Sub CheckInProductionRun()
 
     checkInStage = "RefreshManager"
     RefreshManagerState
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     ShowStatus "Checked in " & FormatRunNumber(stagedTotal) & " units to Production. Complete Run will consume these checked-in quantities."
     Exit Sub
 
@@ -4694,7 +4699,8 @@ Private Function BuildRunUsedPayloadJson(ByRef stagedTotal As Double) As String
         rowVal = Trim$(NzStr(mLstRunPalette.List(i, 3)))
         itemCode = Trim$(RunItemCodeFromList(mLstRunPalette, i))
         locVal = NzStr(mLstRunPalette.List(i, 9))
-        systemKey = ResolveRunSystemKey(NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), locVal)
+        systemKey = modProductionCheckInActions.ResolveSelectedKey(Me, InventoryTable(), NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), locVal, mRunActionContinuation)
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Function
         If systemKey = "" Then
             ShowStatus "Cannot complete run. The selected inventory row has no immutable System_Key."
             Exit Function
@@ -4703,7 +4709,7 @@ Private Function BuildRunUsedPayloadJson(ByRef stagedTotal As Double) As String
         If Not IsNumeric(NzStr(mLstRunPalette.List(i, 6))) Then GoTo NextChoice
         qtyVal = CDbl(NzStr(mLstRunPalette.List(i, 6)))
         If qtyVal <= 0 Then GoTo NextChoice
-        If RunChoiceWouldExceedInventory(i, qtyVal) Then
+        If modProductionCheckInActions.QuantityExceedsDisplayedInventory(NzStr(mLstRunPalette.List(i, 8)), qtyVal) Then
             ShowStatus "Cannot complete run. Inventory " & IIf(rowVal <> "", "System_Key " & rowVal, itemCode) & _
                        " requires " & FormatRunNumber(qtyVal) & " but only " & _
                        NzStr(mLstRunPalette.List(i, 8)) & " is available."
@@ -4765,8 +4771,8 @@ Private Function WriteProductionCheckRowsFromRunPalette() As Boolean
         rowVal = Trim$(NzStr(mLstRunPalette.List(i, 3)))
         itemCode = Trim$(RunItemCodeFromList(mLstRunPalette, i))
         writeStage = "ResolveSystemKey.Row" & CStr(i + 1)
-        systemKey = ResolveRunSystemKey(NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), _
-                                        NzStr(mLstRunPalette.List(i, 9)))
+        systemKey = modProductionCheckInActions.ResolveSelectedKey(Me, InventoryTable(), NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), _
+                                        NzStr(mLstRunPalette.List(i, 9)), mRunActionContinuation)
         If systemKey = "" Then Exit Function
         identityKey = "SYS|" & systemKey
         If Not IsNumeric(NzStr(mLstRunPalette.List(i, 6))) Then GoTo NextChoice
@@ -4810,22 +4816,6 @@ NextChoice:
 FailWrite:
     mCheckRowsDiagnostic = "Stage=" & writeStage & "; Error=" & CStr(Err.Number) & _
         " - " & Err.Description
-End Function
-
-Private Function ResolveRunSystemKey(ByVal selectedKey As String, ByVal itemCode As String, _
-                                     ByVal itemName As String, ByVal locationValue As String) As String
-    ResolveRunSystemKey = modProductionCheckInActions.ResolveSelectedKey(Me, InventoryTable(), selectedKey, itemCode, itemName, locationValue)
-End Function
-
-Private Function RunChoiceWouldExceedInventory(ByVal listIndex As Long, ByVal qtyVal As Double) As Boolean
-    Dim invText As String
-    Dim invQty As Double
-
-    invText = Trim$(NzStr(mLstRunPalette.List(listIndex, 8)))
-    If invText = "" Then Exit Function
-    If Not IsNumeric(Left$(invText, 1)) Then Exit Function
-    invQty = CDbl(Val(invText))
-    RunChoiceWouldExceedInventory = (qtyVal > invQty + 0.0000001)
 End Function
 
 Private Function NzDblLocal(ByVal value As Variant) As Double
