@@ -161,6 +161,7 @@ function Test-ProductionCheckInRouted($Fixture,$Other){
     if(-not $seed.StartsWith('OK|')){throw 'Admin Seed unavailable; not product RED.'}
     $ready=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockPrepareForTest' @($Fixture.Warehouse))
     if($ready -cne 'READY'){throw 'Real received stock unavailable; not product RED.'}
+    if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Authorized tracking policy unavailable; not product RED.'}
     $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
     $authBytes=[IO.File]::ReadAllBytes($authPath);$authHash=Hash $authPath
     try{
@@ -184,7 +185,7 @@ function Test-ProductionCheckInRouted($Fixture,$Other){
         Check 'CheckInRouted.Positive.ActualHandlerReturned' ([bool](Probe 'CheckBaselineAct' @('')))
         Check 'CheckInRouted.Positive.ExactRoutedKeysAndNoSinkCompletion' ([bool](Probe 'CheckRoutedResult'))
         Check 'CheckInRouted.Positive.GuardsRestored' ([bool](Probe 'CheckBaselineGuards'))
-        Check 'CheckInRouted.Positive.NoActivityRecords' ((@(Get-Slice4beActivityFiles $Fixture) -join '|') -ceq ($before -join '|'))
+        Test-ProductionCheckInJournal $Fixture $Other $before $otherBefore 'STAGED' 'CheckInRouted.Positive' $token
         if($CaptureEvidence){[void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'));CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-routed.png'}
         foreach($interruption in @('SignedOut','Permission')){foreach($ordinal in 1,2){
           try{
@@ -206,7 +207,8 @@ function Test-ProductionCheckInRouted($Fixture,$Other){
             $refused=if($interruption -ceq 'Permission'){[bool](Probe 'CheckBaselinePermissionRefused')}else{[bool](Probe 'CheckBaselineContextRefused')}
             Check ($label+'.VisibleContextRefusal') $refused
             Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
-            Check ($label+'.NoActivityOrRedirectedRecords') ((@(Get-Slice4beActivityFiles $Fixture) -join '|') -ceq ($before -join '|') -and (@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
+            $outcome=if($interruption -ceq 'SignedOut'){'REQUESTED'}else{'FAILED'}
+            Test-ProductionCheckInJournal $Fixture $Other $before $otherBefore $outcome $label $token
           }finally{
             if($interruption -ceq 'Permission'){
                 [IO.File]::WriteAllBytes($authPath,$authBytes)

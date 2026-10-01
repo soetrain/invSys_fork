@@ -1,5 +1,94 @@
 # Slice4be Production Check In correctness and observations
 
+## Captured-context observations during interruption
+
+This is D13 test expansion under the existing Architecture v4.11 D18 Check In
+contract. Runtime source and frozen activity02 packages are unchanged. The shared
+read-only journal assertion verifies exact outcomes, captured warehouse/station/
+actor/catalog, fixed catalog text, empty source references, content integrity,
+linked distinct records, command-terminal meaning and no redirected records or
+removal of prior records. These cases do not start an Action Path recording:
+SequenceId remains empty and the shared action Ordinal remains zero.
+
+The native-closure gate explicitly replaces nine pre-observation
+`CheckInClosedYield.*.NoActivityOrRedirectedRecords` assertions with eight journal
+assertions each. All other140 prior ordered checks remain passing, including the
+two entry-closure no-record assertions. The fixture saves an authorized enabled
+tracking policy before taking saved-authority snapshots. Owner, exact identity,
+custom-column, captured-book, no-later-read and no-reinitialization protections
+remain intact; collection is not disabled to retain obsolete expectations.
+
+Corrected RED on pre-observation routed01:149 PASS/63 FAIL/212 unique, controller
+`production-run-local-controller/3d15f6152a79459d84a29e63da563840`, result
+`slice4be-production-check-in-closed/dbd4a03a9d8c43c6ac58e3b16b0990de/red.json`,
+20:25:09.3683469-20:28:31.6457225 UTC. Only the seven missing-record assertions
+at each of nine mid-read closures fail. GREEN on activity02:212/212, controller
+`production-run-local-controller/905d8174087e4a42a3e52b937c0f9d0f`, result
+`slice4be-production-check-in-closed/ddb8b5bfb53f4c53b468f86690e84493/green.json`,
+20:29:17.9738092-20:32:45.4493322 UTC. Every RED identity is retained in order.
+All nine cases produce REQUESTED/FAILED, with no false CommandCompleted or source
+application claim. Five compiles/shared42, pinned packages, settings/authority
+preservation, normal unassisted closure and delayed zero Excel audits pass.
+
+All nine native receipts prove the already-running handler, surviving form,
+zero reinitializations/later reads and preserved surviving projection. Two
+captures were individually reviewed: the context refusal is legible; long values
+still clip elsewhere. This is not full populated-layout or human acceptance.
+Preliminary d4c76920/5e600eb2 also produced149/63 with clean preservation/audit, but
+is not the final protecting RED: the test first needed to distinguish the shared
+recording-action ordinal from a per-record index and make enabled policy explicit.
+No runtime behavior was changed to accommodate the test.
+
+The broader owner/interruption baseline passes404/404 on activity02, controller
+`production-run-local-controller/5c003b66d21446ec89a3498f8548d539`, result
+`slice4be-production-check-in-baseline/42410c56fce443dcb9a84aff9fa4ffb9/green.json`,
+20:37:22.0357672-20:46:09.5897323 UTC. Eighteen old no-record assertions are
+explicitly replaced; the remaining260 prior ordered checks retain PASS. Nine
+sign-out boundaries produce only REQUESTED. Nine same-context permission-loss
+boundaries produce REQUESTED/FAILED. Every boundary preserves its existing owner,
+projection, no-later-read and visible-refusal checks. Initial permission refusal,
+exact identity/custom columns, authority and operator bytes also retain PASS.
+Five compiles/shared42, pins/restoration, unassisted cleanup and delayed zero audit
+pass. Three captures were reviewed: both success paths and the no-Process refusal
+are legible, while long values elsewhere still clip.
+
+Baseline attempt99235939/e9e1c22f is excluded107 PASS/1 harness failure: PowerShell
+unrolled the single expected REQUESTED value into a scalar under strict mode.
+The test now declares that expected sequence as a string array. The excluded
+attempt's preservation, unassisted cleanup and delayed zero audit pass. It is not
+product RED and requires no runtime correction.
+
+The routed companion passes157/157, controller
+`production-run-local-controller/5f5e083828794f61875c19202a29c667`, result
+`slice4be-production-check-in-routed/3a1165001eb2445e9e6210028a907032/green.json`,
+20:46:36.9011458-20:52:44.3635377 UTC. Seven obsolete no-record assertions are
+replaced, retaining101 other prior ordered checks. Real released-graph and two
+completed-source fixtures protect exact routed identities and no sink completion.
+Positive Check In records REQUESTED/STAGED; two sign-outs retain REQUESTED only;
+two permission losses and two native closures record REQUESTED/FAILED. Both
+native receipts preserve the already-running handler/form, zero later reads and
+zero reinitializations. Five compiles/shared42, pins/restoration, saved authority,
+unassisted cleanup and delayed zero audit pass. Two further captures were reviewed.
+The routed success footer reports its existing allocation count while the two
+routed rows remain visible; full populated-layout/wording acceptance is still open.
+
+Final `check-in-interruption-static-02` preserves exactly290 components/6175 procedures/
+135519 lines,9 literal/45 unresolved calls,190 duplicate candidates and28
+non-growing caps. Three schemas and374 PowerShell parses pass. Runtime growth is
+zero. Remaining permission/policy/fault and recording/publication/independent reader
+acceptance remain pending; existing activity02 smoke/layout/full-chain evidence
+continues to describe the same immutable candidate.
+
+Source-reviewed open defect CHECK-IN-PERMISSION-WORDING-01: the former
+`BindForValidation` called `CanContinue`, whose initial permission refusal was
+`Production permission changed. Reopen Production before continuing.` Current
+`Begin` uses `Production permission is required; the draft was not changed.`
+`CheckBaselinePermissionRefusedForTest` checks only the prefix, so404 GREEN does
+not prove the D18 wording-preservation requirement. Add an exact-message test
+through the actual handler before correcting this difference; retain DENIED and
+the current observation/context behavior. Architecture/Plan/controls explicitly
+record the defect; no wording exception or completed acceptance is claimed.
+
 ## Tracking-warning regression and correction
 
 The first candidate's full chain found a real regression at

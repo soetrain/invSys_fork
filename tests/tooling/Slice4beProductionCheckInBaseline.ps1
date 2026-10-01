@@ -289,6 +289,7 @@ function Test-ProductionCheckInBaseline($Fixture,$Other) {
     if($ready -cne 'READY'){throw 'Two real received stock entities unavailable; not product RED.'}
     $keys=([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockKeysForTest')).Split("`t")
     if($keys.Count -ne 2 -or $keys[0] -ceq $keys[1]){throw 'Two distinct owner-generated identities required.'}
+    if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Authorized tracking policy unavailable; not product RED.'}
     try{
         SelectTarget $Fixture 'config-producer'
         $book=$excel.Workbooks.Add();$sheet=$book.Worksheets.Item(1)

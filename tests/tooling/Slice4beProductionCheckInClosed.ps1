@@ -29,6 +29,7 @@ function Test-ProductionCheckInClosed($Fixture,$Other){
     $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
     if(-not $seed.StartsWith('OK|')){throw 'Admin Seed unavailable; not product RED.'}
     if([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockPrepareForTest' @($Fixture.Warehouse)) -cne 'READY'){throw 'Real stock fixture unavailable; not product RED.'}
+    if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Authorized tracking policy unavailable; not product RED.'}
     try{
         SelectTarget $Fixture 'config-producer'
         $book=$excel.Workbooks.Add();$sheet=$book.Worksheets.Item(1)

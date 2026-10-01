@@ -160,7 +160,8 @@ function Test-ProductionCheckInYield($Fixture,$Other,$Book,[string]$SelectedKey,
             $refused=if($interruption -ceq 'Permission'){[bool](Probe 'CheckBaselinePermissionRefused')}else{[bool](Probe 'CheckBaselineContextRefused')}
             Check ($label+'.VisibleContextRefusal') $refused
             Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
-            Check ($label+'.NoActivityOrRedirectedRecords') ((@(Get-Slice4beActivityFiles $Fixture) -join '|') -ceq ($before -join '|') -and (@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
+            $outcome=if($interruption -ceq 'SignedOut'){'REQUESTED'}else{'FAILED'}
+            Test-ProductionCheckInJournal $Fixture $Other $before $otherBefore $outcome $label $Canary
           }finally{
             if($interruption -ceq 'Permission'){
                 [IO.File]::WriteAllBytes($authPath,$authBytes)
@@ -173,4 +174,53 @@ function Test-ProductionCheckInYield($Fixture,$Other,$Book,[string]$SelectedKey,
         [void](Probe 'CheckYieldReset');$local.Name='InventoryManagement'
         SelectTarget $Fixture 'config-producer'
     }
+}
+
+# Read-only journal assertions shared by the actual-handler interruption gates.
+# REQUESTED alone is intentional after sign-out: never invent a terminal record.
+function Test-ProductionCheckInJournal($Fixture,$Other,[string[]]$Before,[string[]]$OtherBefore,
+                                      [string]$Outcome,[string]$Label,[string]$Canary){
+    $files=@(Get-Slice4beActivityFiles $Fixture)
+    $raw=@($files|Where-Object{$_ -cnotin $Before}|ForEach-Object{[IO.File]::ReadAllText($_)})
+    $records=@($raw|ForEach-Object{$_|ConvertFrom-Json}|Sort-Object @{Expression={if($_.OutcomeCode -ceq 'REQUESTED'){0}else{1}}})
+    [string[]]$expected=if($Outcome -ceq 'REQUESTED'){@('REQUESTED')}else{@('REQUESTED',$Outcome)}
+    $exact=$records.Count -eq $expected.Count -and (($records|ForEach-Object{$_.OutcomeCode}) -join '|') -ceq ($expected -join '|')
+    $context=$exact;$safe=$exact;$integrity=$exact;$linked=$exact;$facts=$exact;$terminal=$exact
+    $keys=([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockKeysForTest')).Split("`t")
+    foreach($r in $records){
+        $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 25
+        $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
+        # These gates do not start a recording: ordinal is per action, not per record.
+        $linked=$linked -and $r.ActivityId -cne '' -and $r.ActivityId -ceq $records[0].ActivityId -and $r.RecordId -cne '' -and $r.Ordinal -eq 0 -and $r.SequenceId -ceq ''
+        $definition=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @('PRODUCTION_RUN_CHECK_IN',$r.OutcomeCode))
+        if(-not $definition){$facts=$false}else{
+            $d=$definition|ConvertFrom-Json
+            $facts=$facts -and $r.EventCode -ceq $d.EventCode -and $r.Severity -ceq $d.Severity -and $r.DataEffect -ceq $d.DataEffect -and $r.UserMessage -ceq $d.UserMessage -and $r.NextStep -ceq $d.NextStep
+        }
+        $isTerminal=[bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($r|ConvertTo-Json -Depth 20 -Compress)))
+        $terminal=$terminal -and $isTerminal -eq ($r.OutcomeCode -ceq 'STAGED')
+    }
+    foreach($value in $raw){
+        foreach($secret in @($Canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PinHash','DEMO-RAW-BLACK-TEA')+$keys){
+            if(-not $secret){continue}
+            $encoded=ConvertTo-Json -InputObject $secret -Compress
+            if($value.Contains($secret) -or $value.Contains($encoded.Substring(1,$encoded.Length-2))){$safe=$false}
+        }
+        $match=[regex]::Match($value,',"ContentSha256":"([a-f0-9]{64})"\}$')
+        if(-not $match.Success){$integrity=$false;continue}
+        $sha=[Security.Cryptography.SHA256]::Create()
+        try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($value.Substring(0,$match.Index)+'}'))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+        $integrity=$integrity -and $hash -ceq $match.Groups[1].Value
+    }
+    if($exact){
+        $linked=$linked -and @($records.RecordId|Select-Object -Unique).Count -eq $records.Count
+    }
+    Check ($Label+'.ExactAttemptSequence') $exact
+    Check ($Label+'.ExactCapturedContext') $context
+    Check ($Label+'.NoEnteredDataOrSources') $safe
+    Check ($Label+'.Integrity') $integrity
+    Check ($Label+'.DistinctLinkedRecords') $linked
+    Check ($Label+'.FixedOutcomeFacts') $facts
+    Check ($Label+'.ExactCommandTerminal') $terminal
+    Check ($Label+'.NoRedirectOrPriorRecordRemoval') ((@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($OtherBefore -join '|') -and @($Before|Where-Object{$_ -cnotin $files}).Count -eq 0)
 }
