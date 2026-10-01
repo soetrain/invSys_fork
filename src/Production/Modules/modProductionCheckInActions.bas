@@ -134,3 +134,17 @@ Public Function ValidateLiveAllocation(ByVal systemKey As String, ByVal nodeId A
     End If
     ValidateLiveAllocation = True
 End Function
+
+Public Function ValidateRoutedInput(ByVal systemKey As String, ByVal connection As Object, _
+                                    ByVal requirement As Object, ByRef report As String, _
+                                    ByVal action As cProductionWorksheetAction) As Boolean
+    Dim liveQuantity As Double, liveLocation As String
+    liveQuantity = modProductionRunEntityReads.AvailableQuantity(systemKey, liveLocation, action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    If systemKey = "" Or liveQuantity + 0.0000001 < modProductionReusableRun.ScaledConnectionQty(connection) Then
+        report = "Upstream output is not ready or is insufficient for " & _
+                 modProductionReusableRun.RunRecordText(requirement, "RequirementName") & "."
+        Exit Function
+    End If
+    ValidateRoutedInput = True
+End Function

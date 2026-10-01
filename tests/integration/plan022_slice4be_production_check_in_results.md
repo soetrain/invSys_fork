@@ -1,6 +1,14 @@
 # Slice4be Production Check In correctness prerequisites
 
 Last verified:2026-10-01 UTC. Latest unpromoted candidate is
+`deploy/validation-production-check-in-routed-01`, with routed87/87 GREEN after
+RED85/2, original278/278, native-entry59/59, cold startup/five compiles and static
+gates passing. Smoke86, six-page layout, chain32/live48/Create15 and worksheet257
+pass. Run retains445 PASS/58 known Scale failures across503 checks. An earlier
+native chain crash remains excluded and unexplained; the passing retry followed
+a clean bounded projection35 diagnostic. This is not Release1 acceptance.
+
+The preceding unpromoted candidate is
 `deploy/validation-production-check-in-guards-02`: focused278/278, chain32/32,
 live roles48/48, Create Warehouse15/15, smoke86/86 and six-page geometry pass.
 Check In requires a selected reusable Process and current permission, preserves
@@ -11,10 +19,124 @@ Run regression445 PASS/58 known Scale failures and worksheet257/257. These
 results do not establish Check In observations, comprehensive routed/closed-book
 interruptions, full populated-layout, native reusable, human or Release1 acceptance.
 Catalog24 and63/68 constructed-button wiring are unchanged.
-New tests on this unchanged candidate expose routed-read RED85/2 of87 and establish
-native closed-workbook entry59/59, with the limits below. No runtime fix is included.
+New tests on the preceding guards02 candidate expose routed-read RED85/2 of87 and
+establish native closed-workbook entry59/59, with the limits below. Routed01 contains
+the subsequent runtime correction described next.
 
 ## Routed upstream-read protecting RED
+
+The correction is verified on routed01: controller
+`production-run-local-controller/16088a7ddf884a2ca0b4e5ccde62f32c`, result
+`slice4be-production-check-in-routed/ec41ed14e5e04d1e8070fcd07455a5fe/green.json`,
+2026-10-01 18:07:21.3046774--18:12:45.4905014 UTC. All87 ordered checks pass,
+retaining every previous PASS and shared42. Five instrumented compiles, authority/
+operator/package preservation, authorization/settings restoration, normal closure
+and delayed zero native audit pass. Both former first-read failures are GREEN;
+the same two-source positive case and all four real interruptions remain exercised.
+
+The private routed-requirement loop carries the existing validation action into
+the typed `modProductionCheckInActions.ValidateRoutedInput` helper. It uses the
+existing exact-entity reader and checks continuation immediately after the read.
+The existing scaled connection quantity is still evaluated after that read; its
+pure getter is public within the same Option Private module for the typed call.
+Read order, tolerance, missing/insufficient diagnostics, selected-Process scope,
+upstream-completion prerequisites and optional no-action service callers are
+preserved. No observation, catalog entry, UI control or new authority is added.
+
+Build `check-in-routed-build-01` changes only the Check In and reusable-run modules,
+preserving281/283 compiled components. Cold startup, five compiles, prior frozen
+package/settings preservation, normal closure and delayed zero native audit pass.
+Eight existing process-scoped source checks pass. Static
+`check-in-routed-static-01` is290 components/6176 procedures/135514 lines: one helper
+and eight net lines, with the oversized reusable-run module shrinking six lines.
+All28 oversized caps are non-growing, calls remain9 literal/45 unresolved,
+duplicates190, and three schemas/372 PowerShell parses pass. A fresh positive
+routed capture was individually reviewed and hash-pinned; long values still clip.
+Original278 is verified on controller
+`production-run-local-controller/40077e3c88e14b8ea78dbc7e51297882`, result
+`slice4be-production-check-in-baseline/5d8dfae06eb6465fbfc3a35790adcd09/green.json`,
+18:13:30.7032336--18:21:17.9662478 UTC:278/278 exact prior ordered PASS, shared42,
+all18 read interruptions, five compiles, preservation, normal cleanup and delayed
+zero native audit. Three fresh principal captures were individually reviewed and
+hash-pinned: selected-Process success, selection guidance and worksheet headings.
+They retain long-value clipping and do not establish full populated acceptance.
+
+Native-entry59 also passes on controller
+`production-run-local-controller/81a72fced6404b1aa518708843ddf2d8`, result
+`slice4be-production-check-in-closed/6d31aa8b2ad74c7a8195a7f598aff975/green.json`,
+18:21:58.9034999--18:23:52.5319072 UTC: exact prior59 PASS, shared42/five compiles,
+preservation, normal cleanup and delayed zero native audit. Both actual forms
+naturally dismiss; no post-dismissal handler is invoked. The captured workbook
+is absent, decoy remains open and the owner is preserved. Mid-read closure is
+still not certified. Current-candidate regression outcomes follow below.
+
+The routed01 full-chain attempt `check-in-routed01-regression/chain-857a71610fa543088f288eca9b18d6ab`
+is excluded: 18:24:21.2247953--18:33:42.8235022 UTC, exit1. The live subprocess
+failed at Delete and rebuild canonical inventory projections, macro
+`modProcessor.RunBatchReportForAutomation`, RPC `800706BE`. Windows recorded an
+Excel `ntdll.dll` exception `c0000028` and a linked Office recovery report. The
+recovery instance retained ten disposable live-role fixture workbooks; assisted
+closure without saving preserved their saved bytes. Both controllers retained
+their in-memory settings snapshots until Excel exited; settings, package bytes
+and prior tracked reports were restored. The delayed audit records the two native
+events. This is neither behavioral RED nor desktop error5, and establishes no
+full-chain/live-role acceptance. Diagnose before another chain attempt; do not
+blindly rerun or attribute the native crash to the routed guard without evidence.
+
+Smoke controller `check-in-routed01-regression/smoke-ecc9c73da0a349a19c2c82bfe93b486b`,
+18:34:04.8747912--18:34:35.4235549 UTC, retains all86 ordered PASS. Native shutdown
+receipts `packaged-smoke-closure/8c47eafa744d4c16a8d5e7fe2559a9bb` show both Initial
+and Final exits unassisted, with no termination requested. Settings, frozen
+packages and tracked reports are preserved/restored; delayed native audit is zero.
+
+Layout controller `check-in-routed01-regression/layout-ad2c0f28fb08454e866560012cf41416`,
+18:34:58.4574673--18:35:15.3699287 UTC, retains18 requested size/page pairs, six
+activated/maximized pages, prior representative geometry and native transitions.
+Minimum/default requests clamp to the same size: two distinct actual sizes are
+proved. All six Run/Settings empty-surface captures were individually reviewed
+and hash-pinned. Unassisted closure, package/settings preservation and delayed
+zero native audit pass. No populated or human acceptance is claimed. The local
+comparison verifier initially compared the entire prior report against only the
+new representative section; matching like sections resolves that verifier error
+without changing either report, runtime, test execution or geometry requirement.
+
+Run-local controller `production-run-local-controller/14687eb1073e46e082be70a4d676424a`,
+result `slice4be-production-run-local/f3babdb968df4693a9eee8c3591420d5/green.json`,
+18:35:55.9575103--18:44:54.0780308 UTC, retains the exact503 ordered identities:
+445 PASS and58 unchanged known Scale failures, all33 owner cases and shared42.
+All seven native receipts show a visible surviving form and its real handler
+invoked cleanly after captured-workbook closure, with the decoy still open.
+Five compiles, prior GREEN preservation, package/settings preservation, normal
+unassisted cleanup and delayed zero native audit pass. This does not resolve
+RUN-SCALE-01 or replace the separate full reusable/replay acceptance gates.
+
+Worksheet controller `production-run-local-controller/e02a500dd9b841f8ada5406384a3fc64`,
+result `slice4be-production-run-worksheet-owner/a972877edfe44d1aaa465ada0938e095/green.json`,
+18:45:22.0759406--18:50:18.1645246 UTC, retains257/257 exact ordered prior PASS.
+Five instrumented compiles, frozen package/settings preservation, normal unassisted
+cleanup and delayed zero native audit pass. The full-chain native failure above
+remains unresolved; these independent GREENs do not replace that gate.
+
+The existing bounded projection diagnostic was then run without VBA tracing on
+the same pinned routed01 packages: `projection-live-control/4fa6d3885f9b453da30c9c8a5c8fa564`,
+18:50:41.5488279--18:52:08.0093422 UTC (audit end). It retains all35 ordered prior
+PASS and records DeleteBegin/DeleteEnd, ProcessorBegin/ProcessorEnd, CutReached
+and OriginalQuitReturned in order. Settings, all five packages and the tracked
+report are preserved/restored; Excel closes unassisted and the delayed Application
+audit is zero. No package/source change or unsaved VBA probe was needed for this
+focused case to complete. It justifies one fresh full-chain attempt; it does not
+explain the earlier native failure or itself certify later chain phases.
+
+The subsequent ordinary full-chain controller
+`check-in-routed01-regression/chain-4119ca61b8bd450e86dcea77876cd6d5`,
+18:52:23.3790482--18:57:32.2359337 UTC, exits0 and retains exact ordered prior
+chain32/32, live-role48/48 and Create Warehouse15/15 checks. All five frozen
+package pins, local settings and prior tracked reports are preserved/restored.
+Excel closes without intervention; the delayed Application1000/1001/1002 audit
+is zero. No runtime/package change separates the bounded diagnostic and this
+retry. These current-candidate gates pass, while the earlier crash's cause and
+the separate full reusable/replay, mid-read closure, observation, populated-layout
+and human acceptance requirements remain unresolved.
 
 On the same frozen guards02 package, the separate actual-handler routed gate
 returns85 PASS/2 FAIL/87, preserving all42 shared checks in order and passing all
@@ -38,9 +160,9 @@ boundary, show refusal, restore guards and leave activity records unchanged.
 The diagnostic now counts attempts before reads, including reads that might fail
 before returning; it does not replace a read or the operator handler.
 
-`ValidateProcessRequirementsReady` currently omits the captured continuation
-inside its upstream loop. Required next correction: pass the existing action into
-that loop and check it immediately after each real upstream read, before another
+On guards02, `ValidateProcessRequirementsReady` omits the captured continuation
+inside its upstream loop. The correction above passes the existing action into
+that loop and checks it immediately after each real upstream read, before another
 read, diagnostics or local mutation. This enforces D18; no new permission,
 algorithm, catalog entry or observation contract is approved by this evidence.
 The original278-check baseline must retain every prior GREEN after the correction.
@@ -87,7 +209,7 @@ normal final closure were preserved, with delayed zero native audit. The correct
 test creates staging on the newly opened disposable workbook. No runtime or
 architecture change was made for that fixture error.
 
-Check In observation outcomes, runtime correction of the routed RED, read-return
+Check In observation outcomes, broader routed-correction regressions, read-return
 workbook closure and broader acceptance remain pending. The frozen package retains
 the previously recorded chain/live-role/smoke/layout/Run/worksheet regressions;
 these test-only additions do not represent a new implementation candidate.

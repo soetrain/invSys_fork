@@ -726,7 +726,7 @@ Public Function CheckInReusableProcess(ByVal processName As String, _
         report = "Process " & RunRecordText(node, "ProcessName") & " is already complete."
         Exit Function
     End If
-    If Not ValidateProcessRequirementsReady(node, report) Then Exit Function
+    If Not ValidateProcessRequirementsReady(node, report, action) Then Exit Function
     If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If Not ValidateProcessAllocationsLive(node, runLocation, report, action) Then Exit Function
 
@@ -1462,7 +1462,7 @@ Private Function RequirementIsActual(ByVal requirement As Object) As Boolean
 End Function
 
 Private Function ValidateProcessRequirementsReady(ByVal node As Object, _
-                                                  ByRef report As String) As Boolean
+                                                  ByRef report As String, ByVal action As cProductionWorksheetAction) As Boolean
     Dim rawRequirement As Variant
     Dim requirement As Object
     Dim nodeId As String
@@ -1470,7 +1470,6 @@ Private Function ValidateProcessRequirementsReady(ByVal node As Object, _
     Dim requiredQty As Double
     Dim allocatedQty As Double
     Dim connection As Object
-    Dim sourceKey As String
 
     nodeId = RunRecordText(node, "ProcessNodeId")
     For Each rawRequirement In mRequirements
@@ -1484,13 +1483,8 @@ Private Function ValidateProcessRequirementsReady(ByVal node As Object, _
                          RunRecordText(requirement, "RequirementName") & "."
                 Exit Function
             End If
-            sourceKey = OutputKeyForConnection(connection)
-            If sourceKey = "" Or _
-               ExactEntityAvailableQty(sourceKey) + QTY_TOLERANCE < ScaledConnectionQty(connection) Then
-                report = "Upstream output is not ready or is insufficient for " & _
-                         RunRecordText(requirement, "RequirementName") & "."
-                Exit Function
-            End If
+            If Not modProductionCheckInActions.ValidateRoutedInput(OutputKeyForConnection(connection), _
+                    connection, requirement, report, action) Then Exit Function
         Else
             requiredQty = ScaledRecordQty(requirement)
             allocatedQty = AllocationTotalForRequirement(nodeId, requirementId, "")
@@ -2333,7 +2327,7 @@ Private Function ScaledRecordQty(ByVal record As Object) As Double
     End If
 End Function
 
-Private Function ScaledConnectionQty(ByVal connection As Object) As Double
+Public Function ScaledConnectionQty(ByVal connection As Object) As Double
     Dim qty As Double
     Dim pct As Double
     Dim requirement As Object
