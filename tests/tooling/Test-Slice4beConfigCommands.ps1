@@ -1293,9 +1293,11 @@ End Function
                 Install-ProductionRunWorksheetProbe
                 Install-ProductionCheckInBaselineProbe
                 Install-ProductionCheckInYieldProbe
-                if($RunCheckInClosedOnly){
+                if($RunCheckInClosedOnly -or $RunCheckInRoutedOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInClosed.ps1')
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInClosedYield.ps1')
                     Install-ProductionCheckInClosedProbe
+                    Install-ProductionCheckInClosedYieldProbe
                 }
                 if($RunCheckInRoutedOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInRouted.ps1')

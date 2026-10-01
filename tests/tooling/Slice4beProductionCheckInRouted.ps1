@@ -221,6 +221,9 @@ function Test-ProductionCheckInRouted($Fixture,$Other){
         Check 'CheckInRouted.CapturedBookExtrasPreserved' ($sheet.Cells.Item(2,1).Value2 -ceq $token -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CheckInRouted.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
+        Test-ProductionCheckInClosedYield $Fixture $Other $path $decoy $token -Routed
+        $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]}
+        Check 'CheckInClosedYield.Routed.SavedAuthorityPreserved' $same
     }finally{
         [void](Probe 'CheckYieldReset');[void](Probe 'CloseDesigner')
         if($null -ne $book){$book.Close($false)}

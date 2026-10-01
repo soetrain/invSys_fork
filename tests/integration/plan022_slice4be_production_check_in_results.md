@@ -1,5 +1,70 @@
 # Slice4be Production Check In correctness prerequisites
 
+Latest test-only checkpoint,2026-10-01 UTC: native closure gate149/149 and routed
+gate108/108 pass on unchanged code `2d49c97b` and frozen routed01. They retain the
+previous59/87 checks and add eleven actual-handler read-return workbook closures.
+All eleven forms survive in these runs, with no reinitialization, later reads,
+owner/form mutation, redirected observations or saved-byte changes after closure.
+Five compiles per gate, settings/package preservation, unassisted cleanup and
+delayed zero native audits pass. Three context-refusal captures and a fresh routed
+positive capture were individually reviewed; long-value clipping remains.
+Check In observations and full populated/human/reusable acceptance remain open.
+
+## Native read-return workbook closure
+
+`Slice4beProductionCheckInClosedYield.ps1` extends the existing packaged gates.
+It closes the real captured workbook from an unsaved read-return probe inside
+the already-running `mBtnManagerCheckIn_Click` handler. It never replaces the
+read or handler, clears the binding manually, or reopens a hidden dismissed form.
+Each case uses a separate copy of the disposable operator workbook, with its
+custom fields/formulas saved before entry. Receipts prove a visible form before
+the actual read returns, one removed workbook, a still-open decoy, one actual
+handler entry, zero later read attempts and zero form initializations after arming.
+Surviving-control assertions are conditional on native visibility; all eleven
+surfaces actually survive here, so every such assertion is exercised. The two
+older entry-closure cases still naturally dismiss. Neither lifetime is generalized.
+
+- Native gate: controller `production-run-local-controller/28e3b0293301462ea12853ab7d7d8176`,
+  result `slice4be-production-check-in-closed/5c95f8911eb0477a8ada2e4d8aa58081/green.json`,
+  19:08:31.9026636--19:11:42.7662521 UTC.149/149 retains all59 prior ordered PASS
+  and shared42, adding90 checks across four reusable and five worksheet read returns.
+- Routed gate: controller `production-run-local-controller/55a5fb9055974a66931fee5c213a6374`,
+  result `slice4be-production-check-in-routed/ebb051fd298c433d8561359266a1592d/green.json`,
+  19:12:13.8262814--19:17:56.9967590 UTC.108/108 retains all87 prior ordered PASS
+  and shared42, adding two native closures after the real first/second upstream
+  reads and an additional saved-authority check. The released two-source graph,
+  real canonical outputs, positive Check In and four authorization interruptions
+  remain protected.
+
+Both gates retain five instrumented compiles, exact frozen package pins, saved
+authority/operator bytes, older records and settings, with normal unassisted
+closure and delayed zero Excel Application1000/1001/1002 audits. The respective
+`native-receipt-verification.json` and `capture-review.json` files record receipt
+checks and reviewed image hashes. No runtime source, package, form layout, catalog
+entry, observation semantics or architectural contract changes in this checkpoint.
+The preceding unchanged-candidate build, layout, smoke86, original278, Run503,
+worksheet257 and chain32/live48/Create15 evidence below remains applicable; those
+gates are not represented as newly rerun for this test-only extension.
+
+The initial native gate, controller `0603941112504cdd93f0c9c6e510b67a`, result
+`slice4be-production-check-in-closed/0e8e18444fd8403e92bcb80a1b3683e1/red.json`,
+19:03:17.5917528--19:06:28.5367236 UTC, returned144/5 with all59 prior PASS,
+normal cleanup/preservation and delayed zero audit. Its five worksheet failures
+were an invalid comparison scope, not behavioral RED: the reused snapshot included
+the actual worksheet table, which is unavailable after native closure. The final
+diagnostic proves the table was nonempty before closure and unavailable afterward,
+while all surviving form controls remain equal and saved workbook bytes remain
+unchanged. The test now compares the full surviving form projection separately
+from closed-workbook byte preservation. No runtime change produced this GREEN.
+
+Static `check-in-native-read-static-01` retains290 components/6176 procedures/
+135514 lines,9 literal/45 unresolved calls,190 duplicate candidates and28
+non-growing oversized caps. Three schemas and all373 PowerShell parses pass;
+runtime growth is zero. This enforces existing D14/D15/D18 under semantic
+inheritance and does not change the unapproved RUN-SCALE-01/RUN-UI-01 proposals.
+
+## Routed guard implementation checkpoint
+
 Last verified:2026-10-01 UTC. Latest unpromoted candidate is
 `deploy/validation-production-check-in-routed-01`, with routed87/87 GREEN after
 RED85/2, original278/278, native-entry59/59, cold startup/five compiles and static
@@ -67,8 +132,9 @@ Native-entry59 also passes on controller
 18:21:58.9034999--18:23:52.5319072 UTC: exact prior59 PASS, shared42/five compiles,
 preservation, normal cleanup and delayed zero native audit. Both actual forms
 naturally dismiss; no post-dismissal handler is invoked. The captured workbook
-is absent, decoy remains open and the owner is preserved. Mid-read closure is
-still not certified. Current-candidate regression outcomes follow below.
+is absent, decoy remains open and the owner is preserved. This entry-only gate
+did not certify mid-read closure; the later eleven-case coverage is recorded above.
+Current-candidate regression outcomes follow below.
 
 The routed01 full-chain attempt `check-in-routed01-regression/chain-857a71610fa543088f288eca9b18d6ab`
 is excluded: 18:24:21.2247953--18:33:42.8235022 UTC, exit1. The live subprocess
@@ -135,8 +201,9 @@ package pins, local settings and prior tracked reports are preserved/restored.
 Excel closes without intervention; the delayed Application1000/1001/1002 audit
 is zero. No runtime/package change separates the bounded diagnostic and this
 retry. These current-candidate gates pass, while the earlier crash's cause and
-the separate full reusable/replay, mid-read closure, observation, populated-layout
-and human acceptance requirements remain unresolved.
+the separate full reusable/replay, observation, populated-layout and human
+acceptance requirements remain unresolved. Later native read-closure coverage is
+recorded above.
 
 On the same frozen guards02 package, the separate actual-handler routed gate
 returns85 PASS/2 FAIL/87, preserving all42 shared checks in order and passing all

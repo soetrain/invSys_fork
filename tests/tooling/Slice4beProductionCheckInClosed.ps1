@@ -91,6 +91,7 @@ function Test-ProductionCheckInClosed($Fixture,$Other){
             $receipt|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('check-in-closed-'+$mode.ToLowerInvariant()+'.json'))
             [void](Probe 'RunLocalSafeClose')
         }
+        Test-ProductionCheckInClosedYield $Fixture $Other $path $decoy $canary
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]}
         Check 'CheckInClosed.SavedAuthorityPreserved' $same
     }finally{
