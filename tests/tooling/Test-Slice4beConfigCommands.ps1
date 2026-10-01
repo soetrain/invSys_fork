@@ -1278,7 +1278,9 @@ End Function
             if($CheckProductionAssignmentSafety){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionAssignmentSafety.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionAssignmentPolicy.ps1')
                 Install-ProductionLifecycleProbe
+                Install-ProductionAssignmentPolicyProbe
             }
         }
         if($CheckProductionRecipeStructure){

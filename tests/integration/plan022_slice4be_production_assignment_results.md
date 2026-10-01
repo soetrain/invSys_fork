@@ -28,6 +28,7 @@ Protecting files:
 - `tests/tooling/Slice4beProductionAssignmentProbe.ps1`
 - `tests/tooling/Slice4beProductionAssignmentActivity.ps1`
 - companion `-Safety` gate in `Slice4beProductionAssignmentSafety.ps1`
+- policy, Save guards and native closure in `Slice4beProductionAssignmentPolicy.ps1`
 - opt-in `CheckProductionAssignment` in `Test-Slice4beConfigCommands.ps1`
 
 The read fixture/probe is reused for released definitions, controlled source reads
@@ -130,14 +131,77 @@ Regenerated `reports/runtime/assignment-safety-static` retains277 components,
 6137 procedures,134745 lines,9/45 dynamic calls,190 duplicate bodies and28
 non-growing oversized caps. Three schemas validate and351 scripts parse.
 
+## Policy and Save-guard expansion
+
+`Slice4beProductionAssignmentPolicy.ps1` expands the companion through the real
+nine handlers: capability denial, disabled/older/unavailable policy, optional
+Navigation defaults and programmatic selection suppression. Save adds loading,
+busy and actual nested-handler entry; failure after local preparation; empty-load
+validation; changed target/session, sign-out and closed workbook. A disposable
+writer seam signs out only after a real successful append, protecting the original
+context and preventing further refresh or an outcome under a replacement session.
+No observations, replacement actions or submission results are fabricated.
+
+First expanded attempt remains excluded: controller
+`reports/runtime/production-assignment-controller/12df26b37a8a445484f462dd51695fa0`,
+2026-10-01 00:31:23.9240279--00:37:18.9145437 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/4a4468770c7c4dadbd9a7214d54db77a/red.json`
+contains145 PASS/88 FAIL, including a terminal harness exception. All five packages
+compiled, but invoking the old form reference after closing its captured workbook
+raised VBA automation80010007. The owned dialog was inspected; an attempted End
+post returned a PowerShell binder error, so successful delivery is not established.
+The exact verified disposable Excel process was terminated to release the worker
+and restore settings. Package/settings preservation passes; this was assisted
+cleanup, not normal closure, product RED or Windows desktop error5.
+
+The corrected fixture follows the already established worksheet closure test:
+measure the real visible form before and after workbook closure. If it survives,
+an outer trapped adapter must enter the actual Save handler and preserve state.
+If it is dismissed, assert no save/submission/activity and supplement that measured
+native boundary with the existing typed binding check. A dismissed surface is
+explicitly recorded as no handler invocation. No native-lifetime repair is claimed.
+
+Corrected expanded RED: controller
+`reports/runtime/production-assignment-controller/adb8f7068fbe4ac7bbbff89d8b8abafb`,
+2026-10-01 00:38:02.9766351--00:41:34.8432166 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/79661a1e0e554ef190e84ab68391e62f/red.json`.
+All245 names are unique:158 PASS/87 FAIL. All89 prior companion results and their
+relative order are exact, including the42 shared GREEN checks. The156 additions
+pass99/fail57:25 denial,9 missing unavailable notices,2 Navigation defaults and21
+Save observation/guard assertions fail. The prior30 owner-observation failures
+remain; no harness exception or compile failure is counted as behavioral RED.
+
+All authorized actions continue with disabled/older/unavailable tracking; the two
+Navigation actions also continue with collection off. Programmatic setup emits
+no user activity. The real nested Save handler is entered, and the post-append
+sign-out boundary observes one actual successful append. Current missing guards
+permit a second nested write and later reads after sign-out. Both partial-load
+cases preserve their existing local replacement effects without owner writes or
+new Designs source events; restored guards pass. These observations protect the
+normative distinctions without interpreting a missing activity pair as rollback.
+
+The native closure record shows the visible form dismissed, workbook count5->4,
+captured workbook closed and the independent workbook still open. HandlerInvoked
+is false; all six closure assertions pass, including typed rejection, no write,
+no redirected activity and saved bytes preserved. Five compiles, normal closure
+without intervention, settings/package pins, unknown columns/formula/bytes, older
+records and delayed Excel Application1000/1001/1002 audit pass. The controller's
+`verification.json` records the boundaries and exact prior-result comparison.
+
+Regenerated `reports/runtime/assignment-policy-static` retains277 components,
+6137 procedures,134745 lines,9 literal/45 unresolved calls,190 duplicate bodies
+and28 non-growing caps. Three schemas validate and352 scripts parse. No runtime
+source, frozen package, completed coverage or human-acceptance change is claimed.
+
 ## Required next evidence
 
-The initial nine-handler baseline is not the complete protecting suite. Before
-runtime implementation, preserve the349 initial checks and89 companion checks
-and add Save guards including post-yield session loss; current
-permission denial; nested callbacks and restored guards; disabled/older-policy/
-unavailable tracking; Navigation defaults and deliberate-versus-programmatic input;
-and full partial-effect/state preservation checks. Do not promote the initial
+Preserve the349 initial checks and245 expanded companion checks, including the
+original89 results. Before runtime edits, finish the explicit Core outcome/source
+contract matrix for the nine new mappings: unsupported positive outcomes,
+nonempty confirmed/pending exact Designs envelopes, failed submitted/uncertain
+references, and rejection of local-action, wrong-kind, wrong-warehouse or malformed
+references. The handler, owner-write, policy and binding RED cases above are now
+established and must not be dropped or replaced. Do not promote the initial
 source-envelope shape assertion into proof of exact owning EventId correlation.
 The companion supplies that writer-boundary comparison for its five Save cases.
 

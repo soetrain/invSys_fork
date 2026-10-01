@@ -78,6 +78,7 @@ function Test-ProductionAssignmentSafety($Fixture,$Other) {
             Check ($case+'.UnknownValuesPreserved') ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
             [void](Probe 'LifecycleFaultMode' @(''))
         }
+        Test-ProductionAssignmentPolicy $Fixture $Other $book $sheet $canary
         $same=$true;foreach($file in $recordPins.Keys){$same=$same -and (Hash $file) -ceq $recordPins[$file]};Check 'AssignmentSafety.OlderRecordsImmutable' $same
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'AssignmentSafety.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
