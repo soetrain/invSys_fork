@@ -373,7 +373,8 @@ Public Function ApplyReusableRunStockAllocation(ByVal processNodeId As String, _
                                                  ByVal requirementId As String, _
                                                  ByVal representativeSystemKey As String, _
                                                  ByVal qty As Double, _
-                                                 Optional ByRef report As String = "") As Boolean
+                                                 Optional ByRef report As String = "", _
+                                                 Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     On Error GoTo Failed
 
     Dim requirement As Object
@@ -420,8 +421,11 @@ Public Function ApplyReusableRunStockAllocation(ByVal processNodeId As String, _
         Exit Function
     End If
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If Not IsArray(entities) Then
+        If Not action Is Nothing Then action.OutcomeCode = "FAILED"
         report = "No managed inventory stock is available."
         Exit Function
     End If
@@ -441,8 +445,9 @@ Public Function ApplyReusableRunStockAllocation(ByVal processNodeId As String, _
         Exit Function
     End If
     If StrComp(CStr(entities(representativeRow, 5)), RunRecordText(requirement, "UOM"), vbTextCompare) <> 0 Then
+        If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
         ApplyReusableRunStockAllocation = ApplyReusableRunAllocation(processNodeId, requirementId, _
-            representativeSystemKey, qty, report)
+            representativeSystemKey, qty, report, action)
         Exit Function
     End If
 
@@ -516,6 +521,7 @@ Public Function ApplyReusableRunStockAllocation(ByVal processNodeId As String, _
         Exit Function
     End If
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     For Each removeId In removeIds
         RemoveAllocation CStr(removeId)
     Next removeId
@@ -534,13 +540,15 @@ Public Function ApplyReusableRunStockAllocation(ByVal processNodeId As String, _
 
 Failed:
     report = "Stock allocation failed: " & Err.Description
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
 End Function
 
 Public Function ApplyReusableRunAllocation(ByVal processNodeId As String, _
                                          ByVal requirementId As String, _
                                          ByVal systemKey As String, _
                                          ByVal qty As Double, _
-                                         Optional ByRef report As String = "") As Boolean
+                                         Optional ByRef report As String = "", _
+                                         Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     Dim requirement As Object
     Dim availableQty As Double
     Dim requiredQty As Double
@@ -572,7 +580,9 @@ Public Function ApplyReusableRunAllocation(ByVal processNodeId As String, _
         report = uomReport
         Exit Function
     End If
-    nativeUom = ExactEntityUom(systemKey)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    nativeUom = ExactEntityUom(systemKey, action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If nativeUom = "" Then
         report = "The selected System_Key is no longer available. Refresh Production Run."
         Exit Function
@@ -587,8 +597,11 @@ Public Function ApplyReusableRunAllocation(ByVal processNodeId As String, _
         report = uomReport
         Exit Function
     End If
-    nonCounted = ExactEntityIsNonCounted(systemKey)
-    availableQty = ExactEntityAvailableQty(systemKey)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    nonCounted = ExactEntityIsNonCounted(systemKey, action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    availableQty = ExactEntityAvailableQty(systemKey, , action)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If Not nonCounted And availableQty <= 0 And qty > 0 Then
         report = "The selected System_Key is no longer available. Refresh Production Run."
         Exit Function
@@ -2518,10 +2531,11 @@ Private Sub RemoveAllocation(ByVal allocationId As String)
     If Not mAllocationConversionAudit Is Nothing Then If mAllocationConversionAudit.Exists(allocationId) Then mAllocationConversionAudit.Remove allocationId
 End Sub
 
-Private Function ExactEntityUom(ByVal systemKey As String) As String
+Private Function ExactEntityUom(ByVal systemKey As String, Optional ByVal action As cProductionWorksheetAction = Nothing) As String
     Dim entities As Variant
     Dim rowIndex As Long
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     If Not IsArray(entities) Then Exit Function
     rowIndex = FindExactEntityRow(entities, systemKey)
     If rowIndex > 0 Then ExactEntityUom = Trim$(CStr(entities(rowIndex, 5)))
@@ -2555,40 +2569,11 @@ End Function
 Private Function ExactEntityAvailableQty(ByVal systemKey As String, _
                                          Optional ByRef locationOut As String = "", _
                                          Optional ByVal action As cProductionWorksheetAction = Nothing) As Double
-    Dim entities As Variant
-    Dim r As Long
-    entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
-    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
-    If Not IsArray(entities) Then Exit Function
-    For r = LBound(entities, 1) To UBound(entities, 1)
-        If StrComp(Trim$(CStr(entities(r, 1))), Trim$(systemKey), vbTextCompare) = 0 Then
-            If IsNumeric(entities(r, 6)) Then ExactEntityAvailableQty = CDbl(entities(r, 6))
-            locationOut = Trim$(CStr(entities(r, 7)))
-            Exit Function
-        End If
-    Next r
+    ExactEntityAvailableQty = modProductionRunEntityReads.AvailableQuantity(systemKey, locationOut, action)
 End Function
 
-Private Function ExactEntityIsNonCounted(ByVal systemKey As String) As Boolean
-    Dim entities As Variant
-    Dim r As Long
-    Dim trackQty As String
-    Dim itemKind As String
-    Dim categoryValue As String
-
-    entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
-    If Not IsArray(entities) Then Exit Function
-    For r = LBound(entities, 1) To UBound(entities, 1)
-        If StrComp(Trim$(CStr(entities(r, 1))), Trim$(systemKey), vbTextCompare) = 0 Then
-            If UBound(entities, 2) >= 11 Then trackQty = UCase$(Trim$(CStr(entities(r, 11))))
-            If UBound(entities, 2) >= 12 Then itemKind = UCase$(Trim$(CStr(entities(r, 12))))
-            If UBound(entities, 2) >= 13 Then categoryValue = UCase$(Trim$(CStr(entities(r, 13))))
-            ExactEntityIsNonCounted = (trackQty = "FALSE" Or trackQty = "NO" Or trackQty = "0" _
-                Or itemKind = "UTILITY" Or itemKind = "SERVICE" Or itemKind = "NON_COUNTED" _
-                Or categoryValue = "UTILITY" Or categoryValue = "SERVICE")
-            Exit Function
-        End If
-    Next r
+Private Function ExactEntityIsNonCounted(ByVal systemKey As String, Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
+    ExactEntityIsNonCounted = modProductionRunEntityReads.IsNonCounted(systemKey, action)
 End Function
 
 Private Function ExactEntityField(ByVal entities As Variant, ByVal systemKey As String, _

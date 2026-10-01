@@ -2301,7 +2301,7 @@ Public Sub RefreshManagerState()
     RefreshRunPaletteState
 End Sub
 
-Private Sub RefreshRunPaletteState()
+Public Sub RefreshRunPaletteState()
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim choices As Variant
@@ -2324,6 +2324,7 @@ Private Sub RefreshRunPaletteState()
     BindOperatorWorkbookForRun
     choices = mProduction.LoadProductionRunIngredientChoices( _
         NzStr(mProduction.GetCurrentProductionRunRecipeId()))
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     If Not IsEmpty(choices) Then
         AddRunChoiceRows choices, filterIngredientId, filterIngredientName, filterProcess
         BuildRunTreeFromPaletteList
@@ -4906,7 +4907,7 @@ Private Function MaxLongLocal(ByVal leftValue As Long, ByVal rightValue As Long)
     End If
 End Function
 
-Private Sub LoadSelectedRunPaletteRow()
+Public Sub LoadSelectedRunPaletteRow()
     Dim idx As Long
     Dim lst As MSForms.ListBox
     Dim splitTextBox As MSForms.TextBox
@@ -4929,7 +4930,11 @@ Private Sub LoadSelectedRunPaletteRow()
     SetRunAllocationVisualState splitTextBox, qtyTextBox, RunAllocationPercentForGroup(RunAllocationGroupKeyFromList(lst, idx))
 End Sub
 
-Private Sub ApplySelectedRunPaletteSplit()
+Public Function RunAllocationStatus() As String
+    RunAllocationStatus = mTxtStatus.Text
+End Function
+
+Public Sub ApplySelectedRunPaletteSplit(ByVal action As cProductionWorksheetAction)
     Dim idx As Long
     Dim lst As MSForms.ListBox
     Dim tableName As String
@@ -4951,56 +4956,20 @@ Private Sub ApplySelectedRunPaletteSplit()
     Dim newTotalPct As Double
     Dim runLoc As String
     Dim invLoc As String
-    Dim reusableReport As String
-    Dim requiredQty As Double
-    Dim allocationApplied As Boolean
+    Dim staged As Boolean
 
+    action.OutcomeCode = "REJECTED"
     If modProductionReusableRun.ReusableRunIsLoaded() Then
-        If mLstRunPalette.ListIndex < 0 Then
-            ShowStatus "Select an acceptable inventory stock row first."
-            Exit Sub
-        End If
-        idx = mLstRunPalette.ListIndex
-        splitText = Trim$(mTxtPaletteSplit.Text)
-        qtyText = Trim$(mTxtPaletteQty.Text)
-        requiredQty = modProductionReusableRun.ReusableRunRequirementQty( _
-            NzStr(mLstRunPalette.List(idx, 0)), NzStr(mLstRunPalette.List(idx, 1)))
-        If qtyText <> "" Then
-            If Not TryParseNonNegativeRunNumber(qtyText, qtyVal, "Quantity") Then Exit Sub
-            If requiredQty > 0 Then splitVal = qtyVal / requiredQty * 100#
-        ElseIf splitText <> "" Then
-            If Not TryParseNonNegativeRunNumber(splitText, splitVal, "% of Requirement") Then Exit Sub
-            qtyVal = requiredQty * splitVal / 100#
-        Else
-            ShowStatus "Enter % of Requirement or Qty first."
-            Exit Sub
-        End If
-        If ActiveRunLocation() = "" Then
-            ShowStatus "Choose a production run location before allocating inventory."
-            Exit Sub
-        End If
-        If StrComp(ActiveRunLocation(), NzStr(mLstRunPalette.List(idx, 9)), vbTextCompare) <> 0 Then
-            ShowStatus "Allocation rejected. Inventory is at " & NzStr(mLstRunPalette.List(idx, 9)) & _
-                       "; production run location is " & ActiveRunLocation() & "."
-            Exit Sub
-        End If
-        allocationApplied = modProductionReusableRun.ApplyReusableRunStockAllocation( _
-            CStr(mLstRunPalette.List(idx, 0)), CStr(mLstRunPalette.List(idx, 1)), _
-            CStr(mLstRunPalette.List(idx, 3)), CDbl(qtyVal), reusableReport)
-        If allocationApplied Then
-            mTxtPaletteSplit.Text = FormatRunNumber(splitVal)
-            mTxtPaletteQty.Text = FormatRunNumber(qtyVal)
-            RefreshReusableRunControls False
-        End If
-        ShowStatus reusableReport
+        modProductionRunAllocateActions.ApplyReusable Me, action, mLstRunPalette, _
+            mTxtPaletteSplit, mTxtPaletteQty, ActiveRunLocation()
         Exit Sub
     End If
 
     Set lst = ActiveRunPaletteList()
-    If lst Is Nothing Then Exit Sub
+    If lst Is Nothing Then action.OutcomeCode = "FAILED": Exit Sub
     Set splitTextBox = ActiveRunSplitTextBox()
     Set qtyTextBox = ActiveRunQtyTextBox()
-    If splitTextBox Is Nothing Or qtyTextBox Is Nothing Then Exit Sub
+    If splitTextBox Is Nothing Or qtyTextBox Is Nothing Then action.OutcomeCode = "FAILED": Exit Sub
     idx = lst.ListIndex
     If idx < 0 Then
         ShowStatus "Select an acceptable inventory row first."
@@ -5092,6 +5061,8 @@ Private Sub ApplySelectedRunPaletteSplit()
         If Not lo Is Nothing Then
             If Not lo.DataBodyRange Is Nothing Then
                 If rowIndex <= lo.ListRows.Count Then
+                    staged = (Not hasSplit Or ProductionColumnIndex(lo, "SPLIT %") > 0) And _
+                             (Not hasQty Or ProductionColumnIndex(lo, "QUANTITY") > 0)
                     If hasSplit Then SetCellByHeader lo, rowIndex, "SPLIT %", splitVal
                     If hasQty Then SetCellByHeader lo, rowIndex, "QUANTITY", qtyVal
                 End If
@@ -5105,10 +5076,11 @@ Private Sub ApplySelectedRunPaletteSplit()
     SyncRunAllocationToPaletteList lst, idx
     BuildRunTreeFromPaletteList
     SetRunAllocationVisualState splitTextBox, qtyTextBox, newTotalPct
+    If staged Then action.OutcomeCode = "STAGED" Else action.OutcomeCode = "FAILED"
     ShowStatus "Acceptable inventory allocation updated. Ingredient is " & FormatRunNumber(newTotalPct) & "% filled."
 End Sub
 
-Private Function TryParseNonNegativeRunNumber(ByVal numberText As String, ByRef numberValue As Double, ByVal labelText As String) As Boolean
+Public Function TryParseNonNegativeRunNumber(ByVal numberText As String, ByRef numberValue As Double, ByVal labelText As String) As Boolean
     If Not IsNumeric(numberText) Then
         ShowStatus labelText & " must be numeric."
         Exit Function
@@ -5121,7 +5093,7 @@ Private Function TryParseNonNegativeRunNumber(ByVal numberText As String, ByRef 
     TryParseNonNegativeRunNumber = True
 End Function
 
-Private Function FormatRunNumber(ByVal numberValue As Double) As String
+Public Function FormatRunNumber(ByVal numberValue As Double) As String
     FormatRunNumber = Format$(numberValue, "0.###")
 End Function
 
@@ -10174,7 +10146,7 @@ Private Sub ShowPersistencePending(ByVal messageText As String)
     DoEvents
 End Sub
 
-Private Function NzStr(ByVal value As Variant) As String
+Public Function NzStr(ByVal value As Variant) As String
     If IsError(value) Then Exit Function
     If IsNull(value) Then Exit Function
     If IsEmpty(value) Then Exit Function
@@ -11383,25 +11355,13 @@ Private Sub mBtnRunTreeCollapseAll_Click()
 End Sub
 
 Private Sub mBtnRunApplyPalette_Click()
-    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
-    If mLstRunPalette.ListCount = 0 Then
-        ResetInventoryCache
-        RefreshRunPaletteState
-        If mLstRunPalette.ListCount = 0 Then
-            ShowStatus "No acceptable inventory assignments were found for this recipe. Use Ingredients Assignment to select each USED ingredient, add acceptable inventory, and Save Assignment."
-            Exit Sub
-        End If
-    End If
-    If mLstRunPalette.ListIndex < 0 And mLstRunPalette.ListCount = 1 Then
-        mLstRunPalette.ListIndex = 0
-        LoadSelectedRunPaletteRow
-    End If
-    ApplySelectedRunPaletteSplit
+    Dim report As String
+    report = modProductionRunAllocateActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, False, mLstRunPalette): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnRunTreeApplyPalette_Click()
-    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
-    ApplySelectedRunPaletteSplit
+    Dim report As String
+    report = modProductionRunAllocateActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, True, mLstRunPalette): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mBtnManagerRefresh_Click()

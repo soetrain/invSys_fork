@@ -1,5 +1,201 @@
 # Slice4be Production Run local observations
 
+## List and Tree Apply integration checkpoint
+
+Unpromoted `deploy/validation-production-run-allocate-01` implements the two
+existing Apply observations under unchanged D18. Constructed-button wiring is
+63/68; eight of catalog24's nine handlers are integrated. Scale, four additional
+Run buttons, nonbutton coverage and broader acceptance remain open. RUN-SCALE-01
+and RUN-UI-01 remain unapproved; no proposed message or branch change is implemented.
+
+`modProductionRunAllocateActions` owns captured begin/finish, capability checks,
+loading/nested suppression and the existing List-only refill/auto-selection.
+The form reports the worksheet owner boundary directly, retaining input-source
+precedence, header-based writes, mirroring, location-refusal clearing and partial
+effects. Missing required local surfaces produce FAILED observations while their
+existing displayed wording remains governed by the pending RUN-UI-01 decision.
+The extracted reusable UI branch retains quantity precedence, validation and
+exact stock allocation. Owner exceptions supply FAILED without status parsing;
+entity-read returns check captured continuation before later work. The two existing
+quantity/non-counted readers move to a typed helper; direct calls without an
+action retain their prior behavior. No inventory submission or new read path.
+
+Protecting worksheet RED on refresh01: controller
+`reports/runtime/production-run-local-controller/e447938ef7a7492295dfb6c757cfc228`,
+result `reports/runtime/slice4be-production-run-worksheet/736e90b9aa0e4fdda37fe53fb0037d48/red.json`,
+156 PASS/112 approved observation FAIL plus four proposed message assertions,
+272 unique. The adapter retains all eight real entity-read sites after extraction.
+Its frozen yield baseline also retains every previous identity/order/result:
+controller `reports/runtime/production-run-local-controller/9bbf27691b614a2888d1b486964e6f5d`,
+result `reports/runtime/slice4be-production-run-yield/7cb751e71fb64124886f7d8b9efda175/red.json`,
+13:18:57.1462892--13:22:00.2899526 UTC, **132 PASS/14 known FAIL/146 unique**.
+Five compiles, preservation, normal closure and delayed zero audit pass.
+
+Build `reports/runtime/run-allocate-build-01`,13:22:28.0900058--13:23:06.6123014 UTC,
+passes cold startup and five compiles. Compiled components grow280 to282: the form
+and reusable owner change, two helpers are added and278 components are unchanged.
+Settings and refresh01 packages are preserved; normal closure and delayed zero
+Excel Application1000/1001/1002 audit pass.
+
+Worksheet GREEN: controller
+`reports/runtime/production-run-local-controller/4704cd6f7af048a59248376de4406fd7`,
+result `reports/runtime/slice4be-production-run-worksheet/c3c692f26c3a40b39fb8592617034f41/green.json`,
+13:23:26.3086265--13:25:54.2858350 UTC: **268/268 approved checks GREEN**, with four
+unchanged proposed wording failures in the272-check report. All prior identities,
+order and passes remain; exactly112 approved checks improve. Actual List/Tree
+handlers retain quantity/percent/zero/refusal effects, custom values/formulas and
+exact Admin-created keys, canonical source, redacted original pairs and empty
+source references. Five compiles, package/settings/operator/authority/older-record
+preservation, normal closure and delayed zero Excel audit pass.
+
+Static `reports/runtime/run-allocate-static-03` reports289 components,6171
+procedures and135434 lines: feature growth2/5/83. The form shrinks11522 to11482;
+the reusable owner shrinks by15 lines. All28 oversized caps are non-growing;
+dynamic calls remain9 literal/45 unresolved and duplicate candidates190. Three
+schemas and368 PowerShell parses pass. No automatic cleanup/deletion is performed.
+
+Read-interruption GREEN: controller
+`reports/runtime/production-run-local-controller/9951210603bd40869835cd2e36f36087`,
+result `reports/runtime/slice4be-production-run-yield/1bd701de18e4463fa2625033eebdcf2a/green.json`,
+13:26:20.4242024--13:29:31.2113964 UTC: **142 PASS/4 known Scale FAIL/146 unique**.
+All prior identities/order/passes remain; ten Apply checks improve. All18 Apply
+checks pass: actual entity read returns before sign-out, later reads stop, owner
+and projection state at the interruption are preserved, refusal is visible,
+guards restore, and only the original REQUESTED record remains. The test retains
+the real read result; it does not replace it with fabricated failure data. Five
+compiles, canonical allocate01 pins, preservation, normal closure and delayed
+zero Excel audit pass. This first-read interruption gate does not establish every
+later conversion-specific read boundary; the expanded gate below supplies it.
+Source review resolves the suspected extra read between conversion and the guard:
+Core `ValidateQuantityForUom`, `UomRequiresWholeQuantity` and `NormalizeUomName`
+perform only local numeric/string validation, with no configuration/authority
+read or yield. The guard precedes the next actual entity read and owning mutation.
+No defect or runtime guard change follows from that suspicion. The expanded
+conversion-return and later entity-return gate below uses a legitimately released
+differing-UOM definition and actual results.
+
+Exact-stock GREEN: controller
+`reports/runtime/production-run-local-controller/7c4a93ad44c9419690a865650093a5ce`,
+result `reports/runtime/slice4be-production-run-stock/50f429cd5a8b43ff881e2947eb0536ea/green.json`,
+13:30:00.4129996--13:32:58.7857621 UTC: **138/138 unique GREEN**. All prior
+identities/order/passes remain;56 Apply observation checks improve. Real Receiving
+creates the second entity before measured planning. Both actual Apply handlers
+retain quantity/percent expansion over two distinct keys, zero clearing and
+over-bucket refusal, canonical source and exact local state. Observations contain
+no exact keys or source references. Five compiles, canonical pins, preservation,
+normal closure and delayed zero Excel audit pass.
+
+Optional-policy GREEN: controller
+`reports/runtime/production-run-local-controller/fc191227e0584c7ea357a00ded8bf562`,
+result `reports/runtime/slice4be-production-run-policy/29d1c82e4e3746f09b4fe8993673150a/green.json`,
+13:33:15.4310553--13:39:44.8127580 UTC: **213 PASS/5 known Scale FAIL/218 unique**.
+All prior identities/order/passes remain; ten Apply denial checks improve. Both
+Apply actions deny before owner reads/mutation and retain authorized behavior
+when tracking is off, excluded by the older catalog, or unavailable; unavailable
+guidance remains visible. Five compiles, canonical pins and preservation pass.
+Excel remains live briefly after assertions, then closes without intervention;
+terminal cleanup and delayed zero Excel audit pass. No shutdown repair is claimed.
+
+Fault/nesting GREEN: controller
+`reports/runtime/production-run-local-controller/fed23e91758b4668bf30a8e4d2dda4cf`,
+result `reports/runtime/slice4be-production-run-fault/a3ca588481504df4b1889d0c906f844c/green.json`,
+13:40:04.8935226--13:43:08.1627247 UTC: **232 PASS/13 known Scale FAIL/245 unique**.
+All prior identities/order/passes remain;26 Apply checks improve. Injected owner
+exceptions produce FAILED, retain prior local effects and redact raw error data;
+nested real clicks remain suppressed with one original pair and restored guards.
+Five compiles, canonical pins, preservation, normal closure and delayed zero
+Excel audit pass.
+
+Initial reusable run: controller
+`reports/runtime/production-run-local-controller/868d3bcdecde4308aa335f97eb179d16`,
+result `reports/runtime/slice4be-production-run-local/adc6c6de260a478baac0aa4886b7950f/green.json`,
+13:43:40.5385969--13:52:27.0825592 UTC: **437 PASS/66 FAIL/503 unique**. Despite the
+filename, this is not the expected GREEN gate. All prior identities/order/passes,
+33 owner cases and42 shared checks remain;148 checks improve. The eight missing
+expected improvements all belong to `RunLocal.ALLOCATE.RefillPalette` and depend
+on its expected STAGED result. Seven native forms survive captured-workbook closure
+and their actual handlers execute/refuse; no dismissed-form invocation is inferred.
+Five compiles, canonical pins, preservation, normal closure and delayed zero audit
+pass. The following diagnosis is required before interpreting those eight failures.
+
+Counts-only actual-handler diagnostics retain the original57 relevant check
+identities/order/results:49 PASS/8 FAIL on each frozen candidate under the old
+STAGED expectation. Refresh01 controller
+`reports/runtime/production-run-local-controller/b0fcae8f66e54b6a97cd5295d97396e2`,
+result `reports/runtime/slice4be-production-run-refill/ad04500960bd47a79379ddf46c761037/red.json`,
+13:56:19.8453338--13:57:59.5816546 UTC; allocate01 controller
+`reports/runtime/production-run-local-controller/c5ee70a0d2f44d1c930d888c82e54e06`,
+result `reports/runtime/slice4be-production-run-refill/6bcc0368d48b49f6b499f7ed3a03845d/red.json`,
+13:58:50.4957074--14:00:33.8690259 UTC. Both receipts prove a loaded reusable run,
+zero palette rows before/after, zero allocation-owner invocations, preserved owner
+state and the existing no-choices refusal. Refresh01 has no records; allocate01
+correctly has one REQUESTED and one REJECTED, with no STAGED. Five compiles,
+preservation, unassisted closure and delayed zero audits pass for both.
+
+The test's STAGED expectation was incorrect under D18: selection refusal is
+REJECTED, and local completion requires the actual successful owner boundary.
+No runtime repair is made. The correction retains all503 full-suite identities
+and the original refill owner-state check; it does not substitute a no-local-effect
+assertion, because refill can clear local presentation. The separate narrow gate
+adds five explicit refusal checks. Corrected frozen refresh01 RED: controller
+`reports/runtime/production-run-local-controller/cb78cd4997234b6784a4e172f50b279d`,
+result `reports/runtime/slice4be-production-run-refill/d0f5c18602a84da99c1c2cfbaac2d5bc/red.json`,
+14:01:12.1869085--14:02:51.2763268 UTC, **54 PASS/8 missing-observation FAIL/62
+unique**, retaining all57 prior relative-order results and passing the five new
+owner/refusal assertions. Five compiles, preservation, normal closure and delayed
+zero audit pass. Corrected narrow GREEN: controller
+`reports/runtime/production-run-local-controller/02c30157d87d474292710f066f9c1ea8`,
+result `reports/runtime/slice4be-production-run-refill/4c438383f77d42af9c46ec2837946764/green.json`,
+14:03:48.8826771--14:05:35.5727925 UTC: **62/62 GREEN**, retaining all ordered
+identities/passes and improving the eight original-observation checks. The receipt
+again proves zero owner calls and STAGED records, preserved owner state and the
+existing refusal, with one REQUESTED and one REJECTED. Five compiles, canonical
+pins, preservation, normal closure and delayed zero audit pass.
+
+Corrected full503 run: controller
+`reports/runtime/production-run-local-controller/3a9c2026b7ed43fcb70cdb6d8e9b8926`,
+result `reports/runtime/slice4be-production-run-local/7e3a010d1b784dee8afb2acfcfc1ba04/green.json`,
+14:07:54.5361812--14:16:52.0146446 UTC: **445 PASS/58 known Scale FAIL/503 unique**.
+All prior ordered identities/passes remain;156 Apply checks improve. All33 owner
+cases and42 shared checks pass. Seven native forms survive their captured
+workbook's closure; all seven actual handlers enter and refuse, preserving owner
+state and saved bytes without redirected activity. Five compiles, canonical pins,
+settings/operator/authority/older-record preservation, normal unassisted closure
+and delayed zero Excel audit pass. The controller waits for Excel to exit while
+retaining restoration state; no shutdown intervention or native fix is claimed.
+This Run-local gate does not replace the separate full reusable171/replay37 gate.
+
+Expanded read-return RED uses a differing convertible requirement UOM entered
+before the actual Process Save/Release fixture. It never alters a loaded released
+definition, fabricates a read result or changes the handler. Successful stock and
+exact-entity UOM returns must prove positive conversion and differing real units;
+the second, third and fourth inventory returns use explicit occurrence counts.
+Ten new interruption cases add90 checks while preserving the original146 checks.
+Controller `reports/runtime/production-run-local-controller/e09c3cbddbaa488199ce9162157e2014`,
+result `reports/runtime/slice4be-production-run-yield/d50069ac5e94421c83c931f89db5953f/red.json`,
+14:17:33.3549585--14:21:29.5451132 UTC: **172 PASS/64 FAIL/236 unique** on refresh01.
+All146 prior relative-order results remain exact; the90 added checks are40 PASS/
+50 behavioral FAIL. All21 actual boundaries return before sign-out. The old Apply
+handlers then continue reads/local changes, lack visible refusal and omit the
+original REQUESTED record. Five compiles, canonical pins, preservation, normal
+closure and delayed zero audit pass.
+
+Expanded GREEN on unchanged allocate01: controller
+`reports/runtime/production-run-local-controller/5a75fe9520ba47a9a4f40f2dea4fe57f`,
+result `reports/runtime/slice4be-production-run-yield/f7d702060d0e4502ad9a0c33c767a41e/green.json`,
+14:21:56.8713352--14:26:47.7200539 UTC: **232 PASS/4 known Scale FAIL/236 unique**.
+All prior ordered identities/passes remain;60 Apply checks improve, including
+all50 new negative-control failures. All108 Apply checks pass across both handlers'
+first inventory read, two real conversion returns and second/third/fourth entity
+reads. No later observed reads or owner/projection changes follow invalidation;
+refusal is visible, guards restore and the original REQUESTED record is retained
+without a misattributed outcome. Five compiles, canonical pins, preservation,
+normal unassisted closure and delayed zero audit pass. Runtime remains unchanged
+since the original Apply build. Static03 retains the runtime manifest fields and
+all maintenance metrics from static01, with the expanded tooling parsed.
+
+Separate paths, layout and release gates remain open. No human acceptance is claimed.
+
 Architecture v4.11 D18 specifies nine catalog24 controls under approved semantic
 inheritance: Scale, Clear, Load, Loader/Manager Refresh, List/Tree Apply and Tree
 Expand/Collapse. Owner is PRODUCTION_RUN_LOCAL. Local completion is distinct from

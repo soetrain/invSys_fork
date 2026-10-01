@@ -8,8 +8,21 @@ function Install-ProductionRunYieldProbe {
         while($Module.Lines($line,1).TrimEnd().EndsWith('_')){$line++;if($line -ge $end){throw 'Incomplete read assignment; not product RED.'}}
         $Module.InsertLines($line+1,('    TestProductionDesigner.RunYieldReadReturned "'+$Boundary+'", '+$Available))
     }
+    function AfterConversion($Module,[string]$Procedure,[string]$Boundary){
+        $start=$Module.ProcStartLine($Procedure,0);$end=$start+$Module.ProcCountLines($Procedure,0)
+        $hits=@(for($line=$start;$line -lt $end;$line++){if($Module.Lines($line,1).Trim().StartsWith('If Not modUomSettings.GetUomConversion(',[StringComparison]::Ordinal)){$line}})
+        if($hits.Count -ne 1){throw 'Run conversion fixture anchor changed; not product RED.'}
+        $line=$hits[0]
+        while($line -lt $end -and $Module.Lines($line,1).Trim() -cne 'End If'){$line++}
+        if($line -ge $end -or $Module.Lines($line-1,1).Trim() -cne 'Exit Function'){throw 'Run conversion return anchor changed; not product RED.'}
+        $native=if($Boundary -ceq 'StockUomConversion'){'CStr(entities(representativeRow, 5))'}else{'nativeUom'}
+        $version=if($Boundary -ceq 'StockUomConversion'){'conversionVersion'}else{'catalogVersion'}
+        $Module.InsertLines($line+1,('    TestProductionDesigner.RunYieldReadReturned "'+$Boundary+'", (conversionFactor > 0 And Len('+$version+') > 0 And StrComp('+$native+', RunRecordText(requirement, "UOM"), vbTextCompare) <> 0)'))
+    }
     $project=$packages['invSys.Operations.xlam'].VBProject
     $owner=$project.VBComponents.Item('modProductionReusableRun').CodeModule
+    AfterConversion $owner 'ApplyReusableRunStockAllocation' 'StockUomConversion'
+    AfterConversion $owner 'ApplyReusableRunAllocation' 'ExactUomConversion'
     AfterRead $owner 'LoadReleasedReusableRecipe' 'validation = modOperationsPrimitiveBridge.ValidateReleasedRecipe(' 'ValidateReleasedRecipe' '(Left$(validation, 2) = "1" & vbTab)'
     AfterRead $owner 'LoadReleasedReusableRecipe' 'jsonText = modOperationsPrimitiveBridge.GetRecipeGraph(' 'GetRecipeGraph' 'Len(jsonText) > 2'
     $definitions=$owner
@@ -17,37 +30,50 @@ function Install-ProductionRunYieldProbe {
         if($component.Name -ceq 'modProductionRunDefinitionLoad'){$definitions=$component.CodeModule;break}
     }
     AfterRead $definitions 'LoadNodeProcessDefinitions' 'jsonText = modOperationsPrimitiveBridge.GetProcessVersion(' 'GetProcessVersion' 'Len(jsonText) > 2'
-    $reads=@(for($line=1;$line -le $owner.CountOfLines;$line++){
-        if($owner.Lines($line,1).Trim() -cmatch '^(entities|entity|entityRows) = modInventoryDomainBridge\.ListAvailableInventoryEntitiesBridge\(""\)$'){
-            [pscustomobject]@{Line=$line;Variable=$Matches[1]}
+    $readModules=@($owner)
+    foreach($component in $project.VBComponents){
+        if($component.Name -ceq 'modProductionRunEntityReads'){$readModules+=,$component.CodeModule}
+    }
+    $reads=@(foreach($module in $readModules){for($line=1;$line -le $module.CountOfLines;$line++){
+        if($module.Lines($line,1).Trim() -cmatch '^(entities|entity|entityRows) = modInventoryDomainBridge\.ListAvailableInventoryEntitiesBridge\(""\)$'){
+            [pscustomobject]@{Module=$module;Line=$line;Variable=$Matches[1]}
         }
-    })
+    }})
     if($reads.Count -ne 8){throw 'Reusable Inventory read-return fixture anchors changed; not product RED.'}
     foreach($read in $reads|Sort-Object Line -Descending){
-        $owner.InsertLines($read.Line+1,('    TestProductionDesigner.RunYieldReadReturned "InventoryEntities", IsArray('+$read.Variable+')'))
+        $read.Module.InsertLines($read.Line+1,('    TestProductionDesigner.RunYieldReadReturned "InventoryEntities", IsArray('+$read.Variable+')'))
     }
     $form=$project.VBComponents.Item('frmProduction').CodeModule
+    # Change the editor before the actual Save/Release fixture, never a loaded definition.
+    $start=$form.ProcStartLine('DesignerReleasedProcessForTest',0);$end=$start+$form.ProcCountLines('DesignerReleasedProcessForTest',0)
+    $hits=@(for($line=$start;$line -lt $end;$line++){if($form.Lines($line,1).Trim() -ceq 'mLstProcessRequirements.List(0, 5) = "lbs"'){$line}})
+    if($hits.Count -ne 1){throw 'Released differing-UOM fixture anchor changed; not product RED.'}
+    $form.ReplaceLine($hits[0],'    mLstProcessRequirements.List(0, 5) = "lb"')
     AfterRead $form 'DesignReadListForTest' 'DesignReadListForTest = modOperationsPrimitiveBridge.ListProcesses(' 'ListProcesses' 'IsArray(DesignReadListForTest)'
     AfterRead $form 'DesignReadListForTest' 'DesignReadListForTest = modOperationsPrimitiveBridge.ListRecipes(' 'ListRecipes' 'IsArray(DesignReadListForTest)'
     $adapter=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     $adapter.InsertLines(1,@'
 Private mRunYieldTarget As String, mRunYieldArmed As Boolean, mRunYieldReached As Boolean
 Private mRunYieldAvailable As Boolean, mRunYieldLaterReads As Long
+Private mRunYieldOrdinal As Long, mRunYieldSeen As Long
 Private mRunYieldOwner As String, mRunYieldProjection As String
 '@)
     $adapter.AddFromString(@'
 Public Sub RunYieldReset()
     mRunYieldTarget = "": mRunYieldArmed = False: mRunYieldReached = False
     mRunYieldAvailable = False: mRunYieldLaterReads = 0
+    mRunYieldOrdinal = 1: mRunYieldSeen = 0
     mRunYieldOwner = "": mRunYieldProjection = ""
 End Sub
-Public Sub RunYieldArm(ByVal boundary As String)
+Public Sub RunYieldArm(ByVal boundary As String, Optional ByVal ordinal As Long = 1)
     RunYieldReset
-    mRunYieldTarget = boundary: mRunYieldArmed = True
+    mRunYieldTarget = boundary: mRunYieldOrdinal = ordinal: mRunYieldArmed = True
 End Sub
 Public Sub RunYieldReadReturned(ByVal boundary As String, ByVal available As Boolean)
     If mRunYieldReached Then mRunYieldLaterReads = mRunYieldLaterReads + 1
     If Not mRunYieldArmed Or boundary <> mRunYieldTarget Then Exit Sub
+    mRunYieldSeen = mRunYieldSeen + 1
+    If mRunYieldSeen <> mRunYieldOrdinal Then Exit Sub
     mRunYieldArmed = False: mRunYieldReached = True: mRunYieldAvailable = available
     mRunYieldOwner = modProductionReusableRun.RunLocalStateForTest()
     mRunYieldProjection = mForm.RunLocalStateForTest()
@@ -80,15 +106,21 @@ function Test-ProductionRunYield($Fixture,$Other,$Book) {
         @{Action='ALLOCATE';Read='InventoryEntities'},
         @{Action='TREE_ALLOCATE';Read='InventoryEntities'}
     )
+    foreach($action in @('ALLOCATE','TREE_ALLOCATE')){
+        foreach($read in @('StockUomConversion','ExactUomConversion')){$cases+=@{Action=$action;Read=$read;Ordinal=1}}
+        foreach($ordinal in @(2,3,4)){$cases+=@{Action=$action;Read='InventoryEntities';Ordinal=$ordinal}}
+    }
     try{
         foreach($case in $cases){
             [void](Probe 'RunYieldReset')
             SelectTarget $Fixture 'config-producer';[void](Probe 'RunLocalReopen' @($Book.Name))
             [void](Probe 'RunFaultResetFixture')
             if([string](Probe 'RunLocalStage' @($case.Action,'Normal')) -cne 'READY'){throw 'Released Run yield fixture unavailable; not product RED.'}
-            [void](Probe 'RunYieldArm' @($case.Read));$before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
+            $ordinal=if($case.ContainsKey('Ordinal')){[int]$case.Ordinal}else{1}
+            [void](Probe 'RunYieldArm' @($case.Read,$ordinal));$before=@(Files);$otherBefore=@(Get-Slice4beActivityFiles $Other)
             $notice=[string](Probe 'RunFaultAct' @($case.Action));$evidence=([string](Probe 'RunYieldEvidence')).Split('|')
             $label='RunYield.'+$case.Action+'.'+$case.Read
+            if($ordinal -gt 1){$label+='.'+$ordinal}
             $reached=$evidence.Count -eq 3 -and $evidence[0] -ceq 'True' -and $evidence[1] -ceq 'True'
             if(-not $reached){throw ('Real Run read boundary unavailable: '+$case.Read+'; not product RED.')}
             Check ($label+'.RealReadReturnedBeforeSignOut') $reached

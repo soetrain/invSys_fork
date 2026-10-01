@@ -34,6 +34,7 @@ param(
     [switch]$RunPresentationPathsOnly,
     [switch]$CheckProductionRunLocal,
     [switch]$RunLocalClosedDiagnostic,
+    [switch]$RunLocalRefillDiagnostic,
     [switch]$RunLocalContractOnly,
     [switch]$RunLocalPolicyOnly,
     [switch]$RunLocalFaultOnly,
@@ -258,6 +259,7 @@ if($RunLocalPolicyOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDi
 if($RunLocalFaultOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly)){throw 'Run fault checks require their separate actual-handler gate.'}
 if($RunLocalYieldOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly)){throw 'Run read-yield checks require their separate actual-handler gate.'}
 if($RunLocalStockOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly)){throw 'Run stock-bucket checks require their separate actual-handler gate.'}
+if($RunLocalRefillDiagnostic -and (-not $CheckProductionRunLocal -or @($RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunRefreshPathsOnly|Where-Object{$_}).Count)){throw 'Run refill diagnostic requires its separate actual-handler gate.'}
 if($RunLocalWorksheetOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly)){throw 'Run worksheet checks require their separate actual-handler gate.'}
 if($RunLocalWorksheetOwnerOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly)){throw 'Run worksheet owner checks require their separate actual-handler gate.'}
 if($RunLocalWorksheetScaleOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly)){throw 'Worksheet Scale requires its separate actual-handler gate.'}
@@ -501,6 +503,7 @@ if($CheckProductionDesignerActivity){
     if($RunPresentationPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
+    if($RunLocalRefillDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-refill/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalContractOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-contract/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalPolicyOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-policy/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-fault/'+[guid]::NewGuid().ToString('N'))}

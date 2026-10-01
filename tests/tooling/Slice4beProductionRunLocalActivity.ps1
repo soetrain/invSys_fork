@@ -57,6 +57,7 @@ function Test-ProductionRunLocalActivity($Fixture,$Other) {
     $canary='RUNLOCAL'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null;$pins=@{};$recordPins=@{}
     $activityIds=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $actions=@('LOAD','SCALE','CLEAR','LOADER_REFRESH','MANAGER_REFRESH','ALLOCATE','TREE_ALLOCATE')
+    if($RunLocalRefillDiagnostic){$actions=@()}
     SelectTarget $Fixture
     $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
     if(-not $seed.StartsWith('OK|')){throw 'Admin Seed fixture unavailable; not product RED.'}
@@ -105,7 +106,7 @@ function Test-ProductionRunLocalActivity($Fixture,$Other) {
             @{Action='SCALE';Mode='BadScale';Outcome='REJECTED'},
             @{Action='SCALE';Mode='SyntheticCompleted';Outcome='REJECTED'},
             @{Action='ALLOCATE';Mode='NoSelection';Outcome='STAGED'},
-            @{Action='ALLOCATE';Mode='RefillPalette';Outcome='STAGED'},
+            @{Action='ALLOCATE';Mode='RefillPalette';Outcome='REJECTED'},
             @{Action='TREE_ALLOCATE';Mode='NoSelection';Outcome='REJECTED'}
         )
         foreach($action in @('ALLOCATE','TREE_ALLOCATE')){
@@ -113,9 +114,30 @@ function Test-ProductionRunLocalActivity($Fixture,$Other) {
             foreach($mode in @('PercentOnly','ZeroQuantity')){$cases+=@{Action=$action;Mode=$mode;Outcome='STAGED'}}
         }
         if($RunLocalClosedDiagnostic){$cases=@()}
+        if($RunLocalRefillDiagnostic){$cases=@(@{Action='ALLOCATE';Mode='RefillPalette';Outcome='REJECTED'})}
         foreach($case in $cases){
-            Stage $case.Action $case.Mode;$state=State;$before=@(Files);$notice=[string](Probe 'RunLocalAct' @($case.Action,''));$label='RunLocal.'+$case.Action+'.'+$case.Mode
-            $preserved=if($case.Outcome -ceq 'REJECTED'){(State) -ceq $state}else{[bool](Probe 'RunLocalPreserved' @($case.Action,$case.Mode))}
+            Stage $case.Action $case.Mode;$state=State;$before=@(Files)
+            if($case.Mode -ceq 'RefillPalette'){
+                $refillBefore=([string](Probe 'RunRefillState')).Split('|')
+                $refillOwner=[string](Probe 'RunLocalOwnerState');[void](Probe 'RunRefillReset')
+            }
+            $notice=[string](Probe 'RunLocalAct' @($case.Action,''));$label='RunLocal.'+$case.Action+'.'+$case.Mode
+            if($case.Mode -ceq 'RefillPalette'){
+                $refillAfter=([string](Probe 'RunRefillState')).Split('|')
+                $refillRecords=@(Files|Where-Object{$_ -cnotin $before}|ForEach-Object{[IO.File]::ReadAllText($_)|ConvertFrom-Json})
+                $refillReceipt=[pscustomobject]@{ReusableBefore=($refillBefore[0] -ceq 'True');ReusableAfter=($refillAfter[0] -ceq 'True');PaletteBefore=[int]$refillBefore[1];PaletteAfter=[int]$refillAfter[1];OwnerCalls=[int](Probe 'RunRefillCalls');OwnerStatePreserved=([string](Probe 'RunLocalOwnerState') -ceq $refillOwner);NoChoicesRefusal=($refillAfter[2] -ceq 'True');Records=$refillRecords.Count;Requested=@($refillRecords|Where-Object OutcomeCode -ceq 'REQUESTED').Count;Rejected=@($refillRecords|Where-Object OutcomeCode -ceq 'REJECTED').Count;Staged=@($refillRecords|Where-Object OutcomeCode -ceq 'STAGED').Count}
+                $refillReceipt|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'run-refill-boundary.json')
+                if($RunLocalRefillDiagnostic){
+                    Check 'RunRefill.LoadedRunEmptyPalette' ($refillReceipt.ReusableBefore -and $refillReceipt.ReusableAfter -and $refillReceipt.PaletteBefore -eq 0 -and $refillReceipt.PaletteAfter -eq 0)
+                    Check 'RunRefill.AllocationOwnerNotInvoked' ($refillReceipt.OwnerCalls -eq 0)
+                    Check 'RunRefill.OwnerStatePreserved' $refillReceipt.OwnerStatePreserved
+                    Check 'RunRefill.ExistingNoChoicesRefusal' $refillReceipt.NoChoicesRefusal
+                    Check 'RunRefill.NoStagedObservation' ($refillReceipt.Staged -eq 0)
+                }
+            }
+            # Refill can clear local presentation while preserving the owning allocation.
+            # Retain its original owner check; REJECTED does not imply no local effects.
+            $preserved=if($case.Outcome -ceq 'REJECTED' -and $case.Mode -cne 'RefillPalette'){(State) -ceq $state}else{[bool](Probe 'RunLocalPreserved' @($case.Action,$case.Mode))}
             Check ($label+'.ExistingOwnerBehavior') $preserved
             Check ($label+'.NoUnhandledError') (-not $notice.StartsWith('HANDLER_ERROR|'))
             Pair $before $case.Action $case.Outcome $label

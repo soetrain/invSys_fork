@@ -284,4 +284,32 @@ Public Function RunLocalPreserved(ByVal action As String, ByVal mode As String) 
     RunLocalPreserved = mForm.RunLocalPreservedForTest(action, mode)
 End Function
 '@)
+    $owner=$project.VBComponents.Item('modProductionReusableRun').CodeModule
+    $start=$owner.ProcStartLine('ApplyReusableRunStockAllocation',0)
+    $end=$start+$owner.ProcCountLines('ApplyReusableRunStockAllocation',0)
+    $entry=@(for($line=$start;$line -lt $end;$line++){if($owner.Lines($line,1).Trim() -ceq 'If Not mLoaded Then'){$line}})
+    if($entry.Count -ne 1){throw 'Allocation invocation diagnostic anchor changed; not product RED.'}
+    $owner.InsertLines($entry[0],'    TestProductionDesigner.RunRefillOwnerEntered')
+    $adapter.InsertLines(1,'Private mRunRefillOwnerCalls As Long')
+    $adapter.AddFromString(@'
+Public Sub RunRefillOwnerEntered()
+    mRunRefillOwnerCalls = mRunRefillOwnerCalls + 1
+End Sub
+Public Sub RunRefillReset()
+    mRunRefillOwnerCalls = 0
+End Sub
+Public Function RunRefillCalls() As Long
+    RunRefillCalls = mRunRefillOwnerCalls
+End Function
+Public Function RunRefillState() As String
+    RunRefillState = mForm.RunRefillStateForTest()
+End Function
+'@)
+    $form.AddFromString(@'
+Public Function RunRefillStateForTest() As String
+    RunRefillStateForTest = CStr(modProductionReusableRun.ReusableRunIsLoaded()) & "|" & _
+        CStr(mLstRunPalette.ListCount) & "|" & _
+        CStr(InStr(1, mTxtStatus.Text, "No acceptable inventory assignments were found for this recipe.", vbBinaryCompare) = 1)
+End Function
+'@)
 }
