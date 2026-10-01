@@ -1,5 +1,54 @@
 # Slice4be Production Check In correctness and observations
 
+## Optional policy and unavailable-store acceptance
+
+Test-only expansion,2026-10-01 UTC: unchanged activity03 passes434/434, retaining
+all229 prior ordered identities/PASS results and adding205 policy/storage checks.
+Controller `production-run-local-controller/b23e77fcd9ea44a590605e57c9063a7c`, result
+`slice4be-production-check-in-activity/60a3b4acab61400e9ccd395640e5b05b/green.json`,
+22:02:09.1836941-22:08:35.7408129 UTC. Five instrumented packaged compiles,
+shared42, canonical package pins, settings/authority/operator preservation,
+unassisted cleanup and delayed Application1000/1001/1002 audit with zero Excel
+failures pass. No new runtime correction or new behavioral RED is claimed: the
+new cases pass the existing D18 implementation, whose earlier focused RED/GREEN
+evidence remains below, including the exact permission-wording regression.
+
+`Slice4beProductionCheckInPolicy.ps1` exercises four initial conditions for both
+reusable and worksheet staging, under both permitted producer and denied reader:
+
+- Collection disabled through the owning policy editor.
+- A valid catalog24 policy that still recognizes an older control but excludes
+  Check In, without inventing a default for the newer control.
+- Malformed saved policy with an unsupported schema version.
+- An unavailable Activity store, created by temporarily moving the disposable
+  store aside and placing a file at its directory path. Existing records are
+  retained and restored; operational directories are never touched.
+
+Every case invokes the actual packaged Check In handler. Authorized owner work
+completes with its success message; disabled collection is silent, while older,
+invalid and unavailable-store conditions append the exact applicable notice.
+Denied actions retain the exact permission message and optional notice, never
+enter the owner and preserve both owner and worksheet projection. Independent
+owner assertions protect checked/note-frozen state without completion, exact
+received System_Key, custom value/formula, palette and header/display mappings.
+
+Full Training-file hashes reject false records, fallback writes or changes to
+prior evidence. Other-warehouse evidence, canonical entities and action guards
+remain intact. Policy hashes prove no automatic repair/rewrite; each temporary
+Config change is restored byte-for-byte. Six new captures were individually
+reviewed, including authorized reusable/worksheet Check In and denied Check In
+during the real unavailable-store fixture. Messages are legible; long Production
+fields still clip. Capture hashes/reviews and raw fixture evidence remain ignored.
+
+`check-in-policy-static-01` preserves290 components/6175 procedures/135522 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 non-growing module
+caps. Three schemas and375 PowerShell files parse successfully. Only test tooling
+and acceptance records change; earlier activity03 build/smoke/layout/live-role/
+full-chain and reader-path evidence applies to the same frozen package hashes,
+without claiming those gates were rerun here. Mid-action policy changes, terminal
+append failures after a saved REQUESTED, additional owner refusals, remaining
+Run controls and full human/NAS Release1 acceptance remain open.
+
 ## Recording, publication and independent reader paths
 
 Test-only expansion under Architecture v4.11 D18,2026-10-01 UTC. The shared

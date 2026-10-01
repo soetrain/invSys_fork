@@ -1,5 +1,6 @@
 # D18 catalog25: invoke the packaged operator handler; observe real journal files.
 # Owner facts are checked independently of tracking and of displayed status text.
+. (Join-Path $PSScriptRoot 'Slice4beProductionCheckInPolicy.ps1')
 function Install-ProductionCheckInActivityProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
@@ -56,6 +57,7 @@ End Function
         If TestShippingCatalog.CheckPolicyUnavailable() Then Exit Function
     End If
 '@)
+    Install-ProductionCheckInPolicyProbe
 }
 
 function Test-ProductionCheckInActivity($Fixture,$Other) {
@@ -221,6 +223,7 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
             if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Production' 'check-in-permission-tracking-unavailable.png'}
         }finally{[void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckPolicyArm' @($false))}
         SelectTarget $Fixture 'config-producer'
+        Test-ProductionCheckInPolicy $Fixture $Other $book $decoy $selectedKey $canary $keys
         Check 'CheckInActivity.CanonicalEntitiesPreserved' ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockSourcePreservedForTest'))
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]}
         Check 'CheckInActivity.SavedAuthorityPreserved' $same
