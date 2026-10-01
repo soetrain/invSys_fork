@@ -663,10 +663,33 @@ Further bounded timing comparisons preserve the original prefix and packages:
 These comparisons strengthen a timing hypothesis without establishing causation.
 They do not authorize a startup delay or compilation requirement in the operator
 contract. Native failures are excluded diagnostic evidence, not product RED or
-desktop error5. No runtime/source/package or normative change is made. Next use
-the existing metadata-only native observer at the later failing boundary to seek
-a fault stack with less initial timing disturbance; record its observer effect
-and do not equate an observed pass with repair. Do not collect memory dumps.
+desktop error5. No runtime/source/package or normative change is made.
+
+The attempted observer attachment immediately before output regulation never
+reaches that boundary: batch scale crashes first, controller
+`reports/runtime/assignment-editexport-prefix-diagnostic/886b3defcf754a4185697de194cd0bb3`,
+2026-10-01 05:41:56.6316969--05:42:19.1709647 UTC. Windows records the same
+EXCEL/ntdll/c0000028 offset12d2f at05:42:15.4478030 UTC. No observer starts and
+no completion receipt exists. Settings/packages/validator are preserved; this
+is excluded crash evidence and does not measure an attached observer's effect.
+
+Moving attachment before batch scale, after both original launcher calls, passes
+the bounded prefix and all five edit/export facts:
+`reports/runtime/assignment-editexport-prefix-diagnostic/62cb657090af4b9e9eb5fef16c84446e`,
+05:43:24.8000942--05:45:10.0254695 UTC. Attach-to-ready is258.3291 ms, with no
+fixed delay, VBA insertion or explicit compilation. Offline generation verifies
+the unique post-launch/pre-batch insertion and restored original statements.
+Normal unassisted closure, settings/packages/validator preservation and delayed
+Excel audit pass. The observer records one first-chance000006BA in kernelbase;
+no terminating fault or fault-stack file is produced. This remains observed
+diagnostic evidence, not a crash repair or full uninstrumented acceptance.
+
+Read-only tracing feasibility checks find WPR/logman installed, xperf absent and
+no active WPR recording. The provider-name query does not identify an exception
+provider. No trace, system-setting change or memory dump is started. A suitable
+exception-only non-debugger capture remains unproven; do not substitute a broad
+default capture or infer root cause from ntdll alone. The remaining Run-control
+contract audit can proceed independently under D18 while this defect stays open.
 
 Full reusable171/replay37 remain open. Do not repeat full runs merely to obtain a
 pass. Investigate the differing observed/unobserved behavior and establish
