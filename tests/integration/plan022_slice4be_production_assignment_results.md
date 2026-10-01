@@ -57,8 +57,35 @@ The actual118-control tracking editor, policy validation/authorization, cancelle
 saves, version preservation, Event Detail choice/order, all three Action Path
 preferences, Admin reopen/close and Operations Viewer Settings retain their
 assertions. Existing Production UOM routing and staging-preservation checks also
-pass. This gate supplies no new screenshot or human-acceptance claim; the separate
-Settings activity gate and broader regressions remain pending.
+pass. This gate supplies no new screenshot or human-acceptance claim.
+
+The separate Settings activity gate passes506/506 unique checks, retaining all497
+prior checks in their relative order and adding exactly the nine
+`SettingsActivity.OlderPolicy.Excludes.PRODUCTION_ASSIGNMENT_*` checks in catalog
+order. Controller
+`reports/runtime/assignment-regression/settingsactivity-848145835dfb4b858804991d95874eb6`,
+2026-10-01 02:22:20.6816592--02:37:24.3580277 UTC; result
+`reports/runtime/slice4be-settings-activity/44efca26dc0a424698526b7b9e972a5a/green.json`.
+Five compiles, settings/package preservation, unassisted closure and delayed
+Excel Application1000/1001/1002 audit pass. An exited Excel entry with one thread
+remained temporarily during cleanup, then disappeared without intervention;
+no shutdown repair or root cause is claimed.
+
+Actual Admin and Operations handlers retain exact owner facts, original
+attempt/result pairs, redacted immutable records and a completed25-action run.
+Stale versions, denied access, failed profile reads, unavailable tracking,
+historical policy exclusions, sign-out, reauthentication and changed warehouse
+targets retain their protecting checks. Configuration and held staging are
+preserved according to the existing contract.
+
+Seven hashed captures were reviewed: Admin Tracking, Event Detail, personal
+preference, Operations preference, denied reload, failed profile read and
+unavailable tracking. They show readable controls/status and distinguish staged
+preferences from the effective saved view. The unavailable-tracking capture
+explicitly reports that the preference saved while the training record did not.
+Only visible control rows and preview text were reviewed; long lists and preview
+content extend beyond those viewports. These are not all-size layout or human
+acceptance. Broader candidate regressions and full Release1 acceptance remain open.
 
 ## Paired Assignment path evidence
 
