@@ -1,5 +1,65 @@
 # Slice4be Production Run local observations
 
+## Independent List and Tree Apply Action Paths
+
+The unchanged, unpromoted allocate01 candidate passes **104/104** packaged path
+checks under Architecture v4.11 D18. Two independent recordings each invoke List
+Apply, explicitly reselect the retained stock row in List, then invoke Tree Apply.
+Released recipe, stock, location and quantity prerequisites are prepared before
+recording. The reselection follows the existing List selection event and preserves
+the owning allocation; no hidden owner restaging occurs between buttons. Both
+actual handlers enter the stock owner once and retain their established results,
+messages and restored guards. This tests the reusable branch; it does not promote
+experimental Tree into D15 Release1 workflow acceptance.
+
+Final negative control on refresh01: controller
+`reports/runtime/production-run-local-controller/ec79cd40bf0f460aa2bfd1b6670afc0b`,
+result `reports/runtime/slice4be-production-run-allocate-paths/a4500e891fbf4531ba5a8dfdd3b76103/red.json`,
+14:34:23.4382827--14:36:24.1274184 UTC: **47 PASS/one missing original Apply pair**.
+All48 identities/order/results match the earlier negative control. Actual owner,
+message and guard checks pass; the unavailable recording is behavioral RED.
+
+GREEN on allocate01: controller
+`reports/runtime/production-run-local-controller/eeaa401059fc44ff91b8201f2b5c67be`,
+result `reports/runtime/slice4be-production-run-allocate-paths/3e839fb291dc4f16b107ec1b596de974/green.json`,
+14:36:54.9848869--14:44:20.9770075 UTC: **104 unique GREEN**. All48 RED identities
+retain relative order, all47 passes survive and the missing pair becomes GREEN;
+56 later checks also pass. All42 shared GREEN identities/order survive. Actual
+Admin publication preserves each original line. Selected Event Detail switches
+between the exact REQUESTED and STAGED records. Explicit guide intent refers to
+its source recording; an independent reader evaluates the separate observed run.
+Two ordered matches and zero extras conclude local CommandCompleted, while
+SourceEventsApplied remains incomplete. How-To, Diagnostic and Compare retain
+the same exact evidence/provenance without mutating journals, activity, saved
+authority or the captured operator workbook and its extra column.
+
+Both gates pass five instrumented compiles, canonical package pins, settings
+restoration, normal unassisted closure and delayed zero Excel Application1000/
+1001/1002 audits. No runtime code, architecture, catalog or package rebuild changes.
+
+Seven `run-allocate-*.png` captures in the GREEN result directory were reviewed;
+`capture-review.json` pins their hashes and limitations. List shows actual local
+allocation. Tree remains empty for this reusable fixture and retains overlapping
+System_Key/Inventory Item headers; its handler uses the retained List selection.
+This is visible evidence of existing limitations, not populated-Tree acceptance.
+Event Detail shows the selected STAGED fact. All three path views visibly separate
+authored instructions from observed actions and show the local-only conclusion.
+The conclusion already fits the viewport; these captures do not establish long
+scrolling or human acceptance.
+
+Static `reports/runtime/run-allocate-path-static-02` retains289 components,6171
+procedures,135434 lines,9/45 dynamic calls,190 duplicate candidates and28 non-growing
+caps. Three schemas and368 PowerShell parses pass; runtime growth is zero.
+Shared Refresh paths retain **167/167** in exact prior order on the same candidate:
+controller `reports/runtime/production-run-local-controller/c3eafeaea2574858b85df222e90bd462`,
+result `reports/runtime/slice4be-production-run-refresh-paths/7a843c6bee0242458882f873cdaa14ea/green.json`,
+14:44:58.0016179--14:54:19.8894514 UTC. Five compiles, canonical pins, preservation,
+normal unassisted closure and delayed zero audit pass. The reviewed Compare and
+scrolled-conclusion captures show five ordered matches, zero extras and local-only
+completion; their hashes are pinned in `comparison-capture-review.json`. This
+regression protects shared recording, publication, authoring and reader paths.
+Remaining coverage, populated layout, broad release and human acceptance stay open.
+
 ## List and Tree Apply integration checkpoint
 
 Unpromoted `deploy/validation-production-run-allocate-01` implements the two
@@ -194,7 +254,8 @@ normal unassisted closure and delayed zero audit pass. Runtime remains unchanged
 since the original Apply build. Static03 retains the runtime manifest fields and
 all maintenance metrics from static01, with the expanded tooling parsed.
 
-Separate paths, layout and release gates remain open. No human acceptance is claimed.
+The independent reusable Apply path gate is recorded above. Remaining path scope,
+layout and release gates remain open. No human acceptance is claimed.
 
 Architecture v4.11 D18 specifies nine catalog24 controls under approved semantic
 inheritance: Scale, Clear, Load, Loader/Manager Refresh, List/Tree Apply and Tree

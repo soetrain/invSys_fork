@@ -304,8 +304,17 @@ End Function
 Public Function RunRefillState() As String
     RunRefillState = mForm.RunRefillStateForTest()
 End Function
+Public Function RunAllocatePathReselect() As Boolean
+    RunAllocatePathReselect = mForm.RunAllocatePathReselectForTest()
+End Function
 '@)
     $form.AddFromString(@'
+Public Function RunAllocatePathReselectForTest() As Boolean
+    If Not Me.Visible Or mPages.Value <> 3 Then Exit Function
+    If mLstRunPalette.ListCount <> 1 Or Not mLstRunPalette.Enabled Then Exit Function
+    mLstRunPalette.ListIndex = 0
+    RunAllocatePathReselectForTest = (mLstRunPalette.ListIndex = 0)
+End Function
 Public Function RunRefillStateForTest() As String
     RunRefillStateForTest = CStr(modProductionReusableRun.ReusableRunIsLoaded()) & "|" & _
         CStr(mLstRunPalette.ListCount) & "|" & _
