@@ -127,6 +127,16 @@ Public Function RunSheetOwnerPreservedForTest() As Boolean
         End If
     Next row
 End Function
+Public Function RunSheetOwnerPendingForTest(ByVal canary As String) As Boolean
+    Dim ws As Worksheet, lo As ListObject
+    On Error GoTo Unavailable
+    Set ws = mOperatorWorkbook.Worksheets("Production")
+    Set lo = ws.ListObjects("RC_RecipeChoose")
+    RunSheetOwnerPendingForTest = CStr(lo.ListColumns("RECIPE").DataBodyRange.Cells(1, 1).Value2) = canary And _
+        ws.ListObjects("RecipeChooser_generated").ListRows.Count > 0 And _
+        ws.ListObjects("InventoryPalette_generated").ListRows.Count > 0 And TestProductionDesigner.RunSheetNoticeCount() = 0
+Unavailable:
+End Function
 '@)
     $adapter=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     $adapter.InsertLines(1,@'
@@ -189,6 +199,9 @@ Public Function RunSheetOwnerResult(ByVal action As String, ByVal mode As String
 End Function
 Public Function RunSheetOwnerPreserved() As Boolean
     RunSheetOwnerPreserved = mForm.RunSheetOwnerPreservedForTest()
+End Function
+Public Function RunSheetOwnerPending(ByVal canary As String) As Boolean
+    RunSheetOwnerPending = mForm.RunSheetOwnerPendingForTest(canary)
 End Function
 '@)
     $form.AddFromString(@'

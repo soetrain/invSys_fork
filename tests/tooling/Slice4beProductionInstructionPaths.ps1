@@ -1,6 +1,6 @@
 # Original instruction handlers supply separate guide provenance and observed runs.
-function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder,[switch]$RecipeStructure,[switch]$DesignReads,[switch]$Regulation,[switch]$CloseActions,[switch]$Worksheet,[switch]$Assignment,[switch]$RunPresentation) {
-    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder+[int][bool]$RecipeStructure+[int][bool]$DesignReads+[int][bool]$Regulation+[int][bool]$CloseActions+[int][bool]$Worksheet+[int][bool]$Assignment+[int][bool]$RunPresentation) -gt 1){throw 'Select one Production path family.'}
+function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Components,[switch]$RecipeOrder,[switch]$RecipeStructure,[switch]$DesignReads,[switch]$Regulation,[switch]$CloseActions,[switch]$Worksheet,[switch]$Assignment,[switch]$RunPresentation,[switch]$RunClear) {
+    if(([int][bool]$Uom+[int][bool]$Components+[int][bool]$RecipeOrder+[int][bool]$RecipeStructure+[int][bool]$DesignReads+[int][bool]$Regulation+[int][bool]$CloseActions+[int][bool]$Worksheet+[int][bool]$Assignment+[int][bool]$RunPresentation+[int][bool]$RunClear) -gt 1){throw 'Select one Production path family.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
@@ -10,6 +10,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
     function View([string]$Name,[string]$Action,[string]$Value=''){BoundControl $Name $Action $Value 'frmActionPathView'}
     function Expected([string]$Name,[string]$Action,[string]$Value=''){BoundControl $Name $Action $Value 'frmActionPathExpectation'}
     function PathCheck([string]$Name,[bool]$Passed){
+        if($RunClear){$Name=$Name.Replace('InstructionPaths.','RunClearPaths.').Replace('Five','Two')}
         if($RunPresentation){$Name=$Name.Replace('InstructionPaths.','RunPresentationPaths.').Replace('Five','Two')}
         if($Uom){$Name=$Name.Replace('InstructionPaths.','UomPaths.').Replace('Five','Two')}
         if($Components){$Name=$Name.Replace('InstructionPaths.','ComponentPaths.').Replace('Five','Ten')}
@@ -22,9 +23,14 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if($Worksheet){$Name=$Name.Replace('InstructionPaths.','WorksheetPaths.').Replace('Five','Four')}
         Check $Name $Passed
     }
-    function ActionId([string]$Action){if($RunPresentation){'PRODUCTION_RUN_'+$Action}elseif($Assignment){'PRODUCTION_ASSIGNMENT_'+$Action}elseif($Worksheet){'PRODUCTION_PROCESS_WORKSHEET_'+$Action}elseif($CloseActions){'PRODUCTION_CLOSE'}elseif($Regulation){'PRODUCTION_OUTPUT_REGULATION_'+$Action.Split('_')[1]}elseif($DesignReads){'PRODUCTION_'+$Action}elseif($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeStructure){'PRODUCTION_RECIPE_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
-    function ActionOutcome([string]$Action){if($RunPresentation){'PRESENTED'}elseif($Assignment){switch($Action){'REFRESH'{'REFRESHED'}{$_ -cin @('PROCESS','PROCESS_SELECT')}{'PRESENTED'}{$_ -cin @('REQUIREMENT','REQUIREMENT_SELECT')}{'SELECTED'}'SAVE'{'CONFIRMED'}default{'STAGED'}}}elseif($Worksheet){if($Action -ceq 'RETRIEVE'){'CONFIRMED'}else{'STAGED'}}elseif($CloseActions){'CLOSED'}elseif($DesignReads){if($Action.EndsWith('REFRESH')){'REFRESHED'}elseif($Action -ceq 'PROCESS_REUSE'){'STAGED'}else{'PRESENTED'}}elseif($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
+    function ActionId([string]$Action){if($RunClear){'PRODUCTION_RUN_CLEAR'}elseif($RunPresentation){'PRODUCTION_RUN_'+$Action}elseif($Assignment){'PRODUCTION_ASSIGNMENT_'+$Action}elseif($Worksheet){'PRODUCTION_PROCESS_WORKSHEET_'+$Action}elseif($CloseActions){'PRODUCTION_CLOSE'}elseif($Regulation){'PRODUCTION_OUTPUT_REGULATION_'+$Action.Split('_')[1]}elseif($DesignReads){'PRODUCTION_'+$Action}elseif($Uom){'PRODUCTION_UOM_EDIT'}elseif($Components){'PRODUCTION_PROCESS_'+$Action}elseif($RecipeStructure){'PRODUCTION_RECIPE_'+$Action}elseif($RecipeOrder){if($Action -ceq 'AUTO'){'PRODUCTION_RECIPE_AUTO_ORDER'}else{'PRODUCTION_RECIPE_MOVE_'+$Action}}else{'PRODUCTION_PROCESS_INSTRUCTION_'+$Action}}
+    function ActionOutcome([string]$Action){if($RunClear){'STAGED'}elseif($RunPresentation){'PRESENTED'}elseif($Assignment){switch($Action){'REFRESH'{'REFRESHED'}{$_ -cin @('PROCESS','PROCESS_SELECT')}{'PRESENTED'}{$_ -cin @('REQUIREMENT','REQUIREMENT_SELECT')}{'SELECTED'}'SAVE'{'CONFIRMED'}default{'STAGED'}}}elseif($Worksheet){if($Action -ceq 'RETRIEVE'){'CONFIRMED'}else{'STAGED'}}elseif($CloseActions){'CLOSED'}elseif($DesignReads){if($Action.EndsWith('REFRESH')){'REFRESHED'}elseif($Action -ceq 'PROCESS_REUSE'){'STAGED'}else{'PRESENTED'}}elseif($Uom){if($Action -ceq 'OPEN'){'OPENED'}else{'REUSED'}}else{'STAGED'}}
     function Instruction([string]$Action){
+        if($RunClear){
+            if($Action -ceq 'Reusable'){'With a reusable run and separate worksheet staging already prepared, click Clear Run. Verify the reusable run is cleared; this does not apply inventory changes.'}
+            else{'Click Clear Run again to clear the remaining worksheet staging. Dismiss the completion message and inspect the local staging. The two observations do not identify which branch ran or prove inventory application.'}
+            return
+        }
         if($RunPresentation){
             if($Action -ceq 'TREE_COLLAPSE'){'In Production Run - Tree, click Collapse to hide ingredient choices. This changes the local view only.'}
             else{'Click Expand to show ingredient choices again. Inspect the local view; this does not allocate or apply inventory.'}
@@ -79,7 +85,12 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         throw 'Existing packaged UI prerequisite unavailable; not behavioral RED.'
     }
     function RecordSeries([string]$Label,[ref]$Recorded){
-        if($RunPresentation){
+        if($RunClear){
+            if(-not [bool](Probe 'RunSheetOwnerRecreate')){throw 'Clear path local surface unavailable; not behavioral RED.'}
+            if([string](Probe 'RunSheetOwnerStage' @('CLEAR','Normal',$canary)) -cne 'READY'){throw 'Clear worksheet staging unavailable; not behavioral RED.'}
+            if([string](Probe 'RunLocalStage' @('CLEAR','Normal')) -cne 'READY'){throw 'Clear released Run staging unavailable; not behavioral RED.'}
+            if(-not [bool](Probe 'RunSheetOwnerPending' @($canary))){throw 'Both Clear branches must be staged before recording; not behavioral RED.'}
+        }elseif($RunPresentation){
             if([string](Probe 'RunPresentationStage' @('Expanded',$canary)) -cne 'READY'){throw 'Tree presentation path fixture unavailable; not behavioral RED.'}
             $palette=[string](Probe 'RunPresentationState' @($true))
         }elseif($Assignment){
@@ -108,7 +119,15 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         $original=@();$terminals=@();$ordinal=0
         foreach($action in $actions){
             $ordinal++;$before=@(Get-Slice4beActivityFiles $Fixture);$decoy.Activate()
-            if($RunPresentation){
+            if($RunClear){
+                $notice=[string](Probe 'RunFaultAct' @('CLEAR'))
+                $owner=if($action -ceq 'Reusable'){
+                    [bool](Probe 'RunLocalPreserved' @('CLEAR','Normal')) -and [bool](Probe 'RunSheetOwnerPending' @($canary)) -and [string](Probe 'RunSheetClearTarget') -ceq 'NotEntered'
+                }else{[bool](Probe 'RunSheetOwnerResult' @('CLEAR','Normal')) -and [string](Probe 'RunSheetClearTarget') -ceq 'Captured'}
+                PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.ActualOwnerAndMessage') ($owner -and $notice -ceq $(if($action -ceq 'Reusable'){'Reusable Production Run cleared.'}else{'Production Run cleared.'}))
+                PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.GuardsRestoredWithoutAdapterReset') ([bool](Probe 'RunFaultGuards'))
+                PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.ExactKeyCustomColumnsAndCanonicalSource') ([bool](Probe 'RunSheetOwnerPreserved') -and [bool](Probe 'RunWorksheetSource'))
+            }elseif($RunPresentation){
                 $notice=[string](Probe 'RunPresentationAct' @($action,''))
                 $shape=if($action -ceq 'TREE_COLLAPSE'){'2|2|1'}else{'2|4|0'}
                 PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.OwnerPresentationAndPalette') (-not $notice.StartsWith('HANDLER_ERROR|') -and [string](Probe 'RunPresentationShape') -ceq $shape -and [string](Probe 'RunPresentationState' @($true)) -ceq $palette)
@@ -137,11 +156,11 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             if($valid){$valid=$terminal[0].ControlId -ceq (ActionId $action) -and $attempt[0].ActivityId -ceq $terminal[0].ActivityId -and $terminal[0].SequenceId -ceq $starts[0].SequenceId -and $terminal[0].Ordinal -eq $ordinal -and ($Worksheet -or $Assignment -or @($terminal[0].SourceEventRefs).Count -eq 0)}
             PathCheck ('InstructionPaths.'+$Label+'.'+$action+$(if($Worksheet -or $Assignment){'.'+$ordinal}else{''})+'.OriginalHandlerPair') $valid
             if(-not $valid){
-                if($CloseActions){Delivered (RecordingControl 'Stop Recording' 'Click');return}
+                if($CloseActions -or $RunClear){Delivered (RecordingControl 'Stop Recording' 'Click');return}
                 throw 'Original instruction recording incomplete; retain behavioral failures.'
             }
             if($Assignment){Test-AssignmentPathAction $terminal[0] $attempt[0] $Fixture $Label $ordinal}
-            if($RunPresentation){
+            if($RunClear -or $RunPresentation){
                 PathCheck ('InstructionPaths.'+$Label+'.'+$action+'.ExactLocalOwnerFacts') ($attempt[0].ControlId -ceq (ActionId $action) -and $attempt[0].SequenceId -ceq $starts[0].SequenceId -and $attempt[0].Ordinal -eq $ordinal -and @($attempt[0].SourceEventRefs).Count -eq 0 -and $terminal[0].OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $terminal[0].CatalogVersion -eq 24 -and $terminal[0].DataEffect -ceq 'Unchanged' -and $terminal[0].WarehouseId -ceq $Fixture.Warehouse -and $terminal[0].UserId -ceq 'config-producer')
             }
             if($Worksheet){Test-WorksheetPathAction $action $book $decoy $terminal[0] $attempt[0] $Fixture $Label $ordinal}
@@ -169,15 +188,21 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
     if($Assignment){$actions=@('REFRESH','PROCESS_SELECT','PROCESS','REQUIREMENT_SELECT','REQUIREMENT','ADD','REMOVE','CLEAR','PROCESS','REQUIREMENT','ADD','SAVE')}
     if($Worksheet){$actions=@('SEND','ADD_ITEM','SEND','RETRIEVE')}
     if($RunPresentation){$actions=@('TREE_COLLAPSE','TREE_EXPAND')}
+    if($RunClear){$actions=@('Reusable','Worksheet')}
     $canary='PATH'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
-    $imagePrefix=if($RunPresentation){'run-presentation'}elseif($Assignment){'assignment'}elseif($Worksheet){'worksheet'}elseif($CloseActions){'close'}elseif($Regulation){'regulation'}elseif($DesignReads){'design-read'}elseif($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}elseif($RecipeStructure){'recipe-structure'}else{'instruction'}
+    $imagePrefix=if($RunClear){'run-clear'}elseif($RunPresentation){'run-presentation'}elseif($Assignment){'assignment'}elseif($Worksheet){'worksheet'}elseif($CloseActions){'close'}elseif($Regulation){'regulation'}elseif($DesignReads){'design-read'}elseif($Uom){'uom'}elseif($Components){'component'}elseif($RecipeOrder){'recipe-order'}elseif($RecipeStructure){'recipe-structure'}else{'instruction'}
     try {
         SelectTarget $Fixture
+        if($RunClear){
+            $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
+            if(-not $seed.StartsWith('OK|')){throw 'Admin Clear path inventory fixture unavailable; not behavioral RED.'}
+        }
         $allowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
         PathCheck 'InstructionPaths.Setup.AuthorHasExplicitCapability' ($allowed -is [bool] -and $allowed)
         if($allowed -isnot [bool] -or -not $allowed){throw 'Explicit guide author capability fixture unavailable; not behavioral RED.'}
         if($Assignment -and -not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.AssignmentPolicyForTest' @($true,$true))){throw 'Assignment navigation policy unavailable.'}
         if($RunPresentation -and -not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.RunPresentationPolicy' @($true))){throw 'Tree navigation policy unavailable; not behavioral RED.'}
+        if($RunClear -and -not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.RunPresentationPolicy' @($false))){throw 'Clear command policy unavailable; not behavioral RED.'}
         SetRecordingPolicy $true
         SelectTarget $Fixture 'config-producer';OpenRecordingViewer
         $book=$excel.Workbooks.Add();$sheet=$book.Worksheets.Item(1)
@@ -185,6 +210,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         $path=Join-Path $runRoot 'instruction-path-operator.xlsb';$book.SaveAs($path,50);$book.Close($false)
         $workbookPin=SavedHash $path;$book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();[void](Probe 'OpenDesigner' @($book.Name))
+        if($RunClear){
+            if(-not [bool](Probe 'ReadPrepare' @($canary)) -or -not [bool](Probe 'RunSheetOwnerPrepare')){throw 'Released definitions and supported worksheet surfaces unavailable; not behavioral RED.'}
+        }
         if($RecipeStructure){
             if([string](Probe 'StructureReleasedSetup') -cne 'READY' -or -not [bool](Probe 'StructureReleasedNodes')){throw 'Released Process path fixture unavailable; not behavioral RED.'}
             [void](Probe 'StructurePathRemember')
@@ -201,16 +229,16 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         foreach($file in Get-ChildItem $Fixture.Root -Recurse -File|Where-Object {$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '*.Snapshot.*' -and -not $_.Name.StartsWith('~$')}){$authorityPins[$file.FullName]=SavedHash $file.FullName}
         if($Worksheet -or $Assignment){$worksheetBefore=Get-WorksheetPathBusinessState $Fixture}
         $source=$null;$observed=$null;RecordSeries 'GuideSource' ([ref]$source)
-        if($CloseActions -and $null -eq $source){return}
+        if(($CloseActions -or $RunClear) -and $null -eq $source){return}
         RecordSeries 'ObservedRun' ([ref]$observed)
-        if($CloseActions -and $null -eq $observed){return}
+        if(($CloseActions -or $RunClear) -and $null -eq $observed){return}
         PathCheck 'InstructionPaths.DistinctGuideAndObservedRuns' ($source.Journal.ActionPathId -cne $observed.Journal.ActionPathId -and @($source.Terminals|Where-Object {$_.ActivityId -cin $observed.Terminals.ActivityId}).Count -eq 0)
         if($Worksheet -or $Assignment){
             PathCheck 'InstructionPaths.RecordingPreservesAuthConfigInventory' ((Get-WorksheetPathBusinessState $Fixture) -ceq $worksheetBefore)
             if($Worksheet){$workbookPin=SavedHash $path}
         }
         if($CloseActions){[void](Probe 'OpenDesigner' @($book.Name))}
-        $window=[long](Probe 'Present' @($(if($RunPresentation){4}elseif($Assignment){2}elseif($Uom -or $Regulation){5}elseif($RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){1}else{0})));CaptureOwnedFormEvidence 'Production' ($imagePrefix+'-editor.png') $window
+        $window=[long](Probe 'Present' @($(if($RunClear){3}elseif($RunPresentation){4}elseif($Assignment){2}elseif($Uom -or $Regulation){5}elseif($RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation){1}else{0})));CaptureOwnedFormEvidence 'Production' ($imagePrefix+'-editor.png') $window
         $activityPins=ActivityPins;$journalPins=BoundPins $journalRoot
         [void](Probe 'CloseDesigner');CloseRecordingViewer;SelectTarget $Fixture
         $published=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')
@@ -229,9 +257,9 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         }
         foreach($record in $observed.Terminals){
             $id=[string]$record.ActivityId
-            PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($Uom -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
+            PathCheck ('InstructionPaths.Detail.'+$record.ControlId+$(if($RunClear -or $Uom -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){'.'+$record.Ordinal}else{''})) ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('SelectSource',$id)) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadDetailForTest' @('Source event / activity ID',$id)))
         }
-        if($RunPresentation -or $Uom -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
+        if($RunClear -or $RunPresentation -or $Uom -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
             # Published contributing lines are not ordered by outcome. Select
             # the exact terminal record, rather than assuming it is row two.
             $detailGroup=@($publication.Groups|Where-Object {$_.Source -ceq 'Activity' -and $_.SourceId -ceq $observed.Terminals[-1].ActivityId})
@@ -241,7 +269,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 if($detailGroup[0].Lines[$lineIndex].RecordId -ceq $observed.Terminals[-1].RecordId){$terminalIndex=$lineIndex;break}
             }
             if($terminalIndex -lt 0){throw 'Exact terminal detail line unavailable.'}
-            if($RunPresentation -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
+            if($RunClear -or $RunPresentation -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
                 $requestedIndex=-1
                 for($lineIndex=0;$lineIndex -lt $detailGroup[0].Lines.Count;$lineIndex++){
                     if($detailGroup[0].Lines[$lineIndex].OutcomeCode -ceq 'REQUESTED'){$requestedIndex=$lineIndex;break}
@@ -251,7 +279,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
                 PathCheck 'InstructionPaths.Detail.RequestedObservationMatchesVisibleSelection' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome','REQUESTED')) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect','Unknown')) -and -not [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome',(ActionOutcome $actions[-1]))))
             }
             Delivered (ExpectationControl 'lstEventLines' 'Index' ([string]$terminalIndex) 'frmEventDetail')
-            if($RunPresentation -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
+            if($RunClear -or $RunPresentation -or $Components -or $RecipeOrder -or $RecipeStructure -or $DesignReads -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
                 PathCheck 'InstructionPaths.Detail.ExactTerminalOutcomeAndEffect' ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Outcome',(ActionOutcome $actions[-1]))) -and [bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedSelectedFieldForTest' @('Data effect',$(if($Worksheet -or $Assignment){'Unknown'}else{'Unchanged'}))))
             }
         }
@@ -273,7 +301,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if($Assignment){Test-AssignmentPathLocalTerminals $observed}
         foreach($kind in @('CommandCompleted','SourceEventsApplied')){
             $steps=@(,@((ActionId $actions[-1]),(ActionOutcome $actions[-1]),'True'));$terminal=0
-            if($RunPresentation -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
+            if($RunClear -or $RunPresentation -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){
                 # Repeated controls carry no scope or button/native distinction.
                 # Explicit ordered intent identifies
                 # the final occurrence without changing first-match semantics.
@@ -287,7 +315,7 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
             $fresh=@(EvaluationFiles|Where-Object {$_.FullName -cnotin $before});if($fresh.Count -ne 1){throw 'Actual evaluation unavailable.'}
             $result=Get-Content $fresh[0].FullName -Raw|ConvertFrom-Json
             $valid=if($kind -ceq 'CommandCompleted'){$result.ResultState -ceq 'Concluded' -and 'COMMAND_COMPLETED' -cin @($result.ReasonCodes)}elseif($Worksheet -or $Assignment){$result.ResultState -ceq 'Concluded' -and 'SOURCE_APPLIED' -cin @($result.ReasonCodes)}else{$result.ResultState -ceq 'Incomplete' -and 'SOURCE_UNAVAILABLE' -cin @($result.ReasonCodes)}
-            if($RunPresentation -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){$valid=$valid -and @($result.Matches).Count -eq $actions.Count -and @($result.ExtraActivityIds).Count -eq 0 -and ($result.Matches.ActivityId -join '|') -ceq ($observed.Terminals.ActivityId -join '|')}
+            if($RunClear -or $RunPresentation -or $Regulation -or $CloseActions -or $Worksheet -or $Assignment){$valid=$valid -and @($result.Matches).Count -eq $actions.Count -and @($result.ExtraActivityIds).Count -eq 0 -and ($result.Matches.ActivityId -join '|') -ceq ($observed.Terminals.ActivityId -join '|')}
             if($Assignment -and $kind -ceq 'SourceEventsApplied'){Test-AssignmentPathTerminalSource $result $observed.Terminals[-1] $publication}
             if($Worksheet -and $kind -ceq 'SourceEventsApplied'){Test-WorksheetPathTerminalSources $result $observed.Terminals[-1] $publication}
             PathCheck ('InstructionPaths.ExactTerminal.'+$kind) ($valid -and $result.JournalRecordId -ceq $observed.Journal.RecordId -and $result.Matches[-1].ActivityId -ceq $observed.Terminals[-1].ActivityId)
@@ -295,8 +323,8 @@ function Test-ProductionInstructionPaths($Fixture,[switch]$Uom,[switch]$Componen
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         PathCheck 'InstructionPaths.FiveObservedGuideSteps' ((Author 'lstGuideSteps' 'Rows') -ceq [string]$actions.Count)
-        Delivered (Author 'txtGuideName' 'Write' $(if($RunPresentation){'Inspect ingredient choices in Run Tree'}elseif($Assignment){'Edit and save acceptable item alternatives'}elseif($Worksheet){'Stage and retrieve Process worksheets'}elseif($CloseActions){'Dismiss Production through its Close controls'}elseif($Regulation){'Stage and clear output regulation'}elseif($DesignReads){'Refresh and load local designer views'}elseif($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}elseif($RecipeStructure){'Edit local Recipe connections and nodes'}else{'Edit Process instructions'}))
-        Delivered (Author 'txtGuideInstructions' 'Write' $(if($RunPresentation){'Collapse then expand the ingredient choices in the experimental Run Tree. This changes presentation only. The diagnostic proves local presentation completed; it does not prove inventory allocation or Domain application.'}elseif($Assignment){'Select a released Process and requirement, add and remove an acceptable item, clear, reload and save an alternative as a new DRAFT. These item types do not allocate inventory. Command completion and published Designs application are separate conclusions.'}elseif($Worksheet){'Send two local Process tables, add an acceptable-item pair, fill valid definitions and retrieve both as DRAFT. Command completion does not itself prove Domain application.'}elseif($CloseActions){'Demonstrate the Close button and window X in separate openings. The diagnostic proves two dismissals; observations do not distinguish the gesture or assert saved work or Domain application.'}elseif($Regulation){'Apply then clear regulation on the selected Process output and Recipe node output. Inspect the resulting local draft; this sequence does not save, release, validate or apply inventory changes.'}elseif($DesignReads){'Refresh and view a Process, prepare its next editable draft, then refresh and load a Recipe. These local completions do not validate definitions, prove source availability, reserve versions or apply inventory changes.'}elseif($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}elseif($RecipeStructure){'Disconnect and reconnect the source output, update its required quantities, then add and remove a local Recipe node. Inspect and validate before Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
+        Delivered (Author 'txtGuideName' 'Write' $(if($RunClear){'Clear local Production staging'}elseif($RunPresentation){'Inspect ingredient choices in Run Tree'}elseif($Assignment){'Edit and save acceptable item alternatives'}elseif($Worksheet){'Stage and retrieve Process worksheets'}elseif($CloseActions){'Dismiss Production through its Close controls'}elseif($Regulation){'Stage and clear output regulation'}elseif($DesignReads){'Refresh and load local designer views'}elseif($Uom){'Open and reuse the UOM draft'}elseif($Components){'Edit Process requirements and outputs'}elseif($RecipeOrder){'Order a local Recipe draft'}elseif($RecipeStructure){'Edit local Recipe connections and nodes'}else{'Edit Process instructions'}))
+        Delivered (Author 'txtGuideInstructions' 'Write' $(if($RunClear){'Start with a loaded reusable run and separate worksheet staging. Click Clear Run twice and inspect the local results. The diagnostic proves two locally completed Clear commands; observations do not distinguish the branches or assert inventory or Domain application.'}elseif($RunPresentation){'Collapse then expand the ingredient choices in the experimental Run Tree. This changes presentation only. The diagnostic proves local presentation completed; it does not prove inventory allocation or Domain application.'}elseif($Assignment){'Select a released Process and requirement, add and remove an acceptable item, clear, reload and save an alternative as a new DRAFT. These item types do not allocate inventory. Command completion and published Designs application are separate conclusions.'}elseif($Worksheet){'Send two local Process tables, add an acceptable-item pair, fill valid definitions and retrieve both as DRAFT. Command completion does not itself prove Domain application.'}elseif($CloseActions){'Demonstrate the Close button and window X in separate openings. The diagnostic proves two dismissals; observations do not distinguish the gesture or assert saved work or Domain application.'}elseif($Regulation){'Apply then clear regulation on the selected Process output and Recipe node output. Inspect the resulting local draft; this sequence does not save, release, validate or apply inventory changes.'}elseif($DesignReads){'Refresh and view a Process, prepare its next editable draft, then refresh and load a Recipe. These local completions do not validate definitions, prove source availability, reserve versions or apply inventory changes.'}elseif($Uom){'Open the UOM workbench and reuse the existing local draft without publishing the catalog.'}elseif($Components){'Add, select and update, move up/down, then remove a requirement and an output. Validate before saving the Process.'}elseif($RecipeOrder){'Move the selected recipe node up, down, then apply Auto Order. Inspect the local draft before validation and Save.'}elseif($RecipeStructure){'Disconnect and reconnect the source output, update its required quantities, then add and remove a local Recipe node. Inspect and validate before Save.'}else{'Edit the local instruction draft, then validate before saving the Process.'}))
         for($i=0;$i -lt $actions.Count;$i++){
             if((Author 'lstGuideSteps' 'Select' ([string]$i)) -cne 'SELECTED'){throw 'Guide step unavailable.'}
             Delivered (Author 'txtGuideStepInstruction' 'Write' (Instruction $actions[$i]))

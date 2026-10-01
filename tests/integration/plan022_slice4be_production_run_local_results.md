@@ -805,7 +805,7 @@ passes five packages, cold Operations load and five compiles. Of276 prior compil
 components,275 are unchanged; the form changes and a typed coordinator is added.
 Settings and presentation01 are preserved, Excel closes normally and the delayed
 audit passes before the next gate. Candidate remains unpromoted; wiring is58/68.
-Full reusable acceptance, independent Clear Action Paths and broad
+Full reusable acceptance, remaining Action Paths and broad
 release/layout/live-role/visible acceptance are still required.
 
 Static `reports/runtime/run-clear-static-01` reports284 components/6159 procedures/
@@ -853,6 +853,64 @@ result `reports/runtime/slice4be-production-run-presentation/2517e9db25314625a3c
 order. Five compiles, canonical clear01 pins, preservation, normal cleanup and
 delayed zero Excel Application audit pass. This retains the earlier focused Tree
 contract; populated layout, new visible evidence and human acceptance remain open.
+
+## Clear independent Action Path checkpoint
+
+This test/evidence-only extension exercises approved D18 through the actual Clear
+handler. Before each recording, prepare both a released reusable Run and separate
+worksheet staging. The first Clear resets the reusable Run and its five lists;
+the second clears the remaining worksheet staging and completes its notification
+and refresh. No setup occurs between clicks. Actual owner/message, restored guards,
+captured binding, custom columns/formulas, exact System_Key and canonical authority
+are asserted. The adapter does not reset guards after the action.
+
+Negative RED uses unchanged `deploy/validation-production-run-presentation-01`:
+controller `reports/runtime/production-run-local-controller/8155cef64b804d9786bc15659168095c`,
+result `reports/runtime/slice4be-production-run-clear-paths/f8dd33c813e740c7a11f93f3ad1b106c/red.json`,
+2026-10-01 10:12:53.8021046--10:14:48.2166364 UTC, **47 PASS/1 FAIL/48 unique**.
+Only `RunClearPaths.GuideSource.Reusable.OriginalHandlerPair` fails; the existing
+owner behavior and preservation pass. Guide creation is not reached. This is a
+missing observation, not a compile, fixture or harness failure.
+
+GREEN uses unchanged `deploy/validation-production-run-clear-01`:
+controller `reports/runtime/production-run-local-controller/4a81396d88ac4b6986347f5d378bb85f`,
+result `reports/runtime/slice4be-production-run-clear-paths/be5ca77319c44b2cbbf850a551ea1b2d/green.json`,
+10:16:23.3900937--10:22:45.8687498 UTC, **102/102 unique GREEN**. All48 RED
+identities remain in order and all47 prior PASS checks survive;42 shared GREEN
+checks retain their exact order. Independent source-guide and observed runs each
+produce two original REQUESTED/STAGED pairs. All eight records publish unchanged;
+selected Event Detail distinguishes REQUESTED from the exact STAGED line. Explicit
+ordered expectations and an independent reader match two actions with zero extras.
+CommandCompleted concludes; SourceEventsApplied remains incomplete/SOURCE_UNAVAILABLE.
+Both observations share one control identity and do not distinguish owner branches.
+
+Six captures under the GREEN result directory were reviewed: `run-clear-editor.png`,
+`run-clear-event-detail.png`, `run-clear-how-to.png`, `run-clear-diagnostic.png`,
+`run-clear-compare-both.png`, and `run-clear-conclusion.png`. The guide visibly
+states the initial setup and diagnostic limits. All three views retain independent
+source/observed provenance and local-only completion. The editor shows cleared
+lists while preserving existing selector/input values; this is not a full-form
+reset. Long Event Detail coverage exceeds the initial viewport. Agent review does
+not establish human or full-layout acceptance.
+
+Both gates pass five instrumented compiles, pre-form probe checks, original
+package pins, settings/authority/operator-byte preservation, normal unassisted
+cleanup and delayed zero Excel Application1000/1001/1002 audit. GREEN additionally
+protects original journals and viewed evidence from mutation. Static
+`reports/runtime/run-clear-paths-static-01` retains284 components/6159 procedures/
+135228 lines,9 literal/45 unresolved Application.Run calls,190 duplicate candidates
+and28 non-growing oversized caps. Three schemas and368 tooling parses pass.
+No runtime source or contract changes are introduced by this checkpoint.
+
+Shared-harness Tree path regression on clear01: controller
+`reports/runtime/production-run-presentation-controller/fe817537435b4a18aca409d3470dbee3`,
+result `reports/runtime/slice4be-production-run-presentation-paths/1bfe37e49d3441e39c60a8cf751619fa/green.json`,
+10:25:22.4609881--10:31:10.0229820 UTC, **94/94 unique GREEN** in exact prior
+order against presentation01's94-check result. Five compiles, pre-form probes,
+canonical clear01 pins, settings/authority/operator/evidence preservation, normal
+unassisted closure and delayed zero Excel Application audit pass. The three views
+retain their local-only conclusion. RUN-TREE-LAYOUT-01 remains open; this regression
+does not establish new populated-layout or human acceptance.
 
 ## Remaining gates
 

@@ -42,6 +42,7 @@ param(
     [switch]$RunLocalWorksheetOnly,
     [switch]$RunLocalWorksheetOwnerOnly,
     [switch]$RunLocalWorksheetScaleOnly,
+    [switch]$RunClearPathsOnly,
     [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionAssignmentPaths,
     [switch]$CheckProductionAssignmentSourcePaths,
@@ -258,6 +259,7 @@ if($RunLocalStockOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDia
 if($RunLocalWorksheetOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly)){throw 'Run worksheet checks require their separate actual-handler gate.'}
 if($RunLocalWorksheetOwnerOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly)){throw 'Run worksheet owner checks require their separate actual-handler gate.'}
 if($RunLocalWorksheetScaleOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly)){throw 'Worksheet Scale requires its separate actual-handler gate.'}
+if($RunClearPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly)){throw 'Clear paths require a separate actual-handler gate and visible evidence.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
     if(-not $CheckProductionDesignerActivity -or $otherRunGates.Count -gt 0){throw 'Run local observations require their separate compiled actual-handler gate.'}
@@ -503,6 +505,7 @@ if($CheckProductionDesignerActivity){
     if($RunLocalWorksheetScaleOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-worksheet-scale/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalWorksheetOwnerOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-worksheet-owner/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalWorksheetOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-worksheet/'+[guid]::NewGuid().ToString('N'))}
+    if($RunClearPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-clear-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSourcePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-source-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -988,7 +991,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+    if($RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1272,7 +1275,7 @@ End Function
                 Install-ProductionRunPresentationProbe
                 Install-ProductionRunPolicyProbe
             }
-            if($RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
+            if($RunClearPathsOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunFault.ps1')
                 Install-ProductionRunPresentationProbe
@@ -1285,11 +1288,11 @@ End Function
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                     Install-ProductionRunStockProbe
                 }
-                if($RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
+                if($RunClearPathsOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
                     Install-ProductionRunWorksheetProbe
                 }
-                if($RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
+                if($RunClearPathsOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheetOwner.ps1')
                     Install-ProductionRunWorksheetOwnerProbe
                 }
@@ -1414,7 +1417,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($RunPresentationPathsOnly -or $CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths -or $CheckProductionAssignmentSourcePaths){
+        if($RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths -or $CheckProductionAssignmentSourcePaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1426,7 +1429,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($RunPresentationPathsOnly -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+        if($RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1733,7 +1736,11 @@ End Function
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRunLocal){
-            if($RunLocalContractOnly){Test-ProductionRunContract}
+            if($RunClearPathsOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+                Test-ProductionInstructionPaths $a -RunClear
+            }
+            elseif($RunLocalContractOnly){Test-ProductionRunContract}
             elseif($RunLocalPolicyOnly){Test-ProductionRunPolicy $a $b}
             elseif($RunLocalFaultOnly){Test-ProductionRunFault $a $b}
             elseif($RunLocalYieldOnly){Test-ProductionRunFault $a $b -YieldOnly}
