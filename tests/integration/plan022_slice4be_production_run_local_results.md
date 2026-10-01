@@ -912,6 +912,174 @@ unassisted closure and delayed zero Excel Application audit pass. The three view
 retain their local-only conclusion. RUN-TREE-LAYOUT-01 remains open; this regression
 does not establish new populated-layout or human acceptance.
 
+## Load read-return continuation checkpoint
+
+Under the unchanged D18 Load contract, the actual handler now uses a typed action
+coordinator and passes its captured action through released validation, graph and
+Process reads and inventory-backed refresh rows. The existing Process-definition
+loader is extracted into `modProductionRunDefinitionLoad`, retaining the same
+collections, iteration, record helpers, messages and partial-state behavior.
+`modProductionRunLoadActions` observes the owning result and restores guards.
+Direct preparation callers retain the original behavior through an omitted action;
+both the operator and existing fixture preparation reach the same Stage routine.
+No new global continuation, Domain submission or Application.Run call is added.
+
+Focused RED on unchanged clear01: controller
+`reports/runtime/production-run-local-controller/a48e354be8504d1dab3c38d4051edbc6`,
+result `reports/runtime/slice4be-production-run-yield/4b7af5458580404fb065c19042b915eb/red.json`,
+2026-10-01 10:32:46.7019459--10:35:28.2861783 UTC, **97 PASS/49 FAIL/146 unique**,
+identical to the prior read-return baseline. All four Load reads return real data
+before the fixture signs out. Load then continues reads or form updates and lacks
+the required refusal/original observation. These are behavioral failures, with
+five compiles, preserved packages/settings/authority/operator bytes, normal cleanup
+and a delayed zero Excel Application audit.
+
+Build `reports/runtime/run-load-build-01`,10:38:06.7677581--10:38:44.5964087 UTC,
+creates unpromoted `deploy/validation-production-run-load-01`, passes cold Operations
+startup and all five compiles. Of277 prior compiled components,275 are unchanged;
+the Production form and reusable-run module change and the two named helpers are
+added. Settings and clear01 are preserved; cleanup and the delayed zero Excel
+Application1000/1001/1002 audit pass before the next gate.
+
+Read-return GREEN: controller
+`reports/runtime/production-run-local-controller/ed3c7637b75d4b38afacc5aa1bc92ace`,
+result `reports/runtime/slice4be-production-run-yield/3a7d3650704344988952726840e31ca5/green.json`,
+10:39:23.5147354--10:42:22.7741671 UTC, **116 PASS/30 known FAIL/146 unique**.
+All36 Load checks pass; precisely19 Load failures become GREEN. Every ordered
+identity and prior PASS is retained. After validation, graph, Process or inventory
+read interruption, no later observed read or form update occurs, existing owner
+state is preserved, refusal is visible, guards restore and only the original
+REQUESTED record remains. The30 failures concern other unintegrated controls.
+Five compiles, package/settings/authority/operator preservation, unassisted cleanup
+and delayed zero Excel audit pass. This is focused evidence, not full acceptance.
+
+Static `reports/runtime/run-load-static-01` has286 components/6164 procedures/
+135308 lines: feature growth2/5/80. The form shrinks11561 to11551 lines and the
+reusable-run module2781 to2743; all28 oversized caps remain non-growing. Calls
+remain9 literal/45 unresolved and duplicate candidates190. Three schemas and368
+tooling parses pass. Normal/refusal/policy/fault regressions, independent Load
+Action Paths and broad release/layout/live-role/human acceptance remain required.
+
+## Run entry binding gap discovered during Load regression
+
+The first Load candidate's reusable503 run is **236 PASS/267 FAIL**, controller
+`reports/runtime/production-run-local-controller/e12807d50bb442008094896c8aa23a74`,
+result `reports/runtime/slice4be-production-run-local/f1949dad477e4219b6d29b23ec5268a3/green.json`,
+10:42:40.8968930--10:48:40.0655797 UTC. All58 Load checks pass, but two previous
+Scale GREEN checks fail: `RunLocal.ClosedBoundary.SCALE.UserActionProtected` and
+`RunLocal.ClosedBoundary.SCALE.OwnerStatePreserved`. This run is not accepted.
+
+Native receipts establish the cause: the Scale form survived workbook closure
+and its actual handler ran; the preceding clear01 run dismissed that surface.
+The unchanged Scale handler lacked an entry context guard. Both runs have four
+invoked and three dismissed surfaces, but different controls survived; those
+counts are observations, not an architectural lifetime guarantee. Every receipt
+must establish the real lifetime and, when visible, actual handler entry/refusal.
+Do not waive a previously GREEN check or manufacture a replacement form.
+
+The same missing entry guard exists in both Refresh and both Apply handlers.
+Their Target/Session/SignedOut actual-handler tests already supply RED. A shared
+`modProductionRunBinding.RequireCurrentContext` check now protects all five entry
+points before owner work. This implements existing captured-binding requirements;
+it neither integrates their observations nor changes their algorithms, the pending
+Designs-enabled worksheet Scale decision, or allocation-message proposals.
+
+Unpromoted `validation-production-run-load-03` builds at
+`reports/runtime/run-load-build-03`,10:51:43.6890003--10:52:20.1788035 UTC, with cold
+Operations startup/five compiles, restored settings, preserved previous candidate,
+normal closure and delayed zero Excel audit. Compared with clear01,274 existing
+compiled components remain unchanged; the form, reusable owner and binding helper
+change and two helpers are added (277 to279 components). Intermediate load02 had
+only the Scale guard; its build/cleanup/delayed audit passed without an acceptance
+claim. No operational deployment or workbook replacement occurs.
+
+Static `reports/runtime/run-load-static-03` is286/6165/135319, feature growth2/6/91.
+The form is11556 lines (five below clear01) and reusable owner2743 (38 below).
+All28 oversized caps,9/45 calls,190 duplicates, three schemas and368 tooling parses
+pass. The full reusable regression and remaining Load companions still govern
+acceptance of this candidate.
+
+Reusable503 on load03: controller
+`reports/runtime/production-run-local-controller/2803e5bbaa4d40719b6629f42d578f97`,
+result `reports/runtime/slice4be-production-run-local/94e5aae9a4d34e0f9402b50518d9923d/green.json`,
+10:52:50.1280795--10:58:54.9944430 UTC, **269 PASS/234 known FAIL/503 unique**.
+All previous ordered identities/PASS survive;73 newly GREEN checks concern Load
+or captured entry guards. All58 Load checks,33 owning cases and42 shared GREEN
+checks pass. All seven native forms survive this run; all seven actual handlers
+execute and refuse the closed binding with state/bytes/activity preserved. No
+fixed visible/dismissed count is substituted for these per-case requirements.
+Five compiles, canonical pins, settings/authority/operator/older-event preservation,
+normal unassisted closure and delayed zero Excel audit pass. The234 remaining
+failures concern unintegrated Run observations. This bounded503 gate does not
+resolve the separate full reusable171/two aggregates/replay37 native-failure issue.
+
+Excluded permission attempt: controller
+`reports/runtime/production-run-local-controller/6e64f6c8ee3944ea830159e55b336330`,
+result `reports/runtime/slice4be-production-run-policy/c65bfb75a7db497592158da730417ea7/green.json`,
+10:59:19.3094522--11:03:57.7783469 UTC,39 shared PASS/two harness FAIL. At
+11:00:31.1824322 UTC Excel faults in ntdll.dll with c0000028 during Admin Seed,
+before any Run-specific policy check. This supplies no behavioral RED or GREEN.
+Excel automatically restarts; the identified owned restart is closed without
+saving, while the original controller remains alive to restore settings. Canonical
+package pins and settings are preserved, Excel closes, and the delayed post-recovery
+audit is clear. Disposable fixture cleanup is incomplete and its ignored evidence
+is retained. Native cause remains unresolved; desktop probes show no error5.
+
+One fresh permission attempt completes normally on unchanged load03: controller
+`reports/runtime/production-run-local-controller/0fe947ac93c841a0a05515f5c16106c6`,
+result `reports/runtime/slice4be-production-run-policy/b439f72852ed46b0a5a3111089501f27/green.json`,
+11:04:47.9197268--11:08:32.7072677 UTC, **193 PASS/25 known FAIL/218 unique**.
+Every previous identity/order/PASS survives; exactly five Load checks become GREEN.
+Denied Load cannot enter the owner or mutate local state. Disabled/older/unavailable
+tracking permits the authorized action and retains fixed unavailable guidance.
+Five compiles, canonical pins, settings/authority/operator/older-record preservation,
+normal cleanup and delayed zero Excel audit pass. This successful attempt does not
+establish the cause or resolution of the preceding native crash.
+
+Load03 fault/nesting companion: controller
+`reports/runtime/production-run-local-controller/cf08a264d4744b59b9e0ce66b8b35330`,
+result `reports/runtime/slice4be-production-run-fault/0c7ec58bbec04bdc83da0bc0212d3cca/green.json`,
+11:09:00.3215581--11:11:12.9454716 UTC, **180 PASS/65 known FAIL/245 unique**.
+All previous ordered identities/PASS remain; exactly14 Load checks become GREEN.
+All18 real owner boundaries execute. Original error propagation and partial local
+state remain; nested Load enters its owner once and produces one original pair,
+with guards restored before adapter reset. Five compiles, canonical pins,
+preservation, normal cleanup and delayed zero Excel audit pass. The65 failures
+concern the five remaining unintegrated Run observers.
+
+The final load03 candidate also retains the read-return companion exactly:
+controller `reports/runtime/production-run-local-controller/3019cd9cf53849f5bedca25fb3ba3b72`,
+result `reports/runtime/slice4be-production-run-yield/8428a24f53bc4186a4ba55934268e2cf/green.json`,
+11:11:36.5330293--11:14:28.4917402 UTC, **116 PASS/30 known FAIL/146 unique**.
+All36 Load checks and every prior ordered result remain exact. Five compiles,
+canonical load03 pins, preservation, normal cleanup and delayed zero audit pass.
+
+Clear worksheet/boundary regression on load03: controller
+`reports/runtime/production-run-local-controller/ddfae21d90394bd8be30d4941a145317`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/f8496e9331ac4b5e8475441701e0ae9d/green.json`,
+11:14:56.8480762--11:17:26.8942813 UTC, **145 PASS/24 known FAIL/169 unique**,
+with every prior identity/order/result exact. All73 Clear-specific checks pass,
+including captured/decoy binding, custom columns/formulas/exact System_Key and
+notification/picker/default-location interruption protection. Five compiles,
+canonical pins, preservation, normal cleanup and delayed zero Excel audit pass.
+
+Tree presentation regression on load03: controller
+`reports/runtime/production-run-presentation-controller/9f94e479635e406f91c190db1928e884`,
+result `reports/runtime/slice4be-production-run-presentation/70fa259b0704494f99dcded8eb196dc1/green.json`,
+11:18:10.3874609--11:20:17.3727972 UTC, **232/232 unique GREEN** in exact prior
+order. Five compiles, canonical pins, preservation, normal cleanup and delayed
+zero Excel audit pass. This protects the existing Tree behavior and observations;
+RUN-TREE-LAYOUT-01 and human acceptance remain open.
+
+Stock regression on load03: controller
+`reports/runtime/production-run-local-controller/dcc40a5ec12141f084ee8d0103badcc4`,
+result `reports/runtime/slice4be-production-run-stock/262f8de13e094b9bb44995caa71c5055/green.json`,
+11:20:36.5894694--11:22:23.8218287 UTC, **82 PASS/56 known FAIL across138 unique
+checks**, preserving every prior ordered identity and result. Five compiles,
+canonical pins, settings/package preservation, normal unassisted cleanup and the
+delayed zero Excel audit pass. The remaining stock observation failures are not
+claimed as acceptance.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

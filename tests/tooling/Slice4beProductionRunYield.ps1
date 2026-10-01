@@ -12,7 +12,11 @@ function Install-ProductionRunYieldProbe {
     $owner=$project.VBComponents.Item('modProductionReusableRun').CodeModule
     AfterRead $owner 'LoadReleasedReusableRecipe' 'validation = modOperationsPrimitiveBridge.ValidateReleasedRecipe(' 'ValidateReleasedRecipe' '(Left$(validation, 2) = "1" & vbTab)'
     AfterRead $owner 'LoadReleasedReusableRecipe' 'jsonText = modOperationsPrimitiveBridge.GetRecipeGraph(' 'GetRecipeGraph' 'Len(jsonText) > 2'
-    AfterRead $owner 'LoadNodeProcessDefinitions' 'jsonText = modOperationsPrimitiveBridge.GetProcessVersion(' 'GetProcessVersion' 'Len(jsonText) > 2'
+    $definitions=$owner
+    foreach($component in $project.VBComponents){
+        if($component.Name -ceq 'modProductionRunDefinitionLoad'){$definitions=$component.CodeModule;break}
+    }
+    AfterRead $definitions 'LoadNodeProcessDefinitions' 'jsonText = modOperationsPrimitiveBridge.GetProcessVersion(' 'GetProcessVersion' 'Len(jsonText) > 2'
     $reads=@(for($line=1;$line -le $owner.CountOfLines;$line++){
         if($owner.Lines($line,1).Trim() -cmatch '^(entities|entity|entityRows) = modInventoryDomainBridge\.ListAvailableInventoryEntitiesBridge\(""\)$'){
             [pscustomobject]@{Line=$line;Variable=$Matches[1]}

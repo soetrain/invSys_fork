@@ -1,6 +1,12 @@
 Attribute VB_Name = "modProductionRunBinding"
 Option Explicit
 
+Public Function RequireCurrentContext(ByVal owner As frmProduction, ByVal context As String, ByVal operatorWb As Workbook) As Boolean
+    RequireCurrentContext = modProductionDesignerActions.ContextIsCurrent(context, operatorWb)
+    If Not RequireCurrentContext Then _
+        owner.ShowStatus "Session, warehouse, or captured workbook changed. Reopen Production before editing the draft."
+End Function
+
 Public Function BindWorksheetOwner(ByVal operatorWb As Workbook) As Boolean
     On Error GoTo Unavailable
 

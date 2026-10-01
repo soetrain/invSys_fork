@@ -77,7 +77,8 @@ End Sub
 Public Function LoadReleasedReusableRecipe(ByVal recipeId As String, _
                                            ByVal recipeVersion As String, _
                                            ByVal scalePercent As Double, _
-                                           Optional ByRef report As String = "") As Boolean
+                                           Optional ByRef report As String = "", _
+                                           Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     On Error GoTo Failed
 
     Dim validation As String
@@ -100,11 +101,13 @@ Public Function LoadReleasedReusableRecipe(ByVal recipeId As String, _
         Exit Function
     End If
     validation = modOperationsPrimitiveBridge.ValidateReleasedRecipe(recipeId, recipeVersion)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If Left$(validation, 2) <> "1" & vbTab Then
         report = "Released Recipe validation failed: " & Replace$(validation, vbTab, " ")
         Exit Function
     End If
     jsonText = modOperationsPrimitiveBridge.GetRecipeGraph(recipeId, recipeVersion)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If jsonText = "" Then
         report = "Released Recipe graph could not be read."
         Exit Function
@@ -136,7 +139,7 @@ Public Function LoadReleasedReusableRecipe(ByVal recipeId As String, _
         report = "Released Recipe contains no Process nodes."
         Exit Function
     End If
-    If Not LoadNodeProcessDefinitions(report) Then Exit Function
+    If Not LoadNodeProcessDefinitions(report, action) Then Exit Function
     If Not ApplyRecipeOutputRegulationOverrides(report) Then Exit Function
     If Not ValidateLoadedRunGraph(report) Then Exit Function
 
@@ -190,7 +193,8 @@ Public Function ApplyReusableRunScale(ByVal scalePercent As Double, _
     ApplyReusableRunScale = True
 End Function
 
-Public Function ReusableRunLoaderRows(Optional ByVal locationFilter As String = "") As Variant
+Public Function ReusableRunLoaderRows(Optional ByVal locationFilter As String = "", _
+    Optional ByVal action As cProductionWorksheetAction = Nothing) As Variant
     Dim result() As Variant
     Dim totalRows As Long
     Dim rowIndex As Long
@@ -213,7 +217,8 @@ Public Function ReusableRunLoaderRows(Optional ByVal locationFilter As String = 
         result(rowIndex, 7) = ScaledRecordQty(record)
         result(rowIndex, 8) = ReusableRunLineStatus( _
             RunRecordText(record, "ProcessNodeId"), "INPUT", _
-            RunRecordText(record, "RequirementId"), locationFilter)
+            RunRecordText(record, "RequirementId"), locationFilter, action)
+        If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
         result(rowIndex, 9) = RunRecordText(record, "RequirementId")
     Next rawRecord
     For Each rawRecord In mOutputs
@@ -228,7 +233,8 @@ Public Function ReusableRunLoaderRows(Optional ByVal locationFilter As String = 
         result(rowIndex, 7) = ScaledRecordQty(record)
         result(rowIndex, 8) = ReusableRunLineStatus( _
             RunRecordText(record, "ProcessNodeId"), "OUTPUT", _
-            RunRecordText(record, "OutputId"), locationFilter)
+            RunRecordText(record, "OutputId"), locationFilter, action)
+        If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
         result(rowIndex, 9) = RunRecordText(record, "OutputId")
     Next rawRecord
     ReusableRunLoaderRows = result
@@ -261,7 +267,8 @@ Public Function ReusableRunInstructionRows(ByVal processName As String) As Varia
     ReusableRunInstructionRows = result
 End Function
 
-Public Function ReusableRunPaletteRows(Optional ByVal locationFilter As String = "") As Variant
+Public Function ReusableRunPaletteRows(Optional ByVal locationFilter As String = "", _
+    Optional ByVal action As cProductionWorksheetAction = Nothing) As Variant
     On Error GoTo CleanFail
 
     Dim entities As Variant
@@ -289,6 +296,7 @@ Public Function ReusableRunPaletteRows(Optional ByVal locationFilter As String =
 
     If Not mLoaded Then Exit Function
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     If Not IsArray(entities) Then Exit Function
     ReDim result(1 To mRequirements.Count * UBound(entities, 1), 1 To 10)
     locationFilter = Trim$(locationFilter)
@@ -716,7 +724,7 @@ Public Function CheckInReusableProcess(ByVal processName As String, _
     CheckInReusableProcess = True
 End Function
 
-Public Function ReusableRunManagerCheckRows() As Variant
+Public Function ReusableRunManagerCheckRows(Optional ByVal action As cProductionWorksheetAction = Nothing) As Variant
     Dim result() As Variant
     Dim key As Variant
     Dim rowIndex As Long
@@ -741,6 +749,7 @@ Public Function ReusableRunManagerCheckRows() As Variant
     End If
     If totalRows = 0 Then Exit Function
     entity = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     ReDim result(1 To totalRows, 1 To 9)
     For Each key In mAllocations.Keys
         If mCheckedInNodeId <> "" Then
@@ -1241,65 +1250,9 @@ Public Function ReusableRunRequirementQty(ByVal processNodeId As String, _
     If Not requirement Is Nothing Then ReusableRunRequirementQty = ScaledRecordQty(requirement)
 End Function
 
-Private Function LoadNodeProcessDefinitions(ByRef report As String) As Boolean
-    Dim rawNode As Variant
-    Dim node As Object
-    Dim jsonText As String
-    Dim parseReport As String
-    Dim records As Collection
-    Dim rawRecord As Variant
-    Dim record As Object
-    Dim enriched As Object
-    Dim processName As String
-    Dim statusValue As String
-
-    For Each rawNode In mNodes
-        Set node = rawNode
-        jsonText = modOperationsPrimitiveBridge.GetProcessVersion( _
-            RunRecordText(node, "ProcessId"), RunRecordText(node, "ProcessVersion"))
-        If jsonText = "" Then
-            report = "Process " & RunRecordText(node, "ProcessId") & " version " & _
-                     RunRecordText(node, "ProcessVersion") & " could not be read."
-            Exit Function
-        End If
-        parseReport = ""
-        Set records = modProductionReusableDesigns.ParseReusableDefinitionRecords(jsonText, parseReport)
-        If records Is Nothing Then
-            report = parseReport
-            Exit Function
-        End If
-        For Each rawRecord In records
-            Set record = rawRecord
-            If StrComp(RunRecordText(record, "RecordType"), "PROCESS", vbTextCompare) = 0 Then
-                processName = RunRecordText(record, "ProcessName")
-                statusValue = RunRecordText(record, "Status")
-            End If
-        Next rawRecord
-        If StrComp(statusValue, "RELEASED", vbTextCompare) <> 0 Then
-            report = "Recipe references a Process version that is not released: " & _
-                     RunRecordText(node, "ProcessId") & " v" & RunRecordText(node, "ProcessVersion") & "."
-            Exit Function
-        End If
-        node("ProcessName") = processName
-        For Each rawRecord In records
-            Set record = rawRecord
-            Select Case UCase$(RunRecordText(record, "RecordType"))
-                Case "REQUIREMENT", "ALTERNATIVE", "OUTPUT", "INSTRUCTION"
-                    Set enriched = CloneRunRecord(record)
-                    enriched("ProcessNodeId") = RunRecordText(node, "ProcessNodeId")
-                    enriched("ProcessId") = RunRecordText(node, "ProcessId")
-                    enriched("ProcessVersion") = RunRecordText(node, "ProcessVersion")
-                    enriched("ProcessName") = processName
-                    Select Case UCase$(RunRecordText(record, "RecordType"))
-                        Case "REQUIREMENT": mRequirements.Add enriched
-                        Case "ALTERNATIVE": mAlternatives.Add enriched
-                        Case "OUTPUT": mOutputs.Add enriched
-                        Case "INSTRUCTION": mInstructions.Add enriched
-                    End Select
-            End Select
-        Next rawRecord
-    Next rawNode
-    LoadNodeProcessDefinitions = True
+Private Function LoadNodeProcessDefinitions(ByRef report As String, ByVal action As cProductionWorksheetAction) As Boolean
+    LoadNodeProcessDefinitions = modProductionRunDefinitionLoad.LoadNodeProcessDefinitions( _
+        mNodes, mRequirements, mAlternatives, mOutputs, mInstructions, report, action)
 End Function
 
 Private Function ValidateLoadedRunGraph(ByRef report As String) As Boolean
@@ -1384,7 +1337,8 @@ End Function
 Public Function ReusableRunLineStatus(ByVal nodeId As String, _
                                       ByVal lineType As String, _
                                       ByVal recordId As String, _
-                                      Optional ByVal locationFilter As String = "") As String
+                                      Optional ByVal locationFilter As String = "", _
+                                      Optional ByVal action As cProductionWorksheetAction = Nothing) As String
     Dim requirement As Object
     Dim statusText As String
 
@@ -1394,15 +1348,17 @@ Public Function ReusableRunLineStatus(ByVal nodeId As String, _
     End If
     If StrComp(lineType, "INPUT", vbTextCompare) = 0 Then
         Set requirement = FindRequirement(nodeId, recordId)
-        statusText = RequirementReadinessStatus(requirement, locationFilter)
+        statusText = RequirementReadinessStatus(requirement, locationFilter, action)
     Else
-        statusText = ProcessReadinessStatus(nodeId, locationFilter)
+        statusText = ProcessReadinessStatus(nodeId, locationFilter, action)
     End If
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     ReusableRunLineStatus = statusText
 End Function
 
 Private Function ProcessReadinessStatus(ByVal nodeId As String, _
-                                        ByVal locationFilter As String) As String
+                                        ByVal locationFilter As String, _
+                                        Optional ByVal action As cProductionWorksheetAction = Nothing) As String
     Dim rawRequirement As Variant
     Dim requirement As Object
     Dim statusText As String
@@ -1416,7 +1372,8 @@ Private Function ProcessReadinessStatus(ByVal nodeId As String, _
     For Each rawRequirement In mRequirements
         Set requirement = rawRequirement
         If StrComp(RunRecordText(requirement, "ProcessNodeId"), nodeId, vbTextCompare) = 0 Then
-            statusText = RequirementReadinessStatus(requirement, locationFilter)
+            statusText = RequirementReadinessStatus(requirement, locationFilter, action)
+            If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
             If statusText = "! INSUFFICIENT" Then
                 ProcessReadinessStatus = statusText
                 Exit Function
@@ -1437,7 +1394,8 @@ Private Function ProcessReadinessStatus(ByVal nodeId As String, _
 End Function
 
 Private Function RequirementReadinessStatus(ByVal requirement As Object, _
-                                            ByVal locationFilter As String) As String
+                                            ByVal locationFilter As String, _
+                                        Optional ByVal action As cProductionWorksheetAction = Nothing) As String
     Dim nodeId As String
     Dim requirementId As String
     Dim requiredQty As Double
@@ -1460,7 +1418,7 @@ Private Function RequirementReadinessStatus(ByVal requirement As Object, _
         End If
         sourceKey = OutputKeyForConnection(connection)
         If sourceKey = "" Or _
-           ExactEntityAvailableQty(sourceKey) + QTY_TOLERANCE < ScaledConnectionQty(connection) Then
+           ExactEntityAvailableQty(sourceKey, , action) + QTY_TOLERANCE < ScaledConnectionQty(connection) Then
             RequirementReadinessStatus = "! INSUFFICIENT"
         Else
             RequirementReadinessStatus = "READY"
@@ -1476,7 +1434,7 @@ Private Function RequirementReadinessStatus(ByVal requirement As Object, _
         End If
     ElseIf Abs(allocatedQty - requiredQty) <= QTY_TOLERANCE Then
         RequirementReadinessStatus = "READY"
-    ElseIf AvailableStockForRequirement(requirement, locationFilter) + QTY_TOLERANCE < requiredQty Then
+    ElseIf AvailableStockForRequirement(requirement, locationFilter, action) + QTY_TOLERANCE < requiredQty Then
         RequirementReadinessStatus = "! INSUFFICIENT"
     Else
         RequirementReadinessStatus = "NEEDS ALLOCATION"
@@ -1575,7 +1533,8 @@ NextAllocation:
 End Function
 
 Private Function AvailableStockForRequirement(ByVal requirement As Object, _
-                                              ByVal locationFilter As String) As Double
+                                              ByVal locationFilter As String, _
+                                              Optional ByVal action As cProductionWorksheetAction = Nothing) As Double
     Dim entities As Variant
     Dim entityRow As Long
     Dim nodeId As String
@@ -1591,6 +1550,7 @@ Private Function AvailableStockForRequirement(ByVal requirement As Object, _
     Dim conversionReport As String
 
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     If Not IsArray(entities) Then Exit Function
     nodeId = RunRecordText(requirement, "ProcessNodeId")
     requirementId = RunRecordText(requirement, "RequirementId")
@@ -2593,10 +2553,12 @@ Private Function TotalExternalAllocation() As Double
 End Function
 
 Private Function ExactEntityAvailableQty(ByVal systemKey As String, _
-                                         Optional ByRef locationOut As String = "") As Double
+                                         Optional ByRef locationOut As String = "", _
+                                         Optional ByVal action As cProductionWorksheetAction = Nothing) As Double
     Dim entities As Variant
     Dim r As Long
     entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge("")
+    If Not modProductionRunLoadActions.CanContinue(action) Then Exit Function
     If Not IsArray(entities) Then Exit Function
     For r = LBound(entities, 1) To UBound(entities, 1)
         If StrComp(Trim$(CStr(entities(r, 1))), Trim$(systemKey), vbTextCompare) = 0 Then
@@ -2708,7 +2670,7 @@ Private Function UomCompatible(ByVal sourceUom As String, ByVal targetUom As Str
                      StrComp(sourceUom, targetUom, vbTextCompare) = 0)
 End Function
 
-Private Function CloneRunRecord(ByVal source As Object) As Object
+Public Function CloneRunRecord(ByVal source As Object) As Object
     Dim result As Object
     Dim key As Variant
     Set result = NewTextDictionary()
@@ -2725,7 +2687,7 @@ Private Function NewTextDictionary() As Object
     Set NewTextDictionary = result
 End Function
 
-Private Function RunRecordText(ByVal record As Object, ByVal fieldName As String) As String
+Public Function RunRecordText(ByVal record As Object, ByVal fieldName As String) As String
     If record Is Nothing Then Exit Function
     If record.Exists(fieldName) Then
         If Not IsNull(record(fieldName)) And Not IsEmpty(record(fieldName)) Then _

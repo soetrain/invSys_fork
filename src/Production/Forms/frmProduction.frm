@@ -5336,6 +5336,7 @@ Private Sub mBtnApplyBatchScale_Click()
     Dim scalePercent As Double
     Dim scaleReport As String
 
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         If Not TryParseBatchScalePercent(mTxtBatchScalePercent.Text, scalePercent, scaleReport) Then
             ShowStatus scaleReport
@@ -5354,7 +5355,7 @@ Private Sub mBtnApplyBatchScale_Click()
     LoadSelectedRecipeIntoLoader
 End Sub
 
-Private Function TryParseBatchScalePercent(ByVal valueText As String, _
+Public Function TryParseBatchScalePercent(ByVal valueText As String, _
                                            ByRef scalePercent As Double, _
                                            ByRef report As String) As Boolean
     valueText = Trim$(valueText)
@@ -11163,6 +11164,7 @@ Private Sub mBtnLoaderRefresh_Click()
     Dim refreshReport As String
     Dim refreshed As Boolean
 
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         ResetInventoryCache
         RefreshRecipeLists
@@ -11184,35 +11186,21 @@ Private Sub mBtnLoaderRefresh_Click()
 End Sub
 
 Private Sub mBtnLoaderLoad_Click()
-    If mLstLoaderRecipes.ListIndex >= 0 Then
-        If Not LoadReusableRecipeIntoRun( _
-                NzStr(mLstLoaderRecipes.List(mLstLoaderRecipes.ListIndex, 0)), _
-                NzStr(mLstLoaderRecipes.List(mLstLoaderRecipes.ListIndex, 1))) Then Exit Sub
-    Else
-        ShowStatus "Select a released Recipe version first."
-    End If
+    Dim report As String
+    report = modProductionRunLoadActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, mLstLoaderRecipes, mTxtBatchScalePercent.Text): If report <> "" Then ShowStatus report
 End Sub
 
-Private Function LoadReusableRecipeIntoRun(ByVal recipeId As String, _
-                                           ByVal recipeVersion As String) As Boolean
-    Dim scalePercent As Double
-    Dim report As String
-
-    If Not TryParseBatchScalePercent(mTxtBatchScalePercent.Text, scalePercent, report) Then
-        ShowStatus report
-        Exit Function
-    End If
-    If Not modProductionReusableRun.LoadReleasedReusableRecipe( _
-            recipeId, recipeVersion, scalePercent, report) Then
-        ShowStatus report
-        Exit Function
-    End If
-    RefreshReusableRunControls False
-    ShowStatus report
-    LoadReusableRecipeIntoRun = True
+Public Function SelectedRunRecipeText(ByVal column As Long) As String
+    If mLstLoaderRecipes.ListIndex >= 0 Then SelectedRunRecipeText = NzStr(mLstLoaderRecipes.List(mLstLoaderRecipes.ListIndex, column))
 End Function
 
-Private Sub RefreshReusableRunControls(ByVal refreshInventory As Boolean)
+Private Function LoadReusableRecipeIntoRun(ByVal recipeId As String, ByVal recipeVersion As String) As Boolean
+    Dim report As String
+    LoadReusableRecipeIntoRun = modProductionRunLoadActions.Stage(Me, recipeId, recipeVersion, mTxtBatchScalePercent.Text, report)
+    ShowStatus report
+End Function
+
+Public Sub RefreshReusableRunControls(ByVal refreshInventory As Boolean, Optional ByVal action As cProductionWorksheetAction = Nothing)
     Dim loaderRows As Variant
     Dim paletteRows As Variant
     Dim checkRows As Variant
@@ -11227,10 +11215,14 @@ Private Sub RefreshReusableRunControls(ByVal refreshInventory As Boolean)
     If refreshInventory Then ResetInventoryCache
     selectedProcess = ActiveRunProcess()
     mLoading = True
-    loaderRows = modProductionReusableRun.ReusableRunLoaderRows(ActiveRunLocation())
-    paletteRows = modProductionReusableRun.ReusableRunPaletteRows(ActiveRunLocation())
-    checkRows = modProductionReusableRun.ReusableRunManagerCheckRows()
+    loaderRows = modProductionReusableRun.ReusableRunLoaderRows(ActiveRunLocation(), action)
+    If Not modProductionRunClearActions.ContinueRefresh(Me, action) Then Exit Sub
+    paletteRows = modProductionReusableRun.ReusableRunPaletteRows(ActiveRunLocation(), action)
+    If Not modProductionRunClearActions.ContinueRefresh(Me, action) Then Exit Sub
+    checkRows = modProductionReusableRun.ReusableRunManagerCheckRows(action)
+    If Not modProductionRunClearActions.ContinueRefresh(Me, action) Then Exit Sub
     outputRows = modProductionReusableRun.ReusableRunOutputRows()
+    If Not modProductionRunClearActions.ContinueRefresh(Me, action) Then Exit Sub
     FillListFromArray mLstLoaderLines, loaderRows
     FillListFromArray mLstRunPalette, paletteRows
     FillListFromArray mLstManagerCheck, checkRows
@@ -11407,6 +11399,7 @@ Private Sub mBtnRunTreeCollapseAll_Click()
 End Sub
 
 Private Sub mBtnRunApplyPalette_Click()
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     If mLstRunPalette.ListCount = 0 Then
         ResetInventoryCache
         RefreshRunPaletteState
@@ -11423,6 +11416,7 @@ Private Sub mBtnRunApplyPalette_Click()
 End Sub
 
 Private Sub mBtnRunTreeApplyPalette_Click()
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     ApplySelectedRunPaletteSplit
 End Sub
 
@@ -11430,6 +11424,7 @@ Private Sub mBtnManagerRefresh_Click()
     Dim refreshReport As String
     Dim refreshed As Boolean
 
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         RefreshReusableRunControls True
         ShowStatus "Reusable Production Run inventory refreshed from the exact entity projection."
