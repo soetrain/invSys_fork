@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 23
+Public Const CATALOG_VERSION As Long = 24
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 24 Then
+        ids = ControlIds(23): added = modProductionRunCodes.ControlIds()
+        offset = UBound(ids) + 1
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)
+        For index = LBound(added) To UBound(added): ids(offset + index) = added(index): Next index
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 23 Then
         ids = ControlIds(22): added = modProductionAssignmentCodes.ControlIds()
         offset = UBound(ids) + 1
@@ -176,6 +184,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 24 Then
+        Set record = modProductionRunCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version >= 23 Then
         Set record = modProductionAssignmentCodes.Control(controlId)
         If Not record Is Nothing Then Set Control = record: Exit Function
@@ -332,6 +344,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("OwnerId") = "PRODUCTION_RUN_LOCAL" Then
+        Set Outcome = modProductionRunCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If definition("OwnerId") = "PRODUCTION_ASSIGNMENT" Then
         Set Outcome = modProductionAssignmentCodes.Outcome(controlId, outcomeCode)
         Exit Function

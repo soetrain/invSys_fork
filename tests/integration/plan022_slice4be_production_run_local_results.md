@@ -344,9 +344,11 @@ input mirroring, and wrong-location refusal that clears an earlier allocation.
 Checks retain normalized-header writes, List/Tree synchronization and overrides.
 All16 cases preserve custom columns/formula, exact identity and canonical source.
 
-Two unavailable-surface cases per handler expose an existing D18 defect: a missing
+Two unavailable-surface cases per handler expose a presentation contradiction: a missing
 palette table or QUANTITY column still produces an allocation-updated success
-message. These four failures require FAILED owner facts and truthful presentation;
+message. FAILED owner facts are already required, but changing that message needs
+Architecture D18 decision RUN-UI-01 because the contract also preserves existing
+operator messages. These four assertions are a pending proposal, not approved RED;
 they do not authorize rollback or repair of missing surfaces. The other112 failures
 are missing observation/context/redaction/terminal facts. Tests do not pin the
 accidental local UI changes in unavailable-surface cases as required behavior.
@@ -355,9 +357,69 @@ Forty-two prior shared GREEN checks retain exact order. Five compiles, canonical
 package pins, saved authority/operator bytes, unknown values/formula, older
 records and other-warehouse preservation pass. Unassisted closure and delayed zero
 Excel Application failures are verified. Runtime/static metrics remain unchanged;
-366 repository PowerShell scripts parse. Preserve all272 checks through GREEN.
+366 repository PowerShell scripts parse. Preserve the268 approved checks through
+GREEN; the remaining four presentation assertions depend on RUN-UI-01 approval.
 Worksheet load/clear/refresh branches, remaining read failures and independent
 paired paths still require evidence. This gate is not visible or human acceptance.
+
+## Headless Core catalog24 GREEN
+
+Unpromoted `deploy/validation-production-run-catalog-01` implements only the Core
+part of the approved Run contract. `modProductionRunCodes` supplies the nine
+definitions and fixed outcomes. `modActivityCatalog`, `modActivityReferences` and
+`modEvaluationMatches` route those definitions, reject unsupported/nonempty source
+references and require the exact declared positive outcome for CommandCompleted.
+No Run form handler or workflow algorithm changed. RUN-UI-01 is not implemented.
+
+Controller `reports/runtime/production-run-local-controller/bf38070b9ca7440f96602c37e72506ac`,
+result `reports/runtime/slice4be-production-run-contract/76fa7339038647e79d9611808e1ca7e0/green.json`,
+2026-10-01 07:33:45.7306014--07:35:08.2965816 UTC: **764/764 GREEN**, retaining the
+492 PASS/272 FAIL RED's exact ordered identities. All118 catalog23 definitions are
+unchanged in catalog24; defaults, outcomes, references and terminal cases pass.
+Forty-two shared checks, five instrumented compiles, candidate pins, preservation,
+normal closure and delayed zero Excel Application failures pass.
+
+Build `reports/runtime/run-catalog-build-01`,2026-10-01
+07:32:41.1624265--07:33:20.9863254 UTC, passes five-package generation and independent
+cold-start compile. The settings snapshot precedes the build and is retained only
+in memory; restoration, frozen candidate preservation, unassisted cleanup and
+delayed zero Excel audit pass. Compiled comparison allows exactly three modified
+Core components and the one new codes module;270 prior components are unchanged
+ignoring identifier casing, with string literals compared exactly and none lost.
+
+Older worksheet Core regression: controller
+`reports/runtime/process-worksheet-activity-controller/fcd587a3bf6d4246b65b7d0daa2330ac`,
+result `reports/runtime/slice4be-process-worksheet-activity/19b9d234eb0248869cf045e6867e318b/green.json`,
+2026-10-01 07:36:48.0738644--07:38:10.3113951 UTC: **188/188 GREEN**, exact prior
+order, five compiles, preservation, normal closure and delayed zero Excel audit.
+
+`reports/runtime/run-catalog-static-01` has281 components/6154 procedures/135103
+lines: growth1/4/97 for the catalog feature. Calls remain9 literal/45 unresolved,
+duplicates remain190, and all28 oversized caps do not grow. Three schemas and365
+tooling PowerShell parses pass. Fifteen current-output assertions advance their
+exact catalog expectation23->24, with policy count118->127; historical catalog
+fixtures retain their original versions. Broader workflow regression is still
+required. The candidate has127 definitions, but Run observation coverage does not
+increase until the handlers are integrated and their actual-handler gates pass.
+
+Settings regression: controller
+`reports/runtime/run-catalog-regression/settings-3685675ac2f9490298e056b7f547a584`,
+result `reports/runtime/slice4be-tracking-settings/6059a972ea45422a8d3830ec92ee40d5/green.json`,
+2026-10-01 07:38:32.1263206--07:42:41.3075299 UTC: **202/202 GREEN**, retaining exact
+prior order. The editor loads catalog24/127 definitions; policy/detail/preference,
+Admin close and Operations Settings captured-context behavior pass. Five compiles,
+candidate pins, settings/config preservation, unassisted closure and delayed zero
+Excel audit are verified. No visible human acceptance is inferred.
+
+Ingredients Assignment regression: controller
+`reports/runtime/production-assignment-controller/c4b84dccf3f3482a9b7360f8f1c7fc81`,
+result `reports/runtime/slice4be-production-assignment/c7d8afe521404b90b0060186ab1f4899/green.json`,
+2026-10-01 07:43:44.3667698--07:46:35.2303245 UTC: **349/349 GREEN**, preserving
+the exact prior order. Five compiles, original actions/observations, context guards,
+candidate pins, saved authority/operator bytes, older records, settings restoration,
+normal closure and delayed zero Excel audit pass. Its expanded789 companion and
+independent paths, plus remaining shared/full-release gates, are not rerun here;
+the recorded frozen catalog23 acceptance remains separate from this candidate.
 
 ## Remaining gates
 

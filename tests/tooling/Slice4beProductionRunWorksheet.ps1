@@ -130,6 +130,7 @@ Public Function RunWorksheetResultForTest(ByVal mode As String) As Boolean
     Dim ws As Worksheet, qty As Double, pct As Double, row As Long, key As String, values As Variant
     Dim splitBox As MSForms.TextBox, qtyBox As MSForms.TextBox
     If mode = "MissingTable" Or mode = "MissingQuantity" Then
+        ' RUN-UI-01 is pending approval: this presentation assertion is proposed.
         RunWorksheetResultForTest = (InStr(1, mTxtStatus.Text, "allocation updated", vbTextCompare) = 0)
         Exit Function
     End If

@@ -15,7 +15,7 @@ function Test-ProductionAssignmentActivity($Fixture,$Other) {
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false;$sources=$paired
         $control='PRODUCTION_ASSIGNMENT_'+$Action
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_ASSIGNMENT' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 23
+            $context=$context -and $r.ControlId -ceq $control -and $r.OwnerId -ceq 'PRODUCTION_ASSIGNMENT' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 24
             if($Action -ceq 'SAVE' -and $r.OutcomeCode -ceq 'CONFIRMED'){
                 $sources=$sources -and @($r.SourceEventRefs).Count -eq 1
                 foreach($ref in $r.SourceEventRefs){$sources=$sources -and $ref.SourceKind -ceq 'Designs' -and $ref.WarehouseId -ceq $Fixture.Warehouse -and $ref.SubmissionState -ceq 'Submitted' -and $ref.EventId -cne ''}

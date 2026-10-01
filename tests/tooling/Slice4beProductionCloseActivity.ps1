@@ -44,7 +44,7 @@ function Test-ProductionCloseActivity($Fixture,$Other) {
         $paired=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $closed.Count -eq 1
         $linked=$false;$facts=$paired;$safe=$paired;$integrity=$paired;$terminal=$false
         foreach($row in $rows){
-            $facts=$facts -and $row.ControlId -ceq 'PRODUCTION_CLOSE' -and $row.OwnerId -ceq 'PRODUCTION_WORKFLOW' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 23 -and @($row.SourceEventRefs).Count -eq 0
+            $facts=$facts -and $row.ControlId -ceq 'PRODUCTION_CLOSE' -and $row.OwnerId -ceq 'PRODUCTION_WORKFLOW' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 24 -and @($row.SourceEventRefs).Count -eq 0
         }
         foreach($text in $raw){
             $decoded=($text|ConvertFrom-Json)|ConvertTo-Json -Depth 25 -Compress
