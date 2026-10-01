@@ -1037,6 +1037,64 @@ duplicate bodies remain190, and all28 oversized caps do not grow. The Production
 form shrinks11599->11564 lines; total runtime growth is261 lines across the typed
 coordination and explicit catalog. Three schemas validate;353 scripts parse.
 
+## Worksheet header and picker regressions
+
+The frozen Assignment candidate retains107/107 unique, exact prior ordered header
+checks and115/115 picker checks under D4/D14/D15. Five instrumented compiles,
+unassisted closure, settings/package preservation, canonical five-package pins
+and delayed Excel Application1000/1001/1002 audits pass for both gates.
+
+Final headers controller:
+`reports/runtime/process-worksheet-headers-controller/c842a30c75fa4a909bd2ddbb6498c474`,
+2026-10-01 05:13:23.5452166--05:16:18.9054410 UTC; result
+`reports/runtime/slice4be-process-worksheet-headers/a6cc10b575134772a6ecbe107460c123/green.json`.
+Managed fields resolve after movement/custom insertion and normalization; rejected
+retrieval preserves unknown columns/values/formulas and never implicitly saves.
+
+This rerun also closes a test-evidence gap. Original controller
+`reports/runtime/process-worksheet-headers-controller/d95ccf0315f94715b257e9747dcf410e`,
+05:04:00.4369534--05:06:50.0538416 UTC, passed107 checks but its normalized-header
+worksheet image was blank and is excluded from visual proof. Its result is
+`reports/runtime/slice4be-process-worksheet-headers/282719942de3458b864ee0a68101ae40/green.json`.
+The first capture correction failed with an invalid-index automation error
+8002000B (79 PASS/1 harness FAIL), controller
+`reports/runtime/process-worksheet-headers-controller/5cca289e16ab4445a6e91e81e461d23f`,
+05:10:22.7939305--05:12:11.4008122 UTC; result
+`reports/runtime/slice4be-process-worksheet-headers/dbb2d3eeaf0045ca9378514dd0d5f8e8/green.json`.
+It is excluded, not product RED; cleanup/preservation and delayed audit pass.
+
+`Slice4beProcessWorksheetHeaders.ps1` now obtains the owning workbook window
+handle inside its unsaved VBA test adapter after verifying workbook/sheet/visible
+window ownership. Capture checks the exact active workbook before and after.
+Redacted receipts show the normalized worksheet's owner window differs from
+Application.Hwnd, explaining why the earlier target was insufficient. The shared
+capture helper, runtime source, packages and architectural contract are unchanged.
+This repairs verification tooling; it introduces no new product RED or acceptance
+claim. All107 prior assertions remain exact.
+
+Five final hashed images are reviewed. Custom-column and normalized-requirement
+worksheets are populated; both rejection statuses report missing ProcessName and
+no save/removal. Settings reports saved configuration with tracking unavailable.
+Headers/custom values truncate and some managed columns are outside the viewport.
+These incomplete synthetic Process views do not prove every field/formula, a
+completed workflow, all-size layout or human acceptance.
+
+Picker controller:
+`reports/runtime/process-worksheet-picker-controller/1a38b1acbd234da5b9add0cef6324538`,
+05:07:32.5243443--05:09:27.5881728 UTC; result
+`reports/runtime/slice4be-process-worksheet-picker/5eed28b8f8e941d5bc6ba2de3621b73e/green.json`.
+The exact normalized numbered item/SKU pair is committed while other pairs and
+unknown columns remain unchanged; no physical System_Key is allocated. Two
+hashed images are reviewed: populated item search before commit and saved
+Settings with tracking unavailable. Long IDs/SKUs truncate; the picker image
+precedes commit and does not show the destination pair. Assertions establish
+the exact commit/preservation; screenshots do not replace them.
+
+Regenerated `reports/runtime/assignment-worksheet-capture-static-01` retains
+280 components,6150 procedures,135006 lines,9 literal/45 unresolved dynamic calls,
+190 duplicate bodies and28 non-growing caps. Three schemas validate;354 scripts
+parse. Control coverage and human acceptance remain unchanged.
+
 ## Required next evidence
 
 Preserve the349 initial checks and789 expanded companion checks, including every

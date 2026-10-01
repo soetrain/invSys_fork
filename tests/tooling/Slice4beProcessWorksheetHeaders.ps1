@@ -135,7 +135,7 @@ End Function
 Public Sub WorksheetHeadersShow()
     mForm.WorksheetHeadersShowForTest
 End Sub
-Public Function WorksheetHeadersShowSheet() As Boolean
+Public Function WorksheetHeadersShowSheet() As Double
     Dim wb As Workbook, window As Window
     On Error GoTo Failed
     Set wb = mHeaderTable.Parent.Parent
@@ -147,7 +147,10 @@ Public Function WorksheetHeadersShowSheet() As Boolean
     mHeaderTable.Parent.Activate
     mHeaderTable.DataBodyRange.Cells(1, 1).Select
     DoEvents
-    WorksheetHeadersShowSheet = (Application.ActiveWorkbook Is wb)
+    If Not (Application.ActiveWorkbook Is wb) Then Exit Function
+    If Not (Application.ActiveSheet Is mHeaderTable.Parent) Then Exit Function
+    If Not window.Visible Then Exit Function
+    WorksheetHeadersShowSheet = CDbl(window.Hwnd)
 Failed:
 End Function
 Public Function WorksheetHeadersState(ByVal checkName As String) As Boolean
@@ -226,10 +229,17 @@ function Test-ProcessWorksheetHeaders($Fixture) {
             }
             Check ('ProcessHeaders.'+$case+'.NoImplicitSave') ((Hash $path) -ceq $diskPin)
             if($CaptureEvidence -and $case -in @('CustomValue','NormalizedRequirement')){
-                if(-not [bool](Probe 'WorksheetHeadersShowSheet')){throw 'Disposable Process worksheet window unavailable for capture; not product RED.'}
+                $workbookWindow=[long](Probe 'WorksheetHeadersShowSheet')
+                if($workbookWindow -eq 0){throw 'Disposable Process worksheet window unavailable for capture; not product RED.'}
                 Start-Sleep -Milliseconds 400
                 Initialize-SettingsCapture
-                [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$excel.Hwnd,(Join-Path $reportRoot ('process-headers-'+$case+'.png')))
+                $applicationWindow=[long]$excel.Hwnd
+                $ownerActive=[string]$excel.ActiveWorkbook.FullName -ceq [string]$book.FullName
+                if(-not $ownerActive){throw 'Disposable worksheet capture owner is not active; not product RED.'}
+                [InvSysSettingsCapture]::SaveVisibleWindow([IntPtr]$workbookWindow,(Join-Path $reportRoot ('process-headers-'+$case+'.png')))
+                $ownerRetained=[string]$excel.ActiveWorkbook.FullName -ceq [string]$book.FullName
+                [ordered]@{Case=$case;OwnerActiveBefore=$ownerActive;OwnerActiveAfter=$ownerRetained;ApplicationWindowMatchesOwner=($applicationWindow -eq $workbookWindow)}|ConvertTo-Json -Compress|Add-Content -LiteralPath (Join-Path $reportRoot 'worksheet-capture-owner.jsonl') -Encoding UTF8
+                if(-not $ownerRetained){throw 'Worksheet capture changed the active owner; not product RED.'}
                 [void](Probe 'WorksheetHeadersShow')
                 CaptureOwnedFormByCaptionEvidence 'Production' ('process-headers-'+$case+'-status.png')
             }
