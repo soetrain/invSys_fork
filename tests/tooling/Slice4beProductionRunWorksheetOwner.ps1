@@ -174,6 +174,10 @@ End Function
 Public Function RunSheetOwnerPrepare() As Boolean
     RunSheetOwnerPrepare = mForm.RunSheetOwnerPrepareForTest()
 End Function
+Public Function RunSheetOwnerRecreate() As Boolean
+    Dim report As String
+    RunSheetOwnerRecreate = modOperationsPrimitiveBridge.EnsureProductionWorkbookSurface(mForm.OperatorWorkbookNameForRunSheetTest(), report)
+End Function
 Public Function RunSheetOwnerStage(ByVal action As String, ByVal mode As String, ByVal canary As String) As String
     RunSheetOwnerStage = mForm.RunSheetOwnerStageForTest(action, mode, canary)
 End Function
@@ -185,6 +189,11 @@ Public Function RunSheetOwnerResult(ByVal action As String, ByVal mode As String
 End Function
 Public Function RunSheetOwnerPreserved() As Boolean
     RunSheetOwnerPreserved = mForm.RunSheetOwnerPreservedForTest()
+End Function
+'@)
+    $form.AddFromString(@'
+Public Function OperatorWorkbookNameForRunSheetTest() As String
+    OperatorWorkbookNameForRunSheetTest = mOperatorWorkbook.Name
 End Function
 '@)
 }
@@ -220,4 +229,30 @@ function Test-ProductionRunWorksheetOwner($Fixture) {
             }finally{[void](Probe 'RunSheetOwnerRestore')}
         }
     }
+    # A real worksheet on the active decoy makes the resolver's other-workbook fallback reachable.
+    if(-not [bool](Probe 'RunSheetOwnerRecreate')){throw 'Recreating owned local staging failed; not product RED.'}
+    $decoySheet=$decoy.Worksheets.Add();$decoySheet.Name='Production'
+    $decoySheet.Range('A1').Value2='RECIPE';$decoySheet.Range('B1').Value2='RECIPE_ID'
+    $decoySheet.Range('C1').Value2='Operator Extra';$decoySheet.Range('D1').Value2='Operator Formula'
+    $decoySheet.Range('A2').Value2=$canary;$decoySheet.Range('C2').Value2=$canary;$decoySheet.Range('D2').Formula='=1+2'
+    $decoyTable=$decoySheet.ListObjects.Add(1,$decoySheet.Range('A1:D2'),$null,1)
+    $decoyTable.Name='RC_RecipeChoose'
+    $before=@(Files)
+    if([string](Probe 'RunSheetOwnerStage' @('CLEAR','Missing',$canary)) -cne 'READY'){throw 'Decoy Clear staging failed; not product RED.'}
+    try{
+        $decoy.Activate();$label='RunWorksheetOwner.CLEAR.DecoyMissing'
+        Check ($label+'.SetupNotUserAction') (@(Files).Count -eq $before.Count)
+        $notice=[string](Probe 'RunFaultAct' @('CLEAR'))
+        Check ($label+'.NoUnhandledError') (-not $notice.StartsWith('HANDLER_ERROR|'))
+        Check ($label+'.GuardsRestoredWithoutAdapterReset') ([bool](Probe 'RunFaultGuards'))
+        Check ($label+'.RealOwnerResultAndNotificationCount') ([bool](Probe 'RunSheetOwnerResult' @('CLEAR','Missing')))
+        $target=[string](Probe 'RunSheetClearTarget')
+        if($target -cnotin @('NotEntered','Unavailable','Captured','OtherAddin','OtherWorkbook')){throw 'Unknown Clear decoy category.'}
+        Write-Output ('Run Clear DecoyMissing resolved target: '+$target)
+        Check ($label+'.OwnerUsesCapturedWorkbook') ($target -cin @('NotEntered','Unavailable'))
+        Check ($label+'.DecoyContentsAndCustomFormulaPreserved') ($decoyTable.ListColumns('RECIPE').DataBodyRange.Cells(1,1).Value2 -ceq $canary -and $decoyTable.ListColumns('Operator Extra').DataBodyRange.Cells(1,1).Value2 -ceq $canary -and $decoyTable.ListColumns('Operator Formula').DataBodyRange.Cells(1,1).Formula -ceq '=1+2')
+        Check ($label+'.CustomColumnsFormulaAndExactKey') ([bool](Probe 'RunSheetOwnerPreserved'))
+        Check ($label+'.CanonicalSourcePreserved') ([bool](Probe 'RunWorksheetSource'))
+        Pair $before 'CLEAR' 'FAILED' $label
+    }finally{[void](Probe 'RunSheetOwnerRestore')}
 }

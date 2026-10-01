@@ -474,10 +474,74 @@ was83 PASS/37 FAIL; the final122 retains those identities and adds the two expli
 Clear owner-target checks. Its five compiles, preservation, normal cleanup and
 delayed audit also pass.
 
+## Clear captured-owner guard
+
+The populated-decoy extension retains the122 checks and adds14. Controller
+`reports/runtime/production-run-local-controller/3f53e34bff944cbb9fb3c93b07159d1e`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/4898f6aa7bf8446fa243d612e14c14bc/red.json`,
+2026-10-01 08:12:23.6588556--08:14:06.2194191 UTC: **89 PASS/47 FAIL/136 checks**.
+Clear resolves `OtherWorkbook` when a populated Production sheet exists on the
+active decoy, then clears its chooser contents, including its custom value and
+formula. This proves an actual cross-workbook mutation, not just a misleading
+status. With no decoy surface it resolves `OtherAddin`. Five binding/preservation
+failures and42 missing-observation failures supply RED. All earlier PASS results,
+five compiles, package/settings/saved authority preservation, unassisted closure
+and delayed zero Excel audit pass.
+
+Unpromoted `deploy/validation-production-run-binding-01` adds
+`modProductionRunBinding.BindWorksheetOwner`: require the original workbook object
+to be in Application.Workbooks, not an add-in, and contain the Production sheet;
+only then bind it to the existing owner. Worksheet Clear calls this guard before
+entering `BtnClearRecipeChooser`. Reusable Clear, ordinary cleanup, current
+messages, other handlers and the general fallback resolver are unchanged. This
+implements the existing captured-workbook and missing-owner requirements; no new
+architectural exception or RUN-UI-01 approval is inferred. Missing-sheet Clear
+returns before the owner and its success notification/status. FAILED tracking
+still needs the separate Run observation integration.
+
+Controller `reports/runtime/production-run-local-controller/b2757a112c8341fbbffd1c69ac40001f`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/43b3eb71e5a9416989140c22be9c78ab/green.json`,
+2026-10-01 08:15:47.2063526--08:17:35.5809681 UTC: **94 PASS/42 FAIL/136 checks**.
+All five binding checks change RED->GREEN, all89 earlier PASS checks remain GREEN,
+and all136 identities/order are retained. Both unavailable-sheet cases report
+`NotEntered`; ordinary Clear remains `Captured`. Decoy contents/custom formula
+are preserved. Five compiles, package pins, saved/local/settings/older-record
+preservation, normal cleanup and delayed zero Excel audit pass. Despite the
+driver's `green.json` filename, **the overall suite remains RED** for42 missing
+observations. No Run observation coverage or human acceptance is gained here.
+
+Build `reports/runtime/run-binding-build-01`,2026-10-01
+08:14:45.3863653--08:15:23.7254859 UTC, passes five-package generation and independent
+cold-start compile. Prebuild settings capture/restoration and the prior catalog24
+candidate's package preservation pass. Compiled comparison identifies one changed
+form and one new Production module;273 other components are preserved, comparing
+string literals exactly and ignoring identifier case, with none removed. The
+delayed build Excel audit is zero; it was performed after the subsequent owner
+gate had already started, rather than before starting that gate.
+
+`reports/runtime/run-binding-static-01` records282 components/6155 procedures/
+135128 lines: growth1/1/25. Dynamic calls remain9 literal/45 unresolved; duplicate
+body candidates remain190. All28 oversized-module caps are non-growing, all three
+schemas validate,366 tooling scripts and367 total repository PowerShell scripts
+parse. `frmProduction` does not grow.
+
+Seven-control reusable regression on the binding candidate: controller
+`reports/runtime/production-run-local-controller/58003afa48104caa95c47ba1e8ffe7e8`,
+result `reports/runtime/slice4be-production-run-local/c3eda01b7f964be485fa3ab1c5bfa2b9/red.json`,
+2026-10-01 08:18:20.1918838--08:23:50.5998490 UTC: **178 PASS/325 FAIL/503 checks**.
+All503 identities/order and all171 prior PASS checks are preserved. The only seven
+changed results are FixedMetadata checks, now GREEN because catalog24 is present;
+the binding guard does not claim those catalog changes. All33 existing owner
+cases pass. Seven native-close receipts retain four surviving/invoked handlers
+and three dismissed surfaces. Five compiles, canonical candidate pins, settings/
+saved authority/operator bytes/older records, unassisted cleanup and delayed zero
+Excel audit pass. This remains a RED observation/guard suite; it does not replace
+the separate unresolved full reusable171/two-aggregate/replay37 acceptance gates.
+
 ## Remaining gates
 
-Preserve the six worksheet-owner cases and fix the captured-owner breach through
-the actual handler. Worksheet Scale tests must distinguish quiet helper return
+Preserve the seven worksheet-owner cases and the five binding GREEN checks through
+Run handler integration. Worksheet Scale tests must distinguish quiet helper return
 from successful owner completion: `mProduction.LoadRecipeChooser` is a Sub,
 and the scale branch subsequently scales/prepares local tables. That helper reads
 the released Design/BOM bridge, while the reusable Run loader reads released

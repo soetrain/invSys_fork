@@ -11378,7 +11378,7 @@ Private Sub mBtnLoaderClear_Click()
         ShowStatus "Reusable Production Run cleared."
         Exit Sub
     End If
-    BindOperatorWorkbookForRun
+    If Not modProductionRunBinding.BindWorksheetOwner(mOperatorWorkbook) Then Exit Sub
     mProduction.BtnClearRecipeChooser
     RefreshLoaderState
     RefreshManagerState
