@@ -766,6 +766,56 @@ This supplies usable standalone evidence without changing the original blank
 capture's exclusion. The first blank capture's cause remains undetermined; this
 recheck is not a rendering repair or human acceptance.
 
+## UOM regression GREEN
+
+UOM staging/activity retains264/264 exact prior checks,
+2026-09-30,23:48:51.6924855 through23:53:08.2641788 UTC. Controller
+`reports/runtime/production-uom-staging-controller/b9e9784da0b44c7892cafa8b1746b9a9`;
+result `reports/runtime/slice4be-production-uom-staging/fe7b117c847e4bceafedf501bbd72ca4/green.json`.
+Existing draft edits, formulas, unknown-column order, unrelated cells, managed
+catalog rows, captured-workbook binding, guards and optional-tracking behavior
+retain their protecting assertions. Five compiles, normal cleanup, Config/data
+preservation, restored settings, unchanged packages and delayed Excel audit pass.
+Two principal captures are reviewed and hashed in `visible-review.json`: custom
+columns/draft notes are retained, and Production Settings explicitly reports reuse
+of the captured draft without reloading saved catalog data. No runtime or contract
+change, deployment or human acceptance is implied.
+
+UOM public Close/reopen retains61/61 exact prior checks,
+23:53:49.6383820 through23:55:21.7508426 UTC. Controller
+`reports/runtime/production-uom-staging-controller/9f8efd6e14454d36a91555cdd36e58f8`;
+result `reports/runtime/slice4be-production-uom-public-close/0a7ad80f54474ca0b9adc305602c1eb2/green.json`.
+The public launcher opens the saved owner workbook's form; closing that workbook
+disposes its form without inventing a UOM action. Public reopening binds the same
+saved owner and preserves its custom draft, with OPENED/REUSED pairs, no implicit
+save and no decoy mutation. Five compiles, normal cleanup, prior-record/Config
+preservation, restored settings, unchanged packages and delayed Excel audit pass.
+Three captures are reviewed and hashed in `visible-review.json`: initial workbench,
+owner closure with no Production form, and reopened retained draft.
+
+An initial paired-path invocation incorrectly combined `-CheckActivity` and
+`-ActionPaths`. Controller
+`reports/runtime/production-uom-staging-controller/47ce5c705aa649e39bead5c40d78a5bf`
+stopped at argument validation,23:55:55.6414333--23:55:56.8354816 UTC, before
+behavioral testing. Its closure confirms settings/package preservation and Excel
+closed. This is invocation failure, not behavioral RED or desktop error5. The
+correct existing wrapper invocation uses `-ActionPaths` without `-CheckActivity`.
+
+The corrected paired-path run retains84/84 exact prior checks,
+2026-09-30 23:58:26.2516178 through2026-10-01 00:02:39.0272298 UTC. Controller
+`reports/runtime/production-uom-staging-controller/27e307d4ec444a0ca9f5fa13279b67d1`;
+result `reports/runtime/slice4be-production-uom-paths/3bbb57bffb684548a3c95237a92cf641/green.json`.
+Separate two-action recordings retain original OPENED/REUSED pairs through actual
+Admin publication, exact Event Detail, explicit guide intent and independent-reader
+evaluation. Both steps match with zero extras; CommandCompleted concludes locally
+and empty source references cannot establish SourceEventsApplied. Five compiles,
+normal cleanup, prior-record/journal and saved-authority preservation, unknown
+workbook values/bytes, restored settings, unchanged packages and delayed Excel
+audit pass. Six principal captures are directly reviewed and hashed in
+`visible-review.json`: retained-draft status, REUSED/Info/Unchanged detail, both
+authored instructions, the same pair in all three views, and both matches with
+zero extras and an explicit local-only conclusion in the scrolled comparison.
+
 ## Next required work
 
 Preserve the595 focused checks, documented closure mapping and exact107/115
@@ -774,8 +824,11 @@ chain32/live48/Create15, full reusable171/replay37, Close/query312, Settings202,
 Settings activity497 (494 retained plus three exclusions), lifecycle615,
 draft/paths390, native cancellation94, Regulation696/paths102, design reads621/paths114
 and Recipe structure786/released55/paths109, Recipe ordering463/paths93,
-components795/paths142, instructions411/paths105 (bounded visible recheck105 passed).
-Complete the remaining shared-observation regressions on the frozen candidate.
+components795/paths142, instructions411/paths105 (bounded visible recheck105 passed)
+and UOM264/public Close61/paths84. The enumerated shared-observation regression
+set on this frozen candidate is now complete; do not repeat unchanged GREEN gates
+without a new change, failure or unresolved concern. This is a Process worksheet
+observation checkpoint, not comprehensive Slice4be or Release1 acceptance.
 SourceEventsApplied must use every exact owning published Designs reference;
 queue acknowledgment and
 CommandCompleted remain distinct from applied evidence. No package promotion or
@@ -787,5 +840,10 @@ effect, not claim restoration. D15 still prohibits removal before confirmed
 Designs draft save. The normative observation section explicitly distinguishes
 these cases without changing the existing save algorithm.
 
-Remaining shared-observation regressions and their visible
-operator evidence remain outstanding. No promotion or Slice4be completion is claimed.
+Next specify the pending Ingredients Assignment controls against the owner-boundary
+audit and governing D18 rules, then establish packaged actual-handler RED before
+implementation. Preserve existing local algorithms, distinguish deliberate input
+from programmatic cascades, and use exact owning facts for Save Alternatives;
+a Boolean/status is not submission or application evidence. The other pending
+Production controls, broader Operations/Admin coverage and human acceptance remain
+outstanding. No promotion or Slice4be completion is claimed.
