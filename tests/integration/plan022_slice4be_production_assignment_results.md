@@ -239,6 +239,45 @@ viewport. The initial diagnostic viewport ends before the conclusion, which is
 visible in the separate scrolled capture. This does not establish every field,
 all-size layout or human acceptance. No runtime or contract change was needed.
 
+## Process and Recipe design-reading regression
+
+The frozen Assignment candidate retains621/621 unique, exact prior ordered checks
+and five instrumented package compiles. Controller
+`reports/runtime/production-design-read-controller/543f9021622044838afb6a01e73e269e`,
+2026-10-01 03:51:18.5936293--03:54:37.2364807 UTC; result
+`reports/runtime/slice4be-production-design-reads/c02fd529a4374dc5ad2b5db62fa71fc9/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-design-reads/1409f8347c6f480fb1be940495c5faa1/green.json`.
+Actual Process Refresh/Load/Reuse and Recipe Refresh/Load preserve their existing
+local behavior, exact outcomes, redacted immutable records and empty source
+references. Read faults, partial failures, nested entry, denied access, disabled
+or unavailable tracking, and changed target/session/closed-workbook guards retain
+their assertions. Unknown columns, operator workbook bytes and saved authority
+are preserved. Cleanup is unassisted; settings/packages and delayed Excel
+Application1000/1001/1002 audit pass. This gate adds no screenshot or human
+acceptance, and changes no runtime source or contract.
+
+Separate design-reading Action Paths retain114/114 unique, exact prior ordered
+checks and five compiles. Controller
+`reports/runtime/production-design-read-controller/1de1e1df232d4243b48a50efbf28d784`,
+2026-10-01 03:55:04.1774121--04:01:52.8023972 UTC; result
+`reports/runtime/slice4be-production-design-read-paths/225c70caaddf4c37b2d8cd082e01ae60/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-design-read-paths/fed0ed1170c54ab8a116c02f0d6ef99e/green.json`.
+Independent guide/observed recordings use all five actual handlers, then prove
+publication, exact Event Detail, authored expectations, an independent reader and
+How-To/Diagnostic/Compare. Local completion does not establish validation, source
+availability, version reservation or Domain application. Workbook bytes, unknown
+columns and saved authority remain preserved. Excel takes additional time after
+the functional result, then exits without intervention; no shutdown repair is
+claimed. Settings/packages and delayed Excel Application audit pass.
+
+Seven hashed captures were reviewed. The populated Recipe editor, PRESENTED
+Event Detail and Settings status are readable. All five authored steps fit the
+How-To and Compare viewports. Initial Diagnostic/Compare views end before the
+last outcome and conclusion; a separate scrolled capture shows five matches,
+zero additional actions and command completion without asserted Domain application.
+Long Event Detail coverage text extends horizontally beyond its viewport. These
+captures do not establish every field, all-size layout or human acceptance.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
