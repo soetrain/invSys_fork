@@ -761,6 +761,99 @@ normal unassisted closure and delayed zero Excel Application audit pass. Reviewe
 zero extras and the local-only conclusion; the last long identity line has a
 viewport limit. This is regression evidence, not new human/full-layout acceptance.
 
+## Clear worksheet owner and continuation checkpoint
+
+The expanded actual-handler gate adds33 checks at three real boundaries: the
+worksheet Clear notification, Inventory picker return and default-location
+return. It signs out after each owning boundary, then requires no further work,
+preserved boundary state, fixed refusal, restored guards and only the original
+REQUESTED record. Existing explicit cleanup effects are retained, not rolled
+back; inventory custom values/formulas, exact System_Key and canonical source
+remain preserved. Diagnostic state stays in memory in unsaved probes.
+
+Final RED on unchanged presentation01: controller
+`reports/runtime/production-run-local-controller/2885ee3ed2534ae1b1bc0576a6a13c35`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/281510d131e64b4d9bc3166a844f42e4/red.json`,
+2026-10-01 09:43:25.0270019--09:45:43.9745081 UTC, **115 PASS/54 FAIL/169 unique**.
+All136 prior identities/order/results remain exact. Twelve new failures expose
+continued work after sign-out, absent refusal and absent original observations.
+Two preceding fixture runs are excluded: an object-array coercion caused VBA424
+and assisted cleanup reset fixture memory (then VBA13); the following run failed
+to restore seed-reference fields after constructing a new form. The final fixture
+uses an object collection, restores its reference fields and reauthenticates only
+after interruption checks for the final authoritative preservation read.
+
+Implementation: `modProductionRunClearActions` observes the unchanged reset and
+five list clears, or captured worksheet cleanup/refresh. Scoped typed continuation
+checks stop after yielding boundaries before further reads or local assignment.
+Optional tracking, permission checks and exceptions use the established action
+observer; original error propagation and local-only outcomes remain governed by
+D18. No pending Scale/UI proposal is implemented.
+
+GREEN on new `deploy/validation-production-run-clear-01`: controller
+`reports/runtime/production-run-local-controller/862f513529f745c58182672552a79bfd`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/287343875c0745b58cf1fb31a12378fc/green.json`,
+09:48:31.1957888--09:51:05.0075287 UTC, **145 PASS/24 known FAIL/169 unique**.
+All73 Clear-specific assertions pass; all30 improvements are Clear observations
+or continuation checks. Every prior PASS and ordered identity is retained. The24
+remaining failures belong to the two unintegrated Refresh handlers. Both RED and
+GREEN have five compiles, preserved packages/authority/operator bytes and restored settings,
+normal cleanup and delayed zero Excel Application1000/1001/1002 audit.
+
+Build `reports/runtime/run-clear-build-01`,09:47:29.5951960--09:48:07.2188001 UTC,
+passes five packages, cold Operations load and five compiles. Of276 prior compiled
+components,275 are unchanged; the form changes and a typed coordinator is added.
+Settings and presentation01 are preserved, Excel closes normally and the delayed
+audit passes before the next gate. Candidate remains unpromoted; wiring is58/68.
+Full reusable acceptance, independent Clear Action Paths and broad
+release/layout/live-role/visible acceptance are still required.
+
+Static `reports/runtime/run-clear-static-01` reports284 components/6159 procedures/
+135228 lines, a justified feature increase of1/3/65. The form shrinks11564 to11561
+lines; all28 oversized caps remain non-growing. Literal/unresolved Application.Run
+counts remain9/45 and duplicate candidates190. All three schemas validate and368
+tooling scripts parse. The new coordinator retains direct typed same-project calls.
+
+Permission/optional policy companion: controller
+`reports/runtime/production-run-local-controller/99ec422a4d90408988188949e942e55a`,
+result `reports/runtime/slice4be-production-run-policy/a942a104e6a24be68ec83aa35e3f410a/green.json`,
+09:51:33.6616789--09:54:46.4574470 UTC, **188 PASS/30 known FAIL/218 unique**.
+All prior ordered identities/PASS survive; precisely five Clear checks become
+GREEN. Denied Clear never enters the owner or mutates local state, while disabled,
+older-policy-excluded and unavailable tracking retain authorized clearing and
+the fixed unavailable guidance.
+
+Fault/nesting companion: controller
+`reports/runtime/production-run-local-controller/3e0d21d0c02246e7bb5c61427050ddb1`,
+result `reports/runtime/slice4be-production-run-fault/a5519fce664141e7a886ead36b677dab/green.json`,
+09:55:11.1370605--09:57:08.8113193 UTC, **166 PASS/79 known FAIL/245 unique**.
+All18 real owner boundary cases execute; every previous ordered identity/PASS
+survives and exactly13 Clear assertions become GREEN. Original exceptions and
+partial local state remain; nested Clear is one owner invocation and one pair,
+with guards restored. Both companions pass five compiles, canonical clear01 pins,
+settings/authority/recording/operator preservation, normal unassisted closure and
+delayed zero Excel Application audit. Other Run observation failures remain open.
+
+Reusable companion: controller
+`reports/runtime/production-run-local-controller/0868d50a11694cd29b17c884809be7ca`,
+result `reports/runtime/slice4be-production-run-local/1a2e3852ef5f43518d649438f91429ad/green.json`,
+09:57:30.6095525--10:03:07.4632919 UTC, **196 PASS/307 known FAIL/503 unique**.
+Every prior ordered identity and PASS survives, with precisely18 Clear checks
+newly GREEN. All33 owning cases,42 shared GREEN checks and seven native closure
+receipts remain: four actual handler invocations and three dismissed surfaces.
+Five compiles, canonical clear01 pins, settings/authority/operator/older-record
+preservation, unassisted cleanup and delayed zero Excel Application audit pass.
+This is the bounded503 regression, not the separate unresolved full reusable171/
+two-aggregate/replay37 acceptance or a resolution of the native-crash cause.
+
+Tree presentation regression: controller
+`reports/runtime/production-run-presentation-controller/4490ff519d00458cbdfc5d4f90025299`,
+result `reports/runtime/slice4be-production-run-presentation/2517e9db25314625a3cc534ed6a4dbab/green.json`,
+10:03:45.8450160--10:05:53.1642126 UTC, **232/232 unique GREEN** in exact prior
+order. Five compiles, canonical clear01 pins, preservation, normal cleanup and
+delayed zero Excel Application audit pass. This retains the earlier focused Tree
+contract; populated layout, new visible evidence and human acceptance remain open.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through

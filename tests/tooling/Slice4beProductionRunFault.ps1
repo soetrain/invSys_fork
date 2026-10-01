@@ -196,6 +196,7 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$Sto
         if($StockOnly){Test-ProductionRunStock $Fixture}
         if($WorksheetOnly){Test-ProductionRunWorksheet $Fixture}
         if($WorksheetOwnerOnly){Test-ProductionRunWorksheetOwner $Fixture}
+        if($WorksheetOwnerOnly){Test-ProductionRunClearYield $Fixture $Other $book}
         if($WorksheetScaleOnly){Test-ProductionRunWorksheetScale $Fixture}
         [void](Probe 'RunFaultResetFixture')
         Check 'RunFault.UnknownValuesAndFormula' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')

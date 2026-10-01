@@ -155,6 +155,7 @@ Private mSelectedProcessOutputIndex As Long
 Private mReusableActionTestInProgress As Boolean
 Private mDesignerActionInProgress As Boolean
 Private mAssignmentContinuation As cProductionWorksheetAction
+Private mRunActionContinuation As cProductionWorksheetAction
 Private mReusableTestSourceId As String
 Private mReusableTestSinkId As String
 Private mReusableTestRecipeId As String
@@ -2276,7 +2277,10 @@ Private Sub RefreshAllowedItems()
         Array("System_Key", "ITEMS", "UOM", "DESCRIPTION", "RECIPE_ID", "INGREDIENT_ID", "ITEM_CODE")
 End Sub
 
-Private Sub RefreshLoaderState()
+Public Property Set RunActionContinuation(ByVal action As cProductionWorksheetAction)
+    Set mRunActionContinuation = action
+End Property
+Public Sub RefreshLoaderState()
     FillListFromTable mLstLoaderLines, ProductionTable(TABLE_LOADER_LINES), _
         Array("PROCESS", "DIAGRAM_ID", "INPUT/OUTPUT", "INGREDIENT", "PERCENT", "UOM", "AMOUNT NEEDED", "INGREDIENT_ID")
     RefreshRunProcessChoices
@@ -2286,7 +2290,7 @@ Private Sub RefreshLoaderState()
     RefreshRunPaletteState
 End Sub
 
-Private Sub RefreshManagerState()
+Public Sub RefreshManagerState()
     RefreshProductionOutputList mLstManagerOutput
     FillListFromTable mLstManagerCheck, ProductionTable(TABLE_MANAGER_CHECK), _
         Array("System_Key", "ITEM_CODE", "ITEM", "UOM", "USED", "TOTAL INV")
@@ -2309,7 +2313,9 @@ Private Sub RefreshRunPaletteState()
     GetSelectedRunIngredientFilter filterIngredientId, filterIngredientName
     filterProcess = ActiveRunProcess()
     EnsureRunInventoryCache
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     RefreshRunLocationChoices
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
 
     BindOperatorWorkbookForRun
     choices = mProduction.LoadProductionRunIngredientChoices( _
@@ -2887,9 +2893,12 @@ Private Function IngredientDisplayName(ByVal ingredientVal As String, ByVal proc
 End Function
 
 Private Sub EnsureRunInventoryCache()
+    Dim inventoryRows As Variant
     If Not mRunInventoryCacheLoaded Then
         BindOperatorWorkbookForRun
-        mRunInventoryRows = mProduction.LoadProductionRunInventoryPickerItems("")
+        inventoryRows = mProduction.LoadProductionRunInventoryPickerItems("")
+        If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
+        mRunInventoryRows = inventoryRows
         mRunInventoryCacheLoaded = True
     End If
 End Sub
@@ -2915,6 +2924,7 @@ Private Sub RefreshRunLocationChoices()
     AddRunLocationChoice dict, selectedLoc
     BindOperatorWorkbookForRun
     defaultLoc = Trim$(NzStr(mProduction.GetProductionRunDefaultLocation()))
+    If Not modProductionRunClearActions.ContinueRefresh(Me, mRunActionContinuation) Then Exit Sub
     AddRunLocationChoice dict, defaultLoc
 
     wasLoading = mLoading
@@ -10148,7 +10158,7 @@ Private Function ProductionPageControlExists(ByVal controlName As String) As Boo
     Next pageIndex
 End Function
 
-Private Sub ShowStatus(ByVal messageText As String)
+Public Sub ShowStatus(ByVal messageText As String)
     If mTxtStatus Is Nothing Then Exit Sub
     mTxtStatus.Text = messageText
 End Sub
@@ -11368,21 +11378,8 @@ Private Sub mLstLoaderLines_Click()
 End Sub
 
 Private Sub mBtnLoaderClear_Click()
-    If modProductionReusableRun.ReusableRunIsLoaded() Then
-        modProductionReusableRun.ClearReusableRun
-        mLstLoaderLines.Clear
-        mLstRunPalette.Clear
-        mLstManagerCheck.Clear
-        mLstManagerOutput.Clear
-        mLstRunInstructions.Clear
-        ShowStatus "Reusable Production Run cleared."
-        Exit Sub
-    End If
-    If Not modProductionRunBinding.BindWorksheetOwner(mOperatorWorkbook) Then Exit Sub
-    mProduction.BtnClearRecipeChooser
-    RefreshLoaderState
-    RefreshManagerState
-    ShowStatus "Production Run cleared."
+    Dim report As String
+    report = modProductionRunClearActions.Execute(Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress, mLstLoaderLines, mLstRunPalette, mLstManagerCheck, mLstManagerOutput, mLstRunInstructions): If report <> "" Then ShowStatus report
 End Sub
 
 Private Sub mLstRunPalette_Click()

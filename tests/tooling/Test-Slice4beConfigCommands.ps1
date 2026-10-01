@@ -1293,6 +1293,10 @@ End Function
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheetOwner.ps1')
                     Install-ProductionRunWorksheetOwnerProbe
                 }
+                if($RunLocalWorksheetOwnerOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionRunClearYield.ps1')
+                    Install-ProductionRunClearYieldProbe
+                }
                 if($RunLocalWorksheetScaleOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheetScale.ps1')
                     Install-ProductionRunWorksheetScaleProbe
