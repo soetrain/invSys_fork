@@ -1,5 +1,45 @@
 # Slice 4be Production Complete Run
 
+## Selected Process with an unallocated second Process
+
+Test-only expansion on unchanged complete-selection01 passes68/68, preserving
+all59 prior ordered identities/PASS results and adding nine checks. Controller
+`production-run-local-controller/a9cfe91e4add40be81c59084cba2e839`, result
+`slice4be-production-complete-baseline/508474226bc24e3bb0689568bff23bc7/green.json`,
+2026-10-01 23:44:56.7100635-23:48:34.2268026 UTC. The fixture creates two released
+Processes and a released Recipe through the existing form workflow, allocates
+and checks in only the selected Process, then invokes the actual Complete Run
+handler. The selected owner alone is entered; its exact allocations are consumed
+and its new output key has the expected quantity. The second Process remains
+unallocated, visibly NEEDS ALLOCATION, without an output key or completed state.
+The batch remains incomplete. Captured-workbook custom values/formula, decoy,
+saved operator bytes and other warehouse are preserved.
+
+Shared42, five instrumented compiles, canonical pins, restored settings,
+unassisted closure and the delayed zero native audit pass. All three captures
+were individually reviewed. Long fields still clip; the multi-Process capture
+shows the second Production Output row only partly visible at the captured size.
+Scrolling/populated-list usability remains unverified; this observation does not
+establish a new minimum-row contract. `complete-multi-static-01` retains290
+components/6175 procedures/135521 lines,9 literal/45 unresolved calls,190 duplicate
+candidates and28 non-growing caps; three schemas/377 parses pass. There is no
+runtime change or new product RED in this expansion. Complete Run tracking,
+interruption/partial-submission evidence and broader release gates remain open.
+
+## Check In regression on the corrected package
+
+On unchanged complete-selection01, Check In passes629/629 with all629 prior
+activity03 identities and PASS results retained in order. Controller
+`production-run-local-controller/cb210925e13843ac8bc7e4fb003aa362`, result
+`slice4be-production-check-in-activity/ab2d6ec127e44ffb82b6e5a2a5edbd1e/green.json`,
+2026-10-01 23:28:03.3323285-23:44:38.8953672 UTC. Shared42, five instrumented
+compiles, canonical new-candidate pins, settings restoration, unassisted shutdown
+and the delayed native audit with zero Excel failures pass. Excel shutdown again
+took several minutes; the controller was retained until natural exit. Captures
+were regenerated but not additionally reviewed in this regression. No runtime
+change or new product RED is claimed. The later multi-Process gate above adds
+selected-only owner evidence; other new-candidate packaged gates remain pending.
+
 ## D15 selected-Process prerequisite
 
 Architecture v4.11 D15 requires one selected Process at a time. Source review
@@ -56,7 +96,7 @@ Raw captures/reports stay ignored.
 to135521; all28 module caps are non-growing. Three schemas and377 PowerShell
 parses pass. The RED baseline is `complete-baseline-static-01` (135522 lines).
 
-The activity03 Check In629-check evidence remains historical until rerun on this new candidate. This
-one-Process positive fixture does not establish multi-Process completion,
-interruption behavior or Complete Run observations. Those, packaged smoke/layout,
+Check In629 was subsequently verified on this candidate above. This
+one-Process positive fixture does not establish multi-Process completion;
+the later gate above adds that focused case. Interruption behavior, observations, packaged smoke/layout,
 live-role/full-chain and full human/NAS Release1 acceptance remain open.
