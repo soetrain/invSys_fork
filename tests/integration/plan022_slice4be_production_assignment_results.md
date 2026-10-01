@@ -392,6 +392,52 @@ ordered synthetic Recipe has empty output flow; this does not prove released-gra
 rendering, all-field/all-size layout or human acceptance. Runtime/static metrics
 remain unchanged across both ordering regressions.
 
+## Requirement/output component regression
+
+The frozen Assignment candidate retains795/795 unique component checks in exact
+prior order, including five instrumented package compiles. Controller
+`reports/runtime/production-component-controller/f035079e315d4403912b03dc742a45cc`,
+2026-10-01 04:27:40.9732538--04:31:00.9079040 UTC; result
+`reports/runtime/slice4be-production-components/1abbe28a1e91452bb86a11898e55e623/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-components/db51a9d6aaa747b2bccd909c928391ff/green.json`.
+The ten actual Requirements/Outputs Add/Update/Remove/Up/Down handlers retain
+their local edits, generated identities, Update selection/append fallback,
+normalization, rejected-action editor side effects, output regulation removal,
+instruction ordinal normalization, guards and optional tracking. Saved authority
+and unknown workbook columns retain their checks. Normal unassisted closure,
+settings/package preservation and delayed Excel Application1000/1001/1002 audit
+pass. Canonical five-package hashes are unchanged.
+
+Three hashed captures were reviewed. Requirement and output views show populated
+lists, selected quantity/basis4 and local-edit status with saved definitions
+unchanged. Settings reports saved configuration and unavailable training tracking.
+Long names and narrow editor values truncate. These synthetic fixed viewports do
+not establish full-field visibility, all-size layout or human acceptance. This is
+an existing-contract regression; no new product RED, runtime or contract change
+is claimed.
+
+Separate component Action Paths retain142/142 unique checks in exact prior order
+with five instrumented compiles. Controller
+`reports/runtime/production-component-controller/cc627e62463045f185d67cfc05b3b84a`,
+2026-10-01 04:33:32.1758947--04:39:40.8964778 UTC; result
+`reports/runtime/slice4be-production-components/c9fc86532d6c4620a24f1a319b7a4db5/green.json`.
+Prior baseline: `reports/runtime/slice4be-production-components/94428c02c49646f0850f46e3f0e58490/green.json`.
+Independent ten-action guide and observed runs retain original order, publication,
+exact Event Detail, authored expectations and an independent reader's three views.
+All ten observed actions match with zero extras; local command completion does
+not assert saved definitions or Domain application. Original journals, saved
+authority and unknown-column/workbook bytes remain unchanged. Cleanup waits for
+Excel to finish normally without intervention; settings/packages and delayed
+Application1000/1001/1002 audit pass. No runtime/static metric changes.
+
+Seven hashed captures were reviewed. All ten authored steps fit in How-To and
+Compare. Initial observed views reach action5's REQUESTED entry; the bottom view
+shows matches4-10, zero extras and all ten matched identity pairs. The conclusion
+heading and matches1-3 lie above that bottom viewport. Event Detail shows output
+Remove STAGED/Unchanged, local-only explanation and unavailable Designs. Long
+coverage text and component names truncate. These are viewport observations,
+not complete-field/all-size layout or human acceptance.
+
 ## Excluded reusable attempt and bounded diagnosis
 
 Full reusable controller
