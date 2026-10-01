@@ -83,7 +83,7 @@ End Sub
 '@)
 }
 
-function Test-ProductionRunFault($Fixture,$Other) {
+function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
@@ -131,11 +131,13 @@ function Test-ProductionRunFault($Fixture,$Other) {
         $bookPin=Hash $path;$book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();$decoy.Activate();[void](Probe 'OpenDesigner' @($book.Name))
         if(-not [bool](Probe 'ReadPrepare' @($canary))){throw 'Released Run fault definitions unavailable; not product RED.'}
+        if($YieldOnly){[void](Probe 'RunLocalRememberFixture')}
         foreach($root in @($Fixture.Root,$Other.Root)){
             foreach($file in Get-ChildItem -LiteralPath $root -Recurse -File|Where-Object{$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '~$*'}){$pins[$file.FullName]=Hash $file.FullName}
         }
         foreach($file in Files){$recordPins[$file]=Hash $file};$otherBefore=@(Get-Slice4beActivityFiles $Other)
-        foreach($mode in @('Exception','Nested')){
+        $modes=if($YieldOnly){@()}else{@('Exception','Nested')}
+        foreach($mode in $modes){
             foreach($action in $actions){
                 [void](Probe 'RunFaultResetFixture')
                 if([string](Probe 'RunLocalStage' @($action,'Normal')) -cne 'READY'){throw 'Released Run fault staging unavailable; not product RED.'}
@@ -173,6 +175,7 @@ function Test-ProductionRunFault($Fixture,$Other) {
                 Pair $before $action $outcome $label
             }
         }
+        if($YieldOnly){Test-ProductionRunYield $Fixture $Other $book}
         [void](Probe 'RunFaultResetFixture')
         Check 'RunFault.UnknownValuesAndFormula' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]};Check 'RunFault.SavedAuthorityPreserved' $same

@@ -36,6 +36,7 @@ param(
     [switch]$RunLocalContractOnly,
     [switch]$RunLocalPolicyOnly,
     [switch]$RunLocalFaultOnly,
+    [switch]$RunLocalYieldOnly,
     [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionAssignmentPaths,
     [switch]$CheckProductionAssignmentSourcePaths,
@@ -247,6 +248,7 @@ if($RunLocalClosedDiagnostic -and (-not $CheckProductionRunLocal -or $Phase -cne
 if($RunLocalContractOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic)){throw 'Run Core contract checks supplement a separate actual-handler gate.'}
 if($RunLocalPolicyOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly)){throw 'Run policy checks require their separate actual-handler gate.'}
 if($RunLocalFaultOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly)){throw 'Run fault checks require their separate actual-handler gate.'}
+if($RunLocalYieldOnly -and (-not $CheckProductionRunLocal -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly)){throw 'Run read-yield checks require their separate actual-handler gate.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
     if(-not $CheckProductionDesignerActivity -or $otherRunGates.Count -gt 0){throw 'Run local observations require their separate compiled actual-handler gate.'}
@@ -485,6 +487,7 @@ if($CheckProductionDesignerActivity){
     if($RunLocalContractOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-contract/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalPolicyOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-policy/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-fault/'+[guid]::NewGuid().ToString('N'))}
+    if($RunLocalYieldOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-yield/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignmentSourcePaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-source-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1254,11 +1257,15 @@ End Function
                 Install-ProductionRunPresentationProbe
                 Install-ProductionRunPolicyProbe
             }
-            if($RunLocalFaultOnly){
+            if($RunLocalFaultOnly -or $RunLocalYieldOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunPresentation.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunFault.ps1')
                 Install-ProductionRunPresentationProbe
                 Install-ProductionRunFaultProbe
+                if($RunLocalYieldOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beProductionRunYield.ps1')
+                    Install-ProductionRunYieldProbe
+                }
             }
         }
         if($CheckProductionRunPresentation){
@@ -1694,6 +1701,7 @@ End Function
             if($RunLocalContractOnly){Test-ProductionRunContract}
             elseif($RunLocalPolicyOnly){Test-ProductionRunPolicy $a $b}
             elseif($RunLocalFaultOnly){Test-ProductionRunFault $a $b}
+            elseif($RunLocalYieldOnly){Test-ProductionRunFault $a $b -YieldOnly}
             else{Test-ProductionRunLocalActivity $a $b}
         }
         elseif($CheckProductionRunPresentation){Test-ProductionRunPresentation $a $b}

@@ -244,6 +244,43 @@ remain unchanged;362 scripts parse. This is a bounded owner-exception/nesting
 baseline. Real-read failures/yields, worksheet branches, exact stock-bucket
 expansion and independent paired paths remain open.
 
+## Real-read sign-out RED
+
+`Test-Slice4beProductionRunLocal.ps1 -YieldOnly` uses
+`Slice4beProductionRunYield.ps1` and the common fault fixture. The first attempt,
+controller `reports/runtime/production-run-local-controller/1e0e4adb8a47437ebb7f98f7a7249fdd`,
+result `reports/runtime/slice4be-production-run-yield/653ab2e07ef3466c8597eb362e2c60b6/red.json`,
+2026-10-01 06:59:40.1183981--06:59:49.5575550 UTC, is excluded:1 PASS/1 setup FAIL.
+The adapter incorrectly assumed the referenced Core primitive bridge module was
+present in the Operations VBProject. Subscript-out-of-range is neither product
+RED nor desktop error5. There is no compile evidence for that attempt. Settings,
+canonical package pins, unassisted closure and delayed zero Excel audit pass.
+
+Corrected probes run at the existing Operations owner call sites immediately
+after real reads return. They preserve the payload, capture the local state at
+that boundary in memory, then sign out. Observed subsequent reads cover the
+reusable owner's eight Inventory entity-read sites, released Recipe validation,
+Recipe graph/Process payload reads and the form's Process/Recipe list reads.
+No reverse dependency or new runtime bridge is introduced.
+
+Controller `reports/runtime/production-run-local-controller/1c67e19b1b1049d7b1424dc85eb5c085`,
+result `reports/runtime/slice4be-production-run-yield/5252226e68ea428a862e590ccea21203/red.json`,
+2026-10-01 07:01:23.2907183--07:04:02.3303002 UTC: **97 PASS/49 expected FAIL/146
+unique checks**. All11 cases prove an available owning read returned before
+sign-out: four Load boundaries, Scale's Inventory read, three Loader Refresh
+boundaries, Manager Refresh and both allocation actions. All11 currently continue
+observed reads/change the captured local projection, lack the required refusal
+and lack an original-context attempt without a misattributed outcome (44 FAIL).
+Five cases also mutate owner state beyond its captured boundary (49 FAIL total).
+Earlier local clearing/scaling/loading effects are retained rather than rolled
+back. All guard checks occur before fixture reset. No unhandled errors occur.
+
+All42 shared checks retain exact GREEN order; the common fixture's five final
+preservation checks pass. Five compiles, canonical pins, settings/package
+preservation, unassisted closure and delayed zero Excel Application failures pass.
+Runtime/static metrics remain unchanged;363 scripts parse. This covers the
+specified read-return boundaries, not every possible source failure or yield.
+
 ## Remaining gates
 
 Worksheet-branch tests must distinguish quiet helper return from successful owner
