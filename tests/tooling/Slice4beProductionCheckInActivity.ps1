@@ -1,6 +1,7 @@
 # D18 catalog25: invoke the packaged operator handler; observe real journal files.
 # Owner facts are checked independently of tracking and of displayed status text.
 . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInPolicy.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionCheckInTerminal.ps1')
 function Install-ProductionCheckInActivityProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
@@ -58,6 +59,7 @@ End Function
     End If
 '@)
     Install-ProductionCheckInPolicyProbe
+    Install-ProductionCheckInTerminalProbe
 }
 
 function Test-ProductionCheckInActivity($Fixture,$Other) {
@@ -228,6 +230,7 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]}
         Check 'CheckInActivity.SavedAuthorityPreserved' $same
         Check 'CheckInActivity.CapturedBookExtraValues' ($sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
+        Test-ProductionCheckInTerminal $Fixture $Other $book $decoy $selectedKey $canary $keys
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CheckInActivity.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
     }finally{

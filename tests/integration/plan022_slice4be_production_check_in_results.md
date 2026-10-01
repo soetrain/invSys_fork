@@ -1,5 +1,58 @@
 # Slice4be Production Check In correctness and observations
 
+## Post-REQUESTED policy and terminal-write interruptions
+
+Test-only expansion,2026-10-01 UTC: unchanged activity03 passes525/525, retaining
+all434 prior ordered identities/PASS results and adding91. Controller
+`production-run-local-controller/03438ccb808b429ca82b685f0c109aed`, result
+`slice4be-production-check-in-activity/baedb1392e7c463cbba674c4ff0754a8/green.json`,
+22:34:05.3643427-22:45:57.6638892 UTC. Shared42, five instrumented packaged compiles,
+canonical package pins, settings restoration, normal unassisted cleanup and the
+delayed Application1000/1001/1002 audit with zero Excel failures pass.
+
+`Slice4beProductionCheckInTerminal.ps1` starts a real recording and invokes the
+packaged Check In handler in both reusable and worksheet modes. Unsaved test
+instrumentation acts at Core FinishAction, after the real REQUESTED and owner:
+
+- A prepared external policy version replaces only the disposable Config. It
+  preserves every historical policy/control row and the captured actor/context.
+- The disposable Activity directory is moved aside and replaced with a file,
+  blocking the terminal append while leaving the separate recording store writable.
+
+Each fault fires once, after one owner entry. The owner still succeeds, freezes
+the reusable note or writes the exact worksheet check rows, preserves identity,
+custom columns and guards, and shows success plus the exact tracking notice.
+Activity retains only the original REQUESTED, without terminal/source invention.
+The recording closes automatically as Incomplete with POLICY_CHANGED or
+TRACKING_UNAVAILABLE, one action, one REQUESTED observation and a valid three-entry
+incremental hash chain. Stop is not used to produce these closures.
+
+After restoration and actual Admin publication, an ordinary reader selects each
+exact original journal, explicitly expects Check In/STAGED/CommandCompleted and
+uses the actual Evaluate handler. All four results are Incomplete with
+CAPTURE_INCOMPLETE, exact journal identity/hash and expectation, no matched
+completion and no Domain terminal sources. Original training bytes, authority,
+other warehouse and operator bytes survive; Config restores exactly.
+
+Eight new captures were individually reviewed: four Production success/notice
+screens and four incomplete Action Paths diagnostics. Notices and diagnostics are
+legible; long Production fields still clip. Raw captures, hashes and reports stay
+ignored. `check-in-terminal-static-01` retains290 components/6175 procedures/135522
+lines,9 literal/45 unresolved calls,190 duplicate candidates and28 non-growing
+module caps; three schemas and376 PowerShell parses pass.
+
+Two preliminary attempts were harness failures, not product RED: controller
+`bb39d4f0720a4f8982ccf72ad2821336` closed the form before its rebinding helper read
+the fixture (VBA91, assisted End); `bba7666ec57f4f199ecfabc7adb280b5` rejected a
+two-dimensional Value2 row assignment. Each reported431 PASS/1 harness failure,
+restored settings/packages, closed Excel and passed its delayed zero audit.
+The final fixture retains the form until rebinding and uses native row copying.
+No new runtime correction or new behavioral RED is claimed; existing D18
+RED/GREEN and same-hash activity03 build/smoke/layout/live-role/full-chain evidence
+remain applicable and were not rerun here. Unreadable policy after REQUESTED,
+additional owner refusals, remaining Run controls, multiline/layout and full
+human/NAS Release1 acceptance remain open.
+
 ## Optional policy and unavailable-store acceptance
 
 Test-only expansion,2026-10-01 UTC: unchanged activity03 passes434/434, retaining
@@ -45,9 +98,10 @@ fields still clip. Capture hashes/reviews and raw fixture evidence remain ignore
 caps. Three schemas and375 PowerShell files parse successfully. Only test tooling
 and acceptance records change; earlier activity03 build/smoke/layout/live-role/
 full-chain and reader-path evidence applies to the same frozen package hashes,
-without claiming those gates were rerun here. Mid-action policy changes, terminal
-append failures after a saved REQUESTED, additional owner refusals, remaining
-Run controls and full human/NAS Release1 acceptance remain open.
+without claiming those gates were rerun here. Post-REQUESTED policy/append faults
+were open at this checkpoint; the newer bounded verification above addresses
+them. Additional owner refusals, remaining controls and full release acceptance
+remain open.
 
 ## Recording, publication and independent reader paths
 
