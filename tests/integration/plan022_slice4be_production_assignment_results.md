@@ -1,5 +1,65 @@
 # Slice4be Ingredients Assignment observations
 
+## Catalog23 regression fixture alignment
+
+This is test maintenance under the already-approved D18 catalog23 extension.
+Fourteen current-catalog expectations now require exactly23; the Admin tracking
+editor additionally requires exactly118 controls. Historical catalog assertions
+remain unchanged. The worksheet older-policy fixture now removes every control
+outside catalog21, so later Assignment controls cannot invalidate that simulated
+historical policy. No runtime source, algorithm, permission or normative contract
+changes; these corrections do not claim a new product RED.
+
+The unchanged frozen Assignment candidate's initial full worksheet run retained
+all595 prior ordered identities and produced582 PASS/13 FAIL. Twelve failures
+were exact-context checks still requiring catalog22; the remaining failure was
+the malformed catalog21 fixture's existing-control readability check. Record:
+`reports/runtime/process-worksheet-activity-controller/63f486b56cb44169ac34ece69811c7ed`,
+2026-10-01 01:59:08.7744365--02:08:03.7864095 UTC, result
+`reports/runtime/slice4be-process-worksheet-activity/244e959c97d74427a54cfeca0f08d0fe/green.json`.
+Despite that filename, this is failed evidence, not GREEN. All five instrumented
+compiles, unassisted closure, settings/package preservation and the delayed
+Excel Application1000/1001/1002 audit passed. Runtime packages were not rebuilt.
+
+The corrected full worksheet run passes595/595 unique checks, preserving the
+exact prior ordered identities. Controller
+`reports/runtime/process-worksheet-activity-controller/9ff27bdafd484c458af5eb9de1fd2804`,
+2026-10-01 02:08:30.3395259--02:17:17.2416765 UTC; result
+`reports/runtime/slice4be-process-worksheet-activity/7e528cc06a984c26a61aae4b36278291/green.json`.
+Five instrumented compiles, unassisted closure, settings/package preservation and
+the delayed Excel Application1000/1001/1002 audit pass. All thirteen fixture-related
+failures are resolved without runtime/package changes or removed assertions.
+
+The closed-book observations retain their measured distinction: Excel dismisses
+Send's visible surface (no handler invocation); Add/Retrieve remain visible and
+their handlers enter and return safely with drafts preserved. The same eighteen
+stable closure assertions protect all three cases. The reviewed populated
+Process Designer capture shows saved DRAFT rows, requirements/output, worksheet
+controls and the two-process retrieval status. Long names truncate in the list;
+this one viewport does not establish full layout or human acceptance.
+
+Static evidence `reports/runtime/assignment-catalog23-regression-static-01` retains
+280 components,6150 procedures,135006 lines,9 literal/45 unresolved dynamic calls,
+190 duplicate bodies and28 non-growing caps. Three schemas validate;354 scripts
+parse. Remaining candidate regressions are pending; updating their expectations
+does not establish those gates. Existing349/789 implementation RED/GREEN and
+219/150 path evidence below remain the implementation record.
+
+## Admin and Operations Settings regression
+
+The same frozen candidate retains202/202 unique, exact prior ordered Settings
+checks with five instrumented package compiles. Controller
+`reports/runtime/assignment-regression/settings-d269c5e483ed48bf87acd43b45d1513f`,
+2026-10-01 02:17:50.3811894--02:21:55.7603370 UTC; result
+`reports/runtime/slice4be-tracking-settings/b5ab2dc7ca524023860d9f3a5ff68b37/green.json`.
+Unassisted closure, settings/package preservation and delayed Excel audit pass.
+The actual118-control tracking editor, policy validation/authorization, cancelled
+saves, version preservation, Event Detail choice/order, all three Action Path
+preferences, Admin reopen/close and Operations Viewer Settings retain their
+assertions. Existing Production UOM routing and staging-preservation checks also
+pass. This gate supplies no new screenshot or human-acceptance claim; the separate
+Settings activity gate and broader regressions remain pending.
+
 ## Paired Assignment path evidence
 
 Test-only `-Paths` extends the shared independent-guide gate under the existing

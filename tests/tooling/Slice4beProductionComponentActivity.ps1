@@ -13,7 +13,7 @@ function Test-ProductionComponentActivity($Fixture,$Other) {
         $id='PRODUCTION_PROCESS_'+$Kind+'_'+$Action
         $context=$paired;$redacted=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 22
+            $context=$context -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'PRODUCTION_DESIGNER' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 23
             $redacted=$redacted -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

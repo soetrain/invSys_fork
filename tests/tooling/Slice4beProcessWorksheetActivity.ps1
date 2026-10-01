@@ -252,7 +252,7 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
         $attempt=@($rows|Where-Object OutcomeCode -CEQ REQUESTED);$result=@($rows|Where-Object OutcomeCode -CEQ $Outcome)
         $paired=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $result.Count -eq 1
         $context=$paired;$safe=$paired;$integrity=$paired;$linked=$false;$effect=$false;$sources=$false;$terminal=$false
-        foreach($row in $rows){$context=$context -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_PROCESS_WORKSHEET' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 22}
+        foreach($row in $rows){$context=$context -and $row.ControlId -ceq $id -and $row.OwnerId -ceq 'PRODUCTION_PROCESS_WORKSHEET' -and $row.UserId -ceq 'config-producer' -and $row.WarehouseId -ceq $Fixture.Warehouse -and $row.StationId -ceq 'S1' -and $row.CatalogVersion -eq 23}
         foreach($text in $raw){
             $decoded=($text|ConvertFrom-Json)|ConvertTo-Json -Depth 25 -Compress
             foreach($value in @($canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PinHash','PayloadJson')){if($decoded.Contains($value) -or $decoded.Contains(($value|ConvertTo-Json -Compress).Trim('"'))){$safe=$false}}
@@ -490,7 +490,8 @@ function Test-ProcessWorksheetActivity($Fixture,$Other) {
                     try{
                         (Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('CatalogVersion').DataBodyRange.Value2=21.0
                         $controls=Table $cfg 'tblEventTrackingControls'
-                        for($i=$controls.ListRows.Count;$i -ge 1;$i--){if($controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cin $ids){$controls.ListRows.Item($i).Delete()}}
+                        # Historical policy fixtures contain exactly their historical catalog.
+                        for($i=$controls.ListRows.Count;$i -ge 1;$i--){if($controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cnotin $old){$controls.ListRows.Item($i).Delete()}}
                         $cfg.Save()
                     }finally{$cfg.Close($false)}
                 }
