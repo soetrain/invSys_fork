@@ -216,6 +216,34 @@ All361 tooling scripts parse. Runtime source and the validated three-schema
 static baseline remain unchanged at280 components/6150 procedures/135006 lines,
 9 literal/45 unresolved calls,190 duplicate bodies and28 non-growing caps.
 
+## Owner-exception and nested-click RED
+
+`Test-Slice4beProductionRunLocal.ps1 -FaultOnly` installs unsaved boundary hooks
+through `Slice4beProductionRunFault.ps1`; all nine original handlers remain
+intact. Nine exception cases and nine one-shot nested actual clicks reach their
+intended owner routines. Exception hooks retain existing propagation/handled
+failure behavior and local effects: Load has already cleared the reusable owner;
+Loader Refresh has already refreshed recipe lists. No rollback is asserted.
+Guard state is measured before any adapter reset, avoiding a test-created cleanup
+that could hide a stuck runtime guard.
+
+Controller `reports/runtime/production-run-local-controller/47316acdc3d74b7b8474c773dd9e48f3`,
+result `reports/runtime/slice4be-production-run-fault/b3e401ded2304f9a92b5d54d15b5d2cc/red.json`,
+2026-10-01 06:54:31.7257636--06:56:18.9449328 UTC: **127 PASS/118 expected FAIL/245
+unique checks**. Failures are108 absent observation/terminal facts, nine repeated
+owner entries and the nested Load result disturbed by reentry. All18 boundaries,
+existing exception propagation/partial effects and guard-restoration measurements
+pass. The nested Load failure protects the approved nesting guard; it does not
+authorize changing the ordinary load algorithm.
+
+All42 prior shared checks retain exact GREEN order. Five compiles, canonical
+package pins, saved authority/operator bytes, unknown values/formula, older
+records and other-warehouse activity preservation pass. Cleanup is unassisted;
+delayed Excel Application1000/1001/1002 failures are zero. Runtime/source metrics
+remain unchanged;362 scripts parse. This is a bounded owner-exception/nesting
+baseline. Real-read failures/yields, worksheet branches, exact stock-bucket
+expansion and independent paired paths remain open.
+
 ## Remaining gates
 
 Worksheet-branch tests must distinguish quiet helper return from successful owner
