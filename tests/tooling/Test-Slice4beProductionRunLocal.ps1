@@ -26,7 +26,7 @@ try{
     if($LoadPathsOnly){$extra=@('-RunLoadPathsOnly','-CaptureEvidence')}
     if($RefreshPathsOnly){$extra=@('-RunRefreshPathsOnly','-CaptureEvidence')}
     if($AllocatePathsOnly){$extra=@('-RunAllocatePathsOnly','-CaptureEvidence')}
-    if($CheckInBaselineOnly){$extra=@('-RunCheckInBaselineOnly')}
+    if($CheckInBaselineOnly){$extra=@('-RunCheckInBaselineOnly','-CaptureEvidence')}
     if($RefillOnly){$extra=@('-RunLocalRefillDiagnostic')}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckProductionDesignerActivity -CheckProductionRunLocal -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE

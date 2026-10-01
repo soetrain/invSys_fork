@@ -666,6 +666,21 @@ Private Function PrepareRunChoiceForActionTest(ByVal itemCode As String, _
                                                ByVal uomValue As String, _
                                                ByVal locationValue As String) As Boolean
     Dim values(1 To 1, 1 To 11) As Variant
+    Dim entities As Variant, entityIndex As Long, selectedKey As String
+
+    ' Select a real fixture entity before calling the operator handlers. Never
+    ' depend on Check In repairing an identity-free choice by matching its SKU.
+    entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge(itemCode)
+    If Not IsArray(entities) Then Exit Function
+    For entityIndex = LBound(entities, 1) To UBound(entities, 1)
+        If StrComp(NzStr(entities(entityIndex, 3)), itemCode, vbTextCompare) = 0 And _
+           StrComp(NzStr(entities(entityIndex, 7)), locationValue, vbTextCompare) = 0 Then
+            If selectedKey <> "" Then Exit Function
+            selectedKey = NzStr(entities(entityIndex, 1))
+            If selectedKey = "" Then Exit Function
+        End If
+    Next entityIndex
+    If selectedKey = "" Then Exit Function
 
     mLstRunPalette.Clear
     Set mRunItemCodeByKey = Nothing
@@ -674,7 +689,7 @@ Private Function PrepareRunChoiceForActionTest(ByVal itemCode As String, _
     values(1, 1) = "TEST"
     values(1, 2) = "TEST-INPUT"
     values(1, 3) = "Test input"
-    values(1, 4) = ""
+    values(1, 4) = selectedKey
     values(1, 5) = itemName
     values(1, 6) = ""
     values(1, 7) = ""
@@ -2297,7 +2312,7 @@ End Sub
 Public Sub RefreshManagerState()
     RefreshProductionOutputList mLstManagerOutput
     FillListFromTable mLstManagerCheck, ProductionTable(TABLE_MANAGER_CHECK), _
-        Array("System_Key", "ITEM_CODE", "ITEM", "UOM", "USED", "TOTAL INV")
+        Array("", "", "", "System_Key", "ITEM_CODE", "ITEM", "UOM", "USED", "TOTAL INV")
     RefreshRunPaletteState
 End Sub
 
@@ -4227,7 +4242,7 @@ Private Function ProductionLogTable() As ListObject
     Next lo
 End Function
 
-Private Sub CheckInProductionRun()
+Public Sub CheckInProductionRun()
     Dim usedPayloadJson As String
     Dim stagedTotal As Double
     Dim reusableReport As String
@@ -4236,16 +4251,16 @@ Private Sub CheckInProductionRun()
     On Error GoTo FailCheckIn
     checkInStage = "ReusableState"
     If modProductionReusableRun.ReusableRunIsLoaded() Then
+        If ActiveRunProcess() = "" Then
+            ShowStatus "Choose one Process before Check In."
+            Exit Sub
+        End If
         If Not SyncReusableRunBatchNote(reusableReport) Then
             ShowStatus reusableReport
             Exit Sub
         End If
-        If ActiveRunProcess() <> "" Then
-            If modProductionReusableRun.CheckInReusableProcess(ActiveRunProcess(), _
-                    ActiveRunLocation(), reusableReport) Then
-                RefreshReusableRunControls False
-            End If
-        ElseIf modProductionReusableRun.CheckInReusableRun(ActiveRunLocation(), reusableReport) Then
+        If modProductionReusableRun.CheckInReusableProcess(ActiveRunProcess(), _
+                ActiveRunLocation(), reusableReport) Then
             RefreshReusableRunControls False
         End If
         ShowStatus reusableReport
@@ -4679,7 +4694,7 @@ Private Function BuildRunUsedPayloadJson(ByRef stagedTotal As Double) As String
         rowVal = Trim$(NzStr(mLstRunPalette.List(i, 3)))
         itemCode = Trim$(RunItemCodeFromList(mLstRunPalette, i))
         locVal = NzStr(mLstRunPalette.List(i, 9))
-        systemKey = ResolveRunSystemKey(itemCode, NzStr(mLstRunPalette.List(i, 4)), locVal)
+        systemKey = ResolveRunSystemKey(NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), locVal)
         If systemKey = "" Then
             ShowStatus "Cannot complete run. The selected inventory row has no immutable System_Key."
             Exit Function
@@ -4750,7 +4765,7 @@ Private Function WriteProductionCheckRowsFromRunPalette() As Boolean
         rowVal = Trim$(NzStr(mLstRunPalette.List(i, 3)))
         itemCode = Trim$(RunItemCodeFromList(mLstRunPalette, i))
         writeStage = "ResolveSystemKey.Row" & CStr(i + 1)
-        systemKey = ResolveRunSystemKey(itemCode, NzStr(mLstRunPalette.List(i, 4)), _
+        systemKey = ResolveRunSystemKey(NzStr(mLstRunPalette.List(i, 3)), itemCode, NzStr(mLstRunPalette.List(i, 4)), _
                                         NzStr(mLstRunPalette.List(i, 9)))
         If systemKey = "" Then Exit Function
         identityKey = "SYS|" & systemKey
@@ -4775,7 +4790,7 @@ NextChoice:
 
     If agg.Count = 0 Then Exit Function
     writeStage = "ClearCheckTable"
-    ClearTableContentsKeepRows lo
+    If Not modProductionCheckInActions.ClearManagedCheckRows(lo) Then Exit Function
     writeStage = "EnsureCheckRows"
     If Not EnsureTableRows(lo, MaxLongLocal(agg.Count, CurrentRecipeRowBudget())) Then Exit Function
     writeStage = "WriteCheckRows"
@@ -4797,72 +4812,9 @@ FailWrite:
         " - " & Err.Description
 End Function
 
-Private Function ResolveRunSystemKey(ByVal itemCode As String, _
-                                     ByVal itemName As String, _
-                                     ByVal locationValue As String) As String
-    Dim lo As ListObject
-    Dim entities As Variant
-    Dim cSystemKey As Long
-    Dim cItemCode As Long
-    Dim cItem As Long
-    Dim cLocation As Long
-    Dim r As Long
-    Dim codeMatches As Boolean
-    Dim nameMatches As Boolean
-    Dim locationMatches As Boolean
-
-    Set lo = InventoryTable()
-    If Not lo Is Nothing Then
-        If Not lo.DataBodyRange Is Nothing Then
-            cSystemKey = ProductionColumnIndex(lo, "System_Key")
-            cItemCode = ProductionColumnIndex(lo, "ITEM_CODE")
-            If cItemCode = 0 Then cItemCode = ProductionColumnIndex(lo, "SKU")
-            cItem = ProductionColumnIndex(lo, "ITEM")
-            If cItem = 0 Then cItem = ProductionColumnIndex(lo, "ItemName")
-            cLocation = ProductionColumnIndex(lo, "LOCATION")
-            If cSystemKey > 0 Then
-                For r = 1 To lo.ListRows.Count
-                    codeMatches = False
-                    If Trim$(itemCode) <> "" And cItemCode > 0 Then
-                        codeMatches = (StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cItemCode).Value)), _
-                                                   Trim$(itemCode), vbTextCompare) = 0)
-                    End If
-                    nameMatches = False
-                    If Trim$(itemName) <> "" And cItem > 0 Then
-                        nameMatches = (StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cItem).Value)), _
-                                                   Trim$(itemName), vbTextCompare) = 0)
-                    End If
-                    locationMatches = True
-                    If Trim$(locationValue) <> "" And cLocation > 0 Then
-                        locationMatches = (StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cLocation).Value)), _
-                                                       Trim$(locationValue), vbTextCompare) = 0)
-                    End If
-                    If (codeMatches Or nameMatches) And locationMatches Then
-                        ResolveRunSystemKey = Trim$(NzStr(lo.DataBodyRange.Cells(r, cSystemKey).Value))
-                        If ResolveRunSystemKey <> "" Then Exit Function
-                    End If
-                Next r
-            End If
-        End If
-    End If
-
-    On Error GoTo CleanFail
-    entities = modInventoryDomainBridge.ListAvailableInventoryEntitiesBridge(itemCode)
-    If Not IsArray(entities) Then Exit Function
-    For r = LBound(entities, 1) To UBound(entities, 1)
-        codeMatches = (Trim$(itemCode) <> "" And _
-                       (StrComp(Trim$(NzStr(entities(r, 3))), Trim$(itemCode), vbTextCompare) = 0 Or _
-                        StrComp(Trim$(NzStr(entities(r, 2))), Trim$(itemCode), vbTextCompare) = 0))
-        nameMatches = (Trim$(itemName) <> "" And _
-                       StrComp(Trim$(NzStr(entities(r, 4))), Trim$(itemName), vbTextCompare) = 0)
-        locationMatches = (Trim$(locationValue) = "" Or _
-                           StrComp(Trim$(NzStr(entities(r, 7))), Trim$(locationValue), vbTextCompare) = 0)
-        If (codeMatches Or nameMatches) And locationMatches Then
-            ResolveRunSystemKey = Trim$(NzStr(entities(r, 1)))
-            If ResolveRunSystemKey <> "" Then Exit Function
-        End If
-    Next r
-CleanFail:
+Private Function ResolveRunSystemKey(ByVal selectedKey As String, ByVal itemCode As String, _
+                                     ByVal itemName As String, ByVal locationValue As String) As String
+    ResolveRunSystemKey = modProductionCheckInActions.ResolveSelectedKey(Me, InventoryTable(), selectedKey, itemCode, itemName, locationValue)
 End Function
 
 Private Function RunChoiceWouldExceedInventory(ByVal listIndex As Long, ByVal qtyVal As Double) As Boolean
@@ -11424,7 +11376,7 @@ Private Function StageSelectedReusableActualOutput( _
 End Function
 
 Private Sub mBtnManagerCheckIn_Click()
-    CheckInProductionRun
+    modProductionCheckInActions.Execute Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress
 End Sub
 
 Private Sub mBtnManagerApplyOutput_Click()
