@@ -30,6 +30,7 @@ param(
     [switch]$CheckProductionRecipeStructure,
     [switch]$CheckProductionDesignReads,
     [switch]$CheckProductionAssignment,
+    [switch]$CheckProductionAssignmentSafety,
     [switch]$CheckProductionRegulation,
     [switch]$CheckProductionRegulationPaths,
     [switch]$CheckProductionDesignReadPaths,
@@ -257,6 +258,7 @@ if($CheckProductionRecipeStructurePaths -and (-not $CheckProductionRecipeStructu
 if($CheckProductionDesignReads -and (-not $CheckProductionDesignerActivity -or $CheckProductionRecipeStructure -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Designer read checks require a separate compiled designer gate.'}
 if($CheckProductionDesignReadPaths -and (-not $CheckProductionDesignReads -or -not $CaptureEvidence)){throw 'Designer read paths require compiled adapters and visible evidence in a separate gate.'}
 if($CheckProductionAssignment -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignReads -or $CheckProductionRegulation -or $CheckProductionClose -or $CheckProcessWorksheetHeaders -or $CheckProductionRecipeStructure -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Assignment observations require their separate compiled actual-handler gate.'}
+if($CheckProductionAssignmentSafety -and -not $CheckProductionAssignment){throw 'Assignment safety requires the Assignment adapters.'}
 if($CheckProductionRegulationPaths -and (-not $CheckProductionRegulation -or -not $CaptureEvidence)){throw 'Regulation paths require compiled adapters and visible evidence in a separate gate.'}
 if($CheckProductionRegulation -and (-not $CheckProductionDesignerActivity -or $CheckProductionDesignReads -or $CheckProductionRecipeStructure -or $CheckProductionRecipeOrder -or $CheckProductionComponents -or $CheckProductionInstructions -or $CheckProductionLifecycle -or $CheckProductionDesignerPaths -or $CheckProductionUomStaging)){throw 'Output regulation requires its separate compiled designer gate.'}
 if($CheckProductionInstructionPaths -and (-not $CheckProductionInstructions -or -not $CaptureEvidence)){throw 'Instruction paths require the compiled instruction adapters and visible evidence.'}
@@ -455,6 +457,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRecipeStructure){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-recipe-structure/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionDesignReads){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-reads/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionAssignment){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment/'+[guid]::NewGuid().ToString('N'))}
+    if($CheckProductionAssignmentSafety){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-assignment-safety/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRegulation){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-regulation/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRegulationPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-regulation-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionDesignReadPaths){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-design-read-paths/'+[guid]::NewGuid().ToString('N'))}
@@ -1272,6 +1275,11 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionAssignmentActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionAssignmentProbe
+            if($CheckProductionAssignmentSafety){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionAssignmentSafety.ps1')
+                Install-ProductionLifecycleProbe
+            }
         }
         if($CheckProductionRecipeStructure){
             . (Join-Path $PSScriptRoot 'Slice4beProductionRecipeStructureProbe.ps1')
@@ -1606,7 +1614,10 @@ End Function
         }
         elseif($CheckProductionRegulation){Test-ProductionRegulationActivity $a $b}
         elseif($CheckProductionDesignReads){Test-ProductionDesignReadActivity $a $b}
-        elseif($CheckProductionAssignment){Test-ProductionAssignmentActivity $a $b}
+        elseif($CheckProductionAssignment){
+            if($CheckProductionAssignmentSafety){Test-ProductionAssignmentSafety $a $b}
+            else{Test-ProductionAssignmentActivity $a $b}
+        }
         elseif($CheckProductionComponents){Test-ProductionComponentActivity $a $b}
         elseif($CheckProductionRecipeOrder){Test-ProductionRecipeOrderActivity $a $b}
         elseif($CheckProductionRecipeStructurePaths){

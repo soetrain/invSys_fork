@@ -27,6 +27,7 @@ Protecting files:
 - `tests/tooling/Test-Slice4beProductionAssignment.ps1`
 - `tests/tooling/Slice4beProductionAssignmentProbe.ps1`
 - `tests/tooling/Slice4beProductionAssignmentActivity.ps1`
+- companion `-Safety` gate in `Slice4beProductionAssignmentSafety.ps1`
 - opt-in `CheckProductionAssignment` in `Test-Slice4beConfigCommands.ps1`
 
 The read fixture/probe is reused for released definitions, controlled source reads
@@ -84,17 +85,63 @@ Regenerated static evidence: `reports/runtime/assignment-baseline-static` retain
 all350 PowerShell scripts parse. Runtime metrics match the prior worksheet
 regression baseline. Runtime reports, fixtures and captures remain ignored.
 
+## Save owner-boundary companion
+
+The separate `-Safety` gate reuses the established lifecycle writer/processor fault
+seams and invokes the actual Assignment Save handler. It distinguishes a confirmed
+save, failure before append, an uncertain acknowledgement after append, processing
+failure after submission and failure before the form refresh. Each case uses its
+own queue root inside the disposable fixture, so pending events cannot be consumed
+by later cases. The expected source reference is compared with the writer's exact
+observed EventId and the owning Designs publication-source rows; status text is
+not parsed for identity or application evidence. The initial349 gate is retained
+separately and is not replaced by this companion.
+
+First companion attempt is excluded: controller
+`reports/runtime/production-assignment-controller/173b1ff018fb476483a4e070bb440fbf`,
+result `reports/runtime/slice4be-production-assignment-safety/948870a582974b9ea888fc7fc8caf037/red.json`,
+one package-identity PASS and one harness compile FAIL. The lifecycle installer
+already installs its fault seams; calling that installer again duplicated Core
+declarations. The redundant installation is removed. No behavioral RED is claimed.
+Its empty owned Excel process remained after harness cleanup and an additional
+Quit. After verifying the same process identity and zero workbooks, explicit
+termination allowed settings restoration to finish. Both intervention records are
+retained in the controller. This is not normal closure or a desktop-error5 event;
+settings and all five package hashes were verified before the corrected run.
+
+Corrected companion RED: controller
+`reports/runtime/production-assignment-controller/29b53fb3f96d42cb974c666117d58b1e`,
+2026-10-01 00:24:47.1408550--00:26:24.9741873 UTC; result
+`reports/runtime/slice4be-production-assignment-safety/4e392b8ec4d945c9921dc14bba8b5c11/red.json`.
+All89 names are unique:59 PASS/30 FAIL. The42 shared checks retain exact baseline
+order and pass; all five actual owner boundaries and their actual write/application
+facts pass. The30 failures are the six observation/reference/correlation/effect/
+redaction/terminal assertions in each mode. There are no harness exceptions.
+This protects CONFIRMED with the exact submitted/applied owning ID, FAILED without
+an unused pre-append ID, FAILED with an uncertain written ID, and PENDING with
+Submitted references after processing or refresh failure. Applied source evidence
+after the refresh failure does not turn its command outcome into CONFIRMED.
+
+Five instrumented compiles, normal cleanup without intervention, package/settings
+preservation, prior-record and unknown-workbook preservation, and delayed Excel
+Application1000/1001/1002 audit pass. The controller's `verification.json` records
+those checks. No runtime/package change or human acceptance is claimed.
+Regenerated `reports/runtime/assignment-safety-static` retains277 components,
+6137 procedures,134745 lines,9/45 dynamic calls,190 duplicate bodies and28
+non-growing oversized caps. Three schemas validate and351 scripts parse.
+
 ## Required next evidence
 
 The initial nine-handler baseline is not the complete protecting suite. Before
-runtime implementation, add exact owner-event capture and pre-write/uncertain/
-post-submission failures; Save guards including post-yield session loss; current
+runtime implementation, preserve the349 initial checks and89 companion checks
+and add Save guards including post-yield session loss; current
 permission denial; nested callbacks and restored guards; disabled/older-policy/
 unavailable tracking; Navigation defaults and deliberate-versus-programmatic input;
 and full partial-effect/state preservation checks. Do not promote the initial
 source-envelope shape assertion into proof of exact owning EventId correlation.
+The companion supplies that writer-boundary comparison for its five Save cases.
 
-Record focused behavioral RED before runtime edits, then require GREEN retaining
+Complete the remaining focused RED cases before runtime edits, then require GREEN retaining
 all checks. Separate guide and observed recordings must prove publication, exact
 Event Detail, authored intent, independent-reader How-To/Diagnostic/Compare and
 Save's exact Designs applied/awaiting/incomplete distinctions. Build, compile,
