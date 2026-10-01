@@ -35,6 +35,7 @@ param(
     [switch]$CheckProductionRunLocal,
     [switch]$RunLocalClosedDiagnostic,
     [switch]$RunLocalRefillDiagnostic,
+    [switch]$RunCheckInBaselineOnly,
     [switch]$RunLocalContractOnly,
     [switch]$RunLocalPolicyOnly,
     [switch]$RunLocalFaultOnly,
@@ -268,6 +269,7 @@ if($RunClearPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvide
 if($RunLoadPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or $RunClearPathsOnly -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly)){throw 'Load paths require a separate actual-handler gate and visible evidence.'}
 if($RunAllocatePathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or @($RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Apply paths require a separate actual-handler gate and visible evidence.'}
 if($RunRefreshPathsOnly -and (-not $CheckProductionRunLocal -or -not $CaptureEvidence -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunLocalClosedDiagnostic -or $RunLocalContractOnly -or $RunLocalPolicyOnly -or $RunLocalFaultOnly -or $RunLocalYieldOnly -or $RunLocalStockOnly -or $RunLocalWorksheetOnly -or $RunLocalWorksheetOwnerOnly -or $RunLocalWorksheetScaleOnly)){throw 'Refresh paths require a separate actual-handler gate and visible evidence.'}
+if($RunCheckInBaselineOnly -and (-not $CheckProductionRunLocal -or @($RunAllocatePathsOnly,$RunRefreshPathsOnly,$RunClearPathsOnly,$RunLoadPathsOnly,$RunLocalRefillDiagnostic,$RunLocalClosedDiagnostic,$RunLocalContractOnly,$RunLocalPolicyOnly,$RunLocalFaultOnly,$RunLocalYieldOnly,$RunLocalStockOnly,$RunLocalWorksheetOnly,$RunLocalWorksheetOwnerOnly,$RunLocalWorksheetScaleOnly|Where-Object{$_}).Count)){throw 'Check In baseline requires a separate actual-handler gate.'}
 if($CheckProductionRunLocal){
     $otherRunGates=@($PSBoundParameters.Keys|Where-Object{($_ -like 'CheckProduction*' -or $_ -like 'CheckProcessWorksheet*') -and $_ -notin @('CheckProductionRunLocal','CheckProductionDesignerActivity') -and [bool]$PSBoundParameters[$_]})
     if(-not $CheckProductionDesignerActivity -or $otherRunGates.Count -gt 0){throw 'Run local observations require their separate compiled actual-handler gate.'}
@@ -505,6 +507,7 @@ if($CheckProductionDesignerActivity){
     if($RunPresentationPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-presentation-paths/'+[guid]::NewGuid().ToString('N'))}
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
+    if($RunCheckInBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalRefillDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-refill/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalContractOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-contract/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalPolicyOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-policy/'+[guid]::NewGuid().ToString('N'))}
@@ -1277,6 +1280,14 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunLocalActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionRunLocalProbe
+            if($RunCheckInBaselineOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInBaseline.ps1')
+                Install-ProductionRunStockProbe
+                Install-ProductionRunWorksheetProbe
+                Install-ProductionCheckInBaselineProbe
+            }
             if($RunLocalContractOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunContract.ps1')
                 Install-ProductionRunContractProbe
@@ -1748,7 +1759,8 @@ End Function
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRunLocal){
-            if($RunAllocatePathsOnly){
+            if($RunCheckInBaselineOnly){Test-ProductionCheckInBaseline $a $b}
+            elseif($RunAllocatePathsOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunAllocate
             }
