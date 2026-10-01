@@ -325,6 +325,40 @@ validated static baseline remain unchanged; all365 repository PowerShell scripts
 returned by `rg --files -g '*.ps1'` parse. This is packaged handler evidence,
 not visible operator or human acceptance. Preserve all138 checks through GREEN.
 
+## Worksheet allocation RED
+
+`Test-Slice4beProductionRunLocal.ps1 -WorksheetOnly` installs
+`Slice4beProductionRunWorksheet.ps1` into the unsaved packaged form. Admin Seed
+provides the exact inventory identity; a disposable operator Production table
+stages that identity with reordered managed headers, custom data and a formula.
+The real List/Tree Apply handlers run on their respective pages while a decoy
+workbook is active. Inactive-page inputs deliberately differ. No legacy recipe
+fallback or canonical inventory write is introduced.
+
+Controller `reports/runtime/production-run-local-controller/96682e2fc5d0454e8f6dc760d6cbfbc6`,
+result `reports/runtime/slice4be-production-run-worksheet/62829354876041d491e2146f799dc441/red.json`,
+2026-10-01 07:27:40.5323304--07:29:19.7323917 UTC: **156 PASS/116 expected FAIL/272
+unique checks**. Six ordinary cases per handler pass: quantity-source priority,
+percentage-source priority, quantity-only inference, zero, over100% refusal after
+input mirroring, and wrong-location refusal that clears an earlier allocation.
+Checks retain normalized-header writes, List/Tree synchronization and overrides.
+All16 cases preserve custom columns/formula, exact identity and canonical source.
+
+Two unavailable-surface cases per handler expose an existing D18 defect: a missing
+palette table or QUANTITY column still produces an allocation-updated success
+message. These four failures require FAILED owner facts and truthful presentation;
+they do not authorize rollback or repair of missing surfaces. The other112 failures
+are missing observation/context/redaction/terminal facts. Tests do not pin the
+accidental local UI changes in unavailable-surface cases as required behavior.
+
+Forty-two prior shared GREEN checks retain exact order. Five compiles, canonical
+package pins, saved authority/operator bytes, unknown values/formula, older
+records and other-warehouse preservation pass. Unassisted closure and delayed zero
+Excel Application failures are verified. Runtime/static metrics remain unchanged;
+366 repository PowerShell scripts parse. Preserve all272 checks through GREEN.
+Worksheet load/clear/refresh branches, remaining read failures and independent
+paired paths still require evidence. This gate is not visible or human acceptance.
+
 ## Remaining gates
 
 Worksheet-branch tests must distinguish quiet helper return from successful owner
