@@ -87,6 +87,92 @@ Only visible control rows and preview text were reviewed; long lists and preview
 content extend beyond those viewports. These are not all-size layout or human
 acceptance. Broader candidate regressions and full Release1 acceptance remain open.
 
+## Packaged layout and smoke regression
+
+The Assignment candidate's existing packaged layout gate retains the exact prior
+worksheet-candidate geometry report: three requested sizes across pages0-4,
+zero out-of-bounds controls or interactive-control overlaps, plus native minimize,
+restore, maximize/content-fill and restore. Controller
+`reports/runtime/assignment-regression/layout-b3480494439b4135a5b60850fbcd88f6`,
+2026-10-01 02:39:57.3510235--02:40:12.0503061 UTC. The900x700 minimum request is
+clamped to1110x800, matching the default; expanded is1350x980. Three reviewed
+captures show empty Run List layouts. They do not prove populated workflow
+acceptance, an actual900x700 layout, or coverage of Production Settings page5.
+Unassisted closure, package/settings preservation and delayed Excel audit pass.
+
+Packaged smoke retains86/86 exact prior ordered checks. Controller
+`reports/runtime/assignment-regression/smoke-fcb08043fd704a9389faccb6db7b253d`,
+2026-10-01 02:41:31.3444609--02:41:52.8040204 UTC. Initial and final shutdown
+records in `reports/runtime/packaged-smoke-closure/a1f66c4427794694af2507d450ebbdf9`
+prove unassisted exits with no termination requested. Settings, packages and
+tracked-report bytes are preserved; the delayed Excel audit is clean.
+These are existing-gate revalidations on unchanged runtime packages, not a new
+contract or product RED.
+
+The ordered full chain retains32/32 checks, live roles48/48 and warehouse
+creation15/15, all in exact prior order. Controller
+`reports/runtime/assignment-regression/chain-6228eeb4c3214c74936ef4da733e0abf`,
+2026-10-01 02:42:33.6184211--02:47:44.7237828 UTC. The creation/seed/Receiving/
+Production/Boxing/Shipping/restart sequence completes, with normal cleanup,
+package/settings and tracked-report restoration, and a clean delayed Excel audit.
+Broader candidate gates and release acceptance remain pending.
+
+## Excluded reusable attempt and bounded diagnosis
+
+Full reusable controller
+`reports/runtime/assignment-regression/reusablefull-191a65721ca1484aad502c82efb5b595`,
+2026-10-01 02:48:37.8652585--02:53:14.8136278 UTC, fails with two harness rows
+before its reusable aggregates complete. The original
+`mProduction.RunProcessEditExportContractTest` call returns RPC0x800706BE.
+Windows records EXCEL.EXE/ntdll.dll/c00000ff at02:49:55.1971977 UTC, offset12d2f,
+and its error-reporting event. This is a different exception code and callback
+from the earlier worksheet candidate's c0000028/batch-scale failure; a shared
+root cause is not established. Neither failure is desktop error5 or product RED.
+
+Workbook cleanup is incomplete after the crash. An Excel instance starts at the
+error-reporting boundary; read-only inspection pins its identity and finds zero
+open workbooks. That empty instance is explicitly quit to unblock the controller;
+no forced termination is used. Settings and packages restore, but this is assisted
+recovery cleanup and failed acceptance evidence. The raw failed report and
+sanitized native-event/recovery receipts remain in the ignored controller folder.
+
+One existing `-ProductionEditExportOnly` diagnostic passes its aggregate and all
+five required edit/export facts, with normal closure, preserved settings/packages
+and no delayed Excel failure. Controller
+`reports/runtime/assignment-regression/editexportonly-1d1daab2ab0c433bbcf79ffca7ef469b`,
+02:53:49.9226722--02:54:53.4478329 UTC. This narrower setup does not establish full
+reusable acceptance or a crash repair.
+
+The bounded full-prefix diagnostic preserves original statements through
+edit/export and stops before bulk import. Offline generation verifies source
+restoration, credentials inherited only in memory and no parse errors. It changes
+neither packages nor the original validator. With the existing native observer
+attached before initial host visibility, prefix and edit/export facts pass:
+`reports/runtime/assignment-editexport-prefix-diagnostic/bc85c2ca4c4b482baeb9373db53869f2`,
+02:57:08.8271231--02:58:56.1259758 UTC. The trace records one first-chance000006BA
+in kernelbase.dll and no terminating c00000ff/c0000028. This is observed diagnostic
+evidence, not uninstrumented release evidence.
+Dedicated verification also confirms normal unassisted closure, all five required
+edit/export facts, preserved settings/packages/original validator and no delayed
+Excel Application1000/1001/1002 failure. The first-chance event is retained;
+the diagnostic is not described as having no native events.
+
+The same bounded prefix without the observer fails earlier, at
+`mProduction.RunProductionBatchScaleContractTest`, with RPC0x800706BE and two harness
+failure rows. Record
+`reports/runtime/assignment-editexport-prefix-diagnostic/e0bcb227c1fa44bb86846a872234dda7`,
+02:59:42.7320815--03:00:05.7465854 UTC. Windows records ntdll.dll/c0000028 at
+03:00:01.3916452 UTC, offset12d2f. That signature/callback occurred on the prior
+worksheet candidate as recorded above; this does not prove a shared cause with
+the new c00000ff failure. Settings, packages and the validator are restored;
+crash cleanup is not normal acceptance. No bounded-result success receipt exists.
+The diagnostic wrapper's exit0/GeneratedReturned means the generated script
+returned; it must not be used as a success check when the inner report has failures.
+
+Full reusable171/replay37 remain open. Do not repeat full runs merely to obtain a
+pass. Investigate the differing observed/unobserved behavior and establish
+unassisted, uninstrumented full evidence before closing this regression gate.
+
 ## Paired Assignment path evidence
 
 Test-only `-Paths` extends the shared independent-guide gate under the existing
