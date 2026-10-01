@@ -1095,6 +1095,49 @@ Regenerated `reports/runtime/assignment-worksheet-capture-static-01` retains
 190 duplicate bodies and28 non-growing caps. Three schemas validate;354 scripts
 parse. Control coverage and human acceptance remain unchanged.
 
+## Production dismissal and read-only inventory regression
+
+The same frozen Assignment candidate retains312/312 unique, exact prior ordered
+Close/query checks, including80 inventory-query checks and42 shared checks.
+Controller `reports/runtime/production-close-controller/8047136d810246359cae48397413ab77`,
+2026-10-01 05:19:39.9111143--05:23:13.6016948 UTC; result
+`reports/runtime/slice4be-production-close/3e525f351c64479ea9b3a8aed4c201bd/green.json`.
+Five instrumented compiles, canonical package pins, unassisted closure,
+settings/package preservation and delayed Excel Application1000/1001/1002 audit
+pass. Actual button/native dismissals, public reopen into the same owner, saved
+UOM/custom-column preservation, workbook shutdown without a fabricated user-Close
+event, optional tracking and read-only inventory queries retain their assertions.
+
+Four hashed images are reviewed: empty Process Designer before each dismissal,
+public reopened Designer with load diagnostic, and saved Settings with tracking
+unavailable. Pre-dismissal images do not prove teardown or distinguish the
+gesture; the reopened image does not show preserved UOM cells. Those facts are
+protected by assertions. Fixed empty viewports do not establish populated workflow,
+all-size layout or human acceptance. This is retained regression evidence, with
+no runtime, architectural contract, control catalog or test implementation change.
+
+Separate Close Action Paths retain90/90 unique, exact prior ordered checks.
+Controller `reports/runtime/production-close-paths-controller/805b1dc6c67f42e68236a619a3016dc5`,
+2026-10-01 05:23:40.8886636--05:27:59.7295251 UTC; result
+`reports/runtime/slice4be-production-close-paths/7c772d7fca0d49ce816fdb5cc1bf07d3/green.json`.
+Independent guide/observed recordings, publication, exact Event Detail, authored
+expectations, an independent reader and How-To/Diagnostic/Compare pass. Both
+actual closing gestures produce the same supported CLOSED observation: two
+matched dismissals, zero extras and command completion without Domain application.
+The diagnostic cannot distinguish the gestures or prove saved work. Five compiles,
+canonical package pins, unassisted closure, settings/package preservation and
+delayed Excel audit pass.
+
+Seven hashed captures are reviewed. Event Detail selects CLOSED, with Unchanged
+effect and the dismissal explanation; its long coverage text extends beyond the
+viewport. Both authored steps and observed REQUESTED/CLOSED pairs fit in the
+reviewed views, including the two-match/zero-extra conclusion and explicit absence
+of a Domain application assertion. The editor remains empty and Settings reports
+saved configuration with tracking unavailable. These fixed views are not full
+layout or human acceptance. The unchanged static baseline remains
+`reports/runtime/assignment-worksheet-capture-static-01`; broader coverage and
+full reusable/replay acceptance remain open.
+
 ## Required next evidence
 
 Preserve the349 initial checks and789 expanded companion checks, including every
@@ -1103,9 +1146,17 @@ are established. Do not promote the initial
 source-envelope shape assertion into proof of exact owning EventId correlation.
 The companion supplies that writer-boundary comparison for its five Save cases.
 
-Require focused GREEN retaining all checks. Separate guide and observed recordings must prove publication, exact
-Event Detail, authored intent, independent-reader How-To/Diagnostic/Compare and
-Save's exact Designs applied/awaiting/incomplete distinctions. Build, compile,
-layout, static-maintenance, live-role, full Release1 chain, reusable Production,
-visible operator evidence and human acceptance remain required. No package
-promotion, comprehensive control coverage or Slice4be acceptance is claimed here.
+The349/789 focused GREEN,219 guide/observed paths,150 source-failure paths,
+compile, layout, static, smoke86, chain32/live48/Create15 and shared regressions
+recorded above are verified on this candidate. Preserve them; do not repeat
+completed gates without a relevant change, failure or unresolved concern.
+
+Next resolve the native reusable callback failure using bounded diagnosis before
+retrying full uninstrumented171-check/two-aggregate validation and replay37.
+Observer/compile-only prefix successes are diagnostic distinctions, not a repair
+or permission to require operator compilation. Thirteen constructed Production
+buttons and28 nonbutton handlers still need observation coverage under D18;
+the run-owner audit does not approve new IDs/outcomes or commit boundaries.
+Broader Admin/Operations coverage, NAS and visible human acceptance also remain
+open. No package promotion, comprehensive coverage or Slice4be acceptance is
+claimed here.
