@@ -53,6 +53,16 @@ Public Function CheckBaselineContextRefusedForTest() As Boolean
     CheckBaselineContextRefusedForTest = InStr(1, mTxtStatus.Text, _
         "Session, warehouse, or captured workbook changed.", vbBinaryCompare) = 1
 End Function
+Public Function CheckBaselinePermissionRefusedForTest() As Boolean
+    CheckBaselinePermissionRefusedForTest = InStr(1, mTxtStatus.Text, "Production permission", vbBinaryCompare) = 1
+End Function
+Public Function CheckBaselineWorksheetSourceForTest() As Variant
+    CheckBaselineWorksheetSourceForTest = Array(mRunSheetKey, mRunSheetLocation, mRunSheetUom, mRunSheetAvailable)
+End Function
+Public Sub CheckBaselineRestoreWorksheetSourceForTest(ByVal fixture As Variant)
+    mRunSheetKey = fixture(0): mRunSheetLocation = fixture(1)
+    mRunSheetUom = fixture(2): mRunSheetAvailable = fixture(3)
+End Sub
 Public Function CheckBaselineReusableResultForTest(ByVal checked As Boolean) As Boolean
     CheckBaselineReusableResultForTest = _
         modProductionReusableRun.ReusableRunIsCheckedIn() = checked And _
@@ -210,6 +220,18 @@ End Sub
 Public Sub CheckBaselineArmNested()
     mCheckBaselineEntries = 0: mCheckBaselineNest = True
 End Sub
+Public Sub CheckBaselineResetOwnerEntries()
+    mCheckBaselineEntries = 0: mCheckBaselineNest = False: mCheckBaselineStage = ""
+End Sub
+Public Sub CheckBaselineReopen(ByVal workbookName As String)
+    Dim fixture As Variant
+    fixture = mForm.CheckBaselineWorksheetSourceForTest()
+    RunLocalReopen workbookName
+    mForm.CheckBaselineRestoreWorksheetSourceForTest fixture
+End Sub
+Public Function CheckBaselinePermissionRefused() As Boolean
+    CheckBaselinePermissionRefused = mForm.CheckBaselinePermissionRefusedForTest()
+End Function
 Public Function CheckBaselineOwnerEntries() As Long
     CheckBaselineOwnerEntries = mCheckBaselineEntries
 End Function
@@ -336,6 +358,23 @@ function Test-ProductionCheckInBaseline($Fixture,$Other) {
             Check ('CheckInBaseline.LocalProjection.'+$fact) ([bool](Probe 'CheckBaselineWorksheetFact' @($fact)))
         }
         Check 'CheckInBaseline.LocalProjection.InventoryValuesAndFormulasPreserved' ([string](Probe 'CheckBaselineInventoryState') -ceq $inventoryBefore)
+        SelectTarget $Fixture 'config-reader'
+        [void](Probe 'CheckBaselineReopen' @($book.Name))
+        foreach($mode in @('Reusable','Worksheet')){
+            $ready=if($mode -ceq 'Reusable'){[bool](Probe 'CheckBaselineReusableStage' @('Selected'))}else{[bool](Probe 'CheckBaselineWorksheetStage' @($selectedKey,$canary))}
+            if(-not $ready){throw 'Permission Check In prerequisite unavailable; not product RED.'}
+            $ownerBefore=[string](Probe 'RunLocalOwnerState')
+            $projectionBefore=[string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')
+            [void](Probe 'CheckBaselineResetOwnerEntries')
+            $label='CheckInBaseline.Permission.'+$mode
+            Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
+            Check ($label+'.OwnerNotEntered') ([int](Probe 'CheckBaselineOwnerEntries') -eq 0)
+            Check ($label+'.OwnerStatePreserved') ([string](Probe 'RunLocalOwnerState') -ceq $ownerBefore)
+            Check ($label+'.ProjectionPreserved') (([string](Probe 'RunLocalState')+'|'+[string](Probe 'CheckBaselineWorksheetState')) -ceq $projectionBefore)
+            Check ($label+'.VisiblePermissionRefusal') ([bool](Probe 'CheckBaselinePermissionRefused'))
+            Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
+        }
+        Test-ProductionCheckInYield $Fixture $Other $book $selectedKey $canary
         foreach($guard in @('Target','Session','SignedOut')){
             SelectTarget $Fixture 'config-producer'
             [void](Probe 'RunLocalReopen' @($book.Name))

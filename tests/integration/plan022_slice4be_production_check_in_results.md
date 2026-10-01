@@ -14,9 +14,70 @@ and63/68 constructed-button wiring are unchanged.
 
 Architecture v4.11 D18, "Check In correctness prerequisites," clarifies existing
 D14 exact identity/header-extension, D15 selected-Process execution and D18
-loading/nested-entry requirements. Plan022, controls1.409 and coverage1.149 are
+loading/nested-entry requirements. Plan022, controls1.410 and coverage1.150 are
 synchronized. No new activity catalog entry, permission, authority or alternative
 contract is established by these corrections.
+
+## Permission and read-return guard RED
+
+Runtime remains `9b82ea4d`, frozen correctness03. This next D13 baseline enforces
+the existing D18 entry/current-permission and post-yield context rules; it creates
+no capability, observation contract or exception. Controls1.410/coverage1.150 and
+Plan022 track this remaining acceptance gap.
+
+Permission-only expansion:115 checks,108 PASS/7 FAIL; all103 earlier ordered
+passes survive. The actual Check In Click handler runs as a current-context reader
+without Production/Admin permission. Reusable failure IDs are OwnerNotEntered,
+OwnerStatePreserved, ProjectionPreserved and VisiblePermissionRefusal; worksheet
+fails OwnerNotEntered, ProjectionPreserved and VisiblePermissionRefusal. Both
+handlers return and restore guards. Controller
+`production-run-local-controller/fc615098102943bc9d0a3b7899036d5d`, result
+`slice4be-production-check-in-baseline/3759c446acab4cf5960e4ee8913e1eb5/red.json`,
+16:16:51.3251597--16:19:11.5084544 UTC.
+
+Nine sign-out cases expand to187 checks,154 PASS/33 FAIL, preserving prior ordered
+identities and passes. `Slice4beProductionCheckInYield.ps1` injects unsaved hooks
+after real owning reads return, retaining their payloads and the original handler.
+Reusable cases cover AvailableQuantity, EntityKind, RunPalette and ManagerCheck;
+worksheet cases cover both ResolveKey calls, InventoryPicker, DefaultLocation and
+IngredientChoices. Every read boundary is reached. Tests require no later reads,
+no further owner/projection mutation, visible context refusal, restored guards
+and no new/misdirected activity records. Snapshots are taken at the interruption
+boundary: earlier completed local changes are retained, not rolled back.
+Controller `production-run-local-controller/ad3026c54901411db378e047694c68b8`, result
+`slice4be-production-check-in-baseline/0b02c9012f324759bcc790e4f58db670/red.json`,
+16:21:18.3939690--16:24:29.0823977 UTC.
+
+Both gates retain42 shared passes, five instrumented compiles, frozen package
+hashes, authority/operator bytes, restored settings, normal unassisted closure
+and delayed zero Excel Application1000/1001/1002 failures. No runtime guard fix
+or observation acceptance is claimed by this RED evidence.
+
+Final expansion also revokes the generated fixture's PROD_POST grant after each
+of the same nine reads. The user remains signed in with the exact same captured
+context, while fresh Core checks deny both Production and Admin capability.
+Authorization bytes are held only in memory and restored after each case; no
+credential values are emitted. The signed-out cases separately prove sign-out
+took effect. Final result:278 unique checks,219 PASS/59 FAIL, preserving all prior
+ordered checks/passes. All18 real boundaries/interruption effects are proved;
+the seven entry failures plus26 sign-out and26 capability-loss failures remain.
+Controller `production-run-local-controller/203f1d5a357144aa9b4db783ea50782e`, result
+`slice4be-production-check-in-baseline/477310cf1a614adf872456dbe6d8e2ab/red.json`,
+16:25:28.4798096--16:29:44.2461871 UTC. Five compiles, original103/shared42 passes,
+authorization/authority/operator/package preservation, normal unassisted closure
+and delayed zero audit pass. Test assertions compare state at each read return;
+they neither erase earlier changes nor infer rollback from a refusal.
+
+This covers the existing external-allocation Check In fixture and its worksheet
+path. It does not yet prove routed upstream-input interruptions, closed-workbook
+interruptions, Check In observation outcomes or full reusable acceptance. Add
+needed cases before implementing behavior those cases alone would protect.
+
+`reports/runtime/check-in-guard-red-static-01` confirms unchanged runtime metrics:
+290 components/6174 procedures/135482 lines,9 literal/45 unresolved dynamic calls,
+190 duplicate candidates and28 non-growing oversized caps. Three schemas and370
+tooling PowerShell parses pass. This checkpoint changes tests and acceptance
+records only; Architecture v4.11 D18 already governs the required guard behavior.
 
 ## Expanded correctness and display evidence
 

@@ -1284,9 +1284,11 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInBaseline.ps1')
+                . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInYield.ps1')
                 Install-ProductionRunStockProbe
                 Install-ProductionRunWorksheetProbe
                 Install-ProductionCheckInBaselineProbe
+                Install-ProductionCheckInYieldProbe
             }
             if($RunLocalContractOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunContract.ps1')
