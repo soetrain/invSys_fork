@@ -83,7 +83,7 @@ End Sub
 '@)
 }
 
-function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$StockOnly,[switch]$WorksheetOnly,[switch]$WorksheetOwnerOnly) {
+function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$StockOnly,[switch]$WorksheetOnly,[switch]$WorksheetOwnerOnly,[switch]$WorksheetScaleOnly) {
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
@@ -123,6 +123,14 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$Sto
         SelectTarget $Fixture
         $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
         if(-not $seed.StartsWith('OK|')){throw 'Admin Seed Run fault fixture unavailable; not product RED.'}
+        if($WorksheetScaleOnly){
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+            try{
+                $enabled=[bool](Run 'invSys.Admin.xlam' 'TestD5Commands.SaveSettings' @('DesignsEnabled','True'))
+                if(-not $enabled -or -not [bool](Run 'invSys.Core.xlam' 'modConfig.GetBool' @('DesignsEnabled',$false))){throw 'Admin-enabled Designs fixture unavailable; not product RED.'}
+            }finally{[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
+            Check 'RunWorksheetScale.DesignsEnabledByAdminHandler' $true
+        }
         if($StockOnly){
             $ready=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockPrepareForTest' @($Fixture.Warehouse))
             if($ready -cne 'READY'){
@@ -145,7 +153,7 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$Sto
             foreach($file in Get-ChildItem -LiteralPath $root -Recurse -File|Where-Object{$_.Extension -in '.xlsb','.xlsm' -and $_.Name -notlike '~$*'}){$pins[$file.FullName]=Hash $file.FullName}
         }
         foreach($file in Files){$recordPins[$file]=Hash $file};$otherBefore=@(Get-Slice4beActivityFiles $Other)
-        $modes=if($YieldOnly -or $StockOnly -or $WorksheetOnly -or $WorksheetOwnerOnly){@()}else{@('Exception','Nested')}
+        $modes=if($YieldOnly -or $StockOnly -or $WorksheetOnly -or $WorksheetOwnerOnly -or $WorksheetScaleOnly){@()}else{@('Exception','Nested')}
         foreach($mode in $modes){
             foreach($action in $actions){
                 [void](Probe 'RunFaultResetFixture')
@@ -188,6 +196,7 @@ function Test-ProductionRunFault($Fixture,$Other,[switch]$YieldOnly,[switch]$Sto
         if($StockOnly){Test-ProductionRunStock $Fixture}
         if($WorksheetOnly){Test-ProductionRunWorksheet $Fixture}
         if($WorksheetOwnerOnly){Test-ProductionRunWorksheetOwner $Fixture}
+        if($WorksheetScaleOnly){Test-ProductionRunWorksheetScale $Fixture}
         [void](Probe 'RunFaultResetFixture')
         Check 'RunFault.UnknownValuesAndFormula' ($sheet.Cells.Item(1,1).Value2 -ceq 'Operator Extra' -and $sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
         $same=$true;foreach($file in $pins.Keys){$same=$same -and (Hash $file) -ceq $pins[$file]};Check 'RunFault.SavedAuthorityPreserved' $same

@@ -538,18 +538,114 @@ saved authority/operator bytes/older records, unassisted cleanup and delayed zer
 Excel audit pass. This remains a RED observation/guard suite; it does not replace
 the separate unresolved full reusable171/two-aggregate/replay37 acceptance gates.
 
+## Worksheet Apply Scale baseline and binding guard
+
+`-WorksheetScaleOnly` invokes the actual Apply Scale handler in its non-reusable
+branch, with Admin-seeded identity, supported Core staging surfaces and the real
+released reusable Recipe selector entry. After Seed, the actual Admin Settings
+save handler explicitly enables `DesignsEnabled`; the fixture verifies it before
+the action gate. No Domain return is replaced and no legacy recipe is imported.
+
+Controller `reports/runtime/production-run-local-controller/a0bf13495d7b48d7af190d3c906d556c`,
+result `reports/runtime/slice4be-production-run-worksheet-scale/d4512cf1dd82450cb31c843c662675bc/red.json`,
+2026-10-01 08:36:15.1025891--08:37:56.6499880 UTC: **120 PASS/65 FAIL/185 checks**.
+Nine cases cover no selection, nonnumeric scale, below/above bounds, unavailable
+Design/BOM at ordinary/minimum/maximum scale, missing captured Production sheet,
+and that missing sheet with an active decoy Production sheet. Sixty-three failures
+are missing observations; two prove owner retargeting to `OtherAddin` and
+`OtherWorkbook`. The decoy's custom value/formula remains unchanged in this failure
+fixture; unlike Clear's earlier defect, this run does not prove cross-workbook
+mutation. All42 shared GREEN checks, five compiles, canonical candidate pins,
+saved authority/operator bytes/unknown values/formulas/older records/settings,
+normal unassisted cleanup and delayed zero Excel audit pass.
+
+The owner queries `tblDesigns` through the released Design/BOM bridge, while the
+selected reusable Recipe is stored separately. Its real read returns no staging
+workbook. The existing Sub then returns to the caller, which still scales the
+existing named worksheet quantity columns at valid percentages. The probe retains
+those partial effects and unknown columns/exact identity. Validation refusals
+occur before owner entry, and all nine cases preserve canonical source values.
+There is no legacy fallback with the feature enabled. These facts require FAILED
+observations for owner-read failures; they neither prove a successful worksheet
+load nor authorize changing its algorithm or routing Apply Scale to a different
+owner. Positive Design/BOM rebuild and Designs-disabled branch coverage remain
+open, including D14 preservation through rebuild.
+
+Unpromoted `deploy/validation-production-run-binding-02` changes only the worksheet
+scale helper's binding line to use `modProductionRunBinding.BindWorksheetOwner`
+before `LoadRecipeChooser`. This enforces the existing captured-workbook/D18 rule.
+Selection/scale validation and prior tree-state clearing keep their original
+order; no rollback is claimed. Reusable Scale and existing owner-read/partial
+scaling algorithms are unchanged. No new operator wording is introduced.
+
+Controller `reports/runtime/production-run-local-controller/2b040a5f54db4fb3bef42eac843779ba`,
+result `reports/runtime/slice4be-production-run-worksheet-scale/8953dc1ae5c04a0d88f969d5250e8fc6/green.json`,
+2026-10-01 08:40:28.0542668--08:42:18.6581495 UTC: **122 PASS/63 FAIL/185 checks**.
+Both retargeting checks become GREEN (`NotEntered`), all120 prior PASS checks and
+all185 identities/order are retained. Five compiles, preservation, normal cleanup
+and delayed zero Excel audit pass. The file's GREEN phase name does not make the
+overall suite GREEN:63 missing-observation failures remain.
+
+Build `reports/runtime/run-binding-build-02`,2026-10-01
+08:39:20.5352629--08:39:59.1074967 UTC, passes five-package generation and independent
+cold-start compile with prebuild settings capture/restoration, prior candidate
+preservation and unassisted closure. Delayed zero Excel audit completed before
+the next gate. Compiled comparison finds only `frmProduction` changed among275
+components; all274 others and all string literals are preserved, ignoring
+identifier case. `reports/runtime/run-binding-static-02` retains282 components/
+6155 procedures/135128 lines,9 literal/45 unresolved calls and190 duplicate
+candidates, with all28 caps non-growing. Three schemas,367 tooling scripts and368
+repository PowerShell scripts validate/parse.
+
+Two fixture attempts are excluded. `1a9bdd92b7f74459b2c054fd269dd99b`
+(`slice4be-production-run-worksheet-scale/0d8ec9f2970d4f71af9a4b342a6fff97/red.json`)
+stopped before handler execution at an identifier-case-sensitive probe seam.
+`f0473c6186f24a40b64d97b7d9ab766a`
+(`slice4be-production-run-worksheet-scale/48c3a4b004d448a5a27275c3cef24340/red.json`)
+did not explicitly enable Designs; the value probe raised VBA9 while locating
+expected generated staging, and cleanup raised VBA91 after End reset adapter state.
+Two owned-dialog End actions assisted recovery. Its five compiles and restored
+settings/packages are retained only as diagnostic facts; it is not product RED,
+normal-cleanup or acceptance evidence. Both excluded runs have delayed zero Excel
+Application audits. No desktop Win32 error5 occurred during these attempts.
+
+Clear/Refresh regression on binding02: controller
+`reports/runtime/production-run-local-controller/8f792b2f6cfd430b846ea9008f049da5`,
+result `reports/runtime/slice4be-production-run-worksheet-owner/98c50450fb3242e0916aac920fb58fd3/green.json`,
+2026-10-01 08:43:04.9983186--08:44:52.4996202 UTC: **94 PASS/42 FAIL/136 checks**,
+all prior identities/order/results retained, including the five binding GREEN
+checks. Five compiles, candidate pins, saved/local/settings/older-record
+preservation, unassisted cleanup and delayed zero Excel audit pass. The42 missing
+observations remain open.
+
+Seven-control reusable regression on binding02: controller
+`reports/runtime/production-run-local-controller/0b97b78a08fe49ba9c0882853153337b`,
+result `reports/runtime/slice4be-production-run-local/1828ae7211fb4539ab8727af724f0728/red.json`,
+2026-10-01 08:46:00.8565643--08:51:31.4310662 UTC: **178 PASS/325 FAIL/503 checks**.
+All503 identities/order/results match binding01, including all33 owner cases and
+all171 historical PASS checks. Seven native-close receipts retain four invoked
+handlers and three dismissed surfaces. All42 shared checks, five compiles,
+canonical binding02 pins, preservation, normal unassisted closure and delayed
+zero Excel Application audit pass. The325 tracking/guard failures remain open;
+this is not the separate full reusable171/two-aggregate/replay37 acceptance gate.
+
 ## Remaining gates
 
 Preserve the seven worksheet-owner cases and the five binding GREEN checks through
-Run handler integration. Worksheet Scale tests must distinguish quiet helper return
+Run handler integration, together with the185 Scale checks and two binding GREEN
+checks. Positive worksheet Scale tests must distinguish quiet helper return
 from successful owner completion: `mProduction.LoadRecipeChooser` is a Sub,
-and the scale branch subsequently scales/prepares local tables. That helper reads
-the released Design/BOM bridge, while the reusable Run loader reads released
-Recipe graphs and Process versions. This source audit does not establish a
-runtime compatibility defect or authorize changing either algorithm. Protect
-D14 unknown columns around generated-table rebuild and D15's no-fallback rule
-through actual handlers before proposing any repair. A missing fixture or modal
-test setup failure is not behavioral RED.
+and the scale branch subsequently scales/prepares local tables. Actual-handler
+evidence confirms that helper queries the Design/BOM bridge (`tblDesigns`) for a
+selection supplied by the released reusable Recipe selector. D15 requires only
+released Process/Recipe projections with Designs enabled; D18's instruction to
+preserve the non-reusable branch must not be interpreted as waiving that rule.
+This authority mismatch needs explicit reconciliation before owner-routing work.
+Do not create a matching legacy Design merely to make the modern Recipe fixture
+pass. Record a normative clarification/decision and synchronize Plan022/Controls
+before any changed contract; until then preserve the guarded branch and report
+its observed failure honestly. D14 preservation through a successful rebuild is
+still unproven. Missing fixtures and modal setup failures are not behavioral RED.
 
 Load Recipe itself always calls the released reusable loader; the worksheet
 reload helper is reached by non-reusable Apply Scale. Do not invent a separate

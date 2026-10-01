@@ -3960,7 +3960,7 @@ Private Sub LoadSelectedRecipeIntoLoader()
         Exit Sub
     End If
     If Not mRunTreeCollapsed Is Nothing Then mRunTreeCollapsed.RemoveAll
-    BindOperatorWorkbookForRun
+    If Not modProductionRunBinding.BindWorksheetOwner(mOperatorWorkbook) Then Exit Sub
     mProduction.LoadRecipeChooser NzStr(mLstLoaderRecipes.List(idx, 0))
     If Not ApplyBatchScaleToRunList(scalePercent, scaleReport) Then
         ShowStatus scaleReport
