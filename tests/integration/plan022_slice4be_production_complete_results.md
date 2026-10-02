@@ -45,8 +45,35 @@ explicitly accounting for owner-only binding; form and reusable-owner line count
 are unchanged. Three schemas/378 PowerShell parses pass. This introduces no
 oversized-cap or dynamic-call exception. Raw reports/packages/captures stay ignored.
 
-New-candidate Check In and broader regression gates are pending. Closed-workbook
-entry, reentrancy, post-submission interruptions, exact partial-write facts and
+On this unchanged candidate, Check In passes629/629, preserving every prior
+ordered identity/PASS result: controller
+`production-run-local-controller/c63ad36fa0f4454993b148872252e1ff`, result
+`slice4be-production-check-in-activity/daa7ac04b75c4d8e934c29c14bd53a7b/green.json`,
+00:54:29.8284785-01:11:15.0043695 UTC. Shared42/five compiles, canonical pins,
+settings restoration, unassisted shutdown and delayed zero native audit pass.
+The controller was retained through the slow Excel shutdown. Captures were
+regenerated but not additionally reviewed in this regression.
+
+Packaged smoke passes86/86 with every prior ordered PASS retained under
+`complete-continuation01-regression/smoke-66c889c53cf94d2aa761a2fe61bfb1a4`,
+01:11:42.3850940-01:12:04.7438626 UTC. Both unassisted exits, canonical pins,
+settings/tracked-report restoration and delayed zero native audit pass.
+Layout under `complete-continuation01-regression/layout-21746bdeeb664d35858f57e0f261734e`,
+01:12:27.6954647-01:12:44.5549188 UTC, retains18 requested size/page pairs,
+six activated/maximized pages, five native transitions and two actual sizes.
+All six PNGs match the previously reviewed binding01/selection01 captures byte
+for byte; the ignored capture-review record retains the hash linkage. Geometry,
+settings/pins, natural closure and delayed zero native audit pass. These empty
+Run List/Settings views do not establish populated scrolling or multiline acceptance.
+
+Full-chain32/32, live-role48/48 and warehouse creation15/15 pass under
+`complete-continuation01-regression/chain-755bd4cf22cc4dc3bb7ceb9572624592`,
+01:13:02.8042493-01:18:13.6250998 UTC. Every prior ordered PASS result is retained;
+settings/tracked reports are restored, candidate pins preserved, Excel closed
+and the delayed native audit is zero. These are evidence-only regressions on
+the frozen continuation01 candidate, with no additional runtime change or RED.
+
+Closed-workbook entry, reentrancy, post-submission interruptions, exact partial-write facts and
 Complete Run observations remain open. Worksheet yield checks are implemented,
 but these six interruption cases exercise the reusable branch only. This focused
 correction is not full Complete Run or Slice4be acceptance.
