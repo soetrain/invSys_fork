@@ -1,6 +1,7 @@
 # D15 selected-Process and D18 captured-binding owner boundaries, before tracking.
 # Unsaved probes observe real owners; the operator callback remains unchanged.
 . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteInterruptions.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionCompleteEntry.ps1')
 function Install-ProductionCompleteBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $owner=$project.VBComponents.Item('modProductionReusableRun').CodeModule
@@ -236,6 +237,7 @@ Public Function CompleteBaselineMultiStage() As String
 End Function
 '@)
     Install-ProductionCompleteInterruptionProbe
+    Install-ProductionCompleteEntryProbe
 }
 
 function Test-ProductionCompleteBaseline($Fixture,$Other) {
@@ -316,6 +318,7 @@ function Test-ProductionCompleteBaseline($Fixture,$Other) {
             Check ($label+'.DecoyPreserved') ($decoySheet.Cells.Item(1,1).Value2 -ceq $canary -and $decoy.Worksheets.Count -eq 1)
         }
         Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary
+        Test-ProductionCompleteEntry $Fixture $book $decoy $canary
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
         Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

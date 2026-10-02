@@ -1,5 +1,44 @@
 # Slice 4be Production Complete Run
 
+## D18 loading and nested completion entry RED
+
+Architecture's Complete Run action-entry clarification constrains existing D18
+semantics: loading/busy/nested callbacks are not independent completion attempts.
+The test invokes the actual `mBtnManagerApplyOutput_Click` with loading/busy flags
+and recursively at the real reusable pending UI yield. Unsaved probes count actual
+handler entries and completion-owner entries before any guard, snapshot the state/
+projection/message around nested entry, and read real exact inventory balances.
+No owner, writer, processor or inventory-read result is replaced.
+
+On unchanged `validation-production-complete-continuation-01`, RED is169 PASS/
+16 FAIL/185 unique checks, retaining all150 prior ordered PASS results. Controller
+`production-run-local-controller/7788fc7a77614871ac8247a5dc9882c8`, result
+`slice4be-production-complete-baseline/0113a18ce8614b518e09481b2efe9198/red.json`,
+2026-10-02 01:21:43.1783392-01:34:15.1829016 UTC. Loading fails six checks: its
+flag is not restored, the owner is entered, staging/projection/message change and
+exact inputs are consumed. Busy entry fails the same five effect checks while
+preserving its flag. The recursive case reaches two real handler entries and
+two completion-owner entries; nested owner/projection/message preservation,
+single owner entry and the final success message fail. Input is consumed once
+and a fresh output with the expected quantity exists; duplicate consumption is
+not claimed. The outer call overwrites completion success with a Check In refusal.
+
+Shared42/five instrumented compiles, canonical pins, settings restoration, natural
+unassisted closure and delayed zero native audit pass. Captured-workbook custom
+value/formula, saved bytes, decoy and other warehouse are preserved. All three new
+captures were individually reviewed: loading/busy visibly complete, while nested
+entry shows completed rows/output and the contradictory Check In refusal. Other
+regenerated captures were not additionally reviewed; long field clipping remains.
+
+`complete-entry-red-static-01` retains290 components/6176 procedures/135530 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged oversized
+caps. Three schemas and379 PowerShell parses pass. No runtime correction, GREEN
+or observation integration is claimed. Next is a typed completion entry guard
+that suppresses loading/busy/nested work, holds the outer busy state across yields
+and restores prior flags without swallowing errors, followed by packaged GREEN.
+The current new cases prove normal-return guard behavior only; forced-exception
+restoration, closed-workbook entry and partial-submission facts still need evidence.
+
 ## D18 and D-NAS interruption correction
 
 The correction enforces the existing captured-context and Core capability rules.
