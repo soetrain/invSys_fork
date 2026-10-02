@@ -45,7 +45,7 @@ The subsequent error/recovery expansion and new-candidate Check In regression
 are recorded below. Same-candidate smoke/layout pass below; live-role/full-chain
 also pass after the focused stage-exit tooling correction below. Earlier native
 failures remain preserved; their cause is not established by the later success.
-Closed-workbook entry, worksheet interruption, partial-submission facts and
+Reusable closed-workbook coverage passes below. Worksheet interruption, partial-submission facts and
 observations remain open; the tested cases do not prove every exit or full
 Slice4be acceptance.
 
@@ -248,6 +248,40 @@ current candidate's chain gate after the tooling correction; it does not prove
 that stage overlap caused either earlier native crash or establish Slice4be
 acceptance. Resume the remaining Complete Run closure/interruption/submission
 and observation coverage rather than repeating this passing chain unchanged.
+
+## Native captured-workbook closure verification
+
+The unchanged entry02 packages pass258/258, retaining all206 prior ordered checks,
+including shared42 and five instrumented compiles. Controller
+`production-run-local-controller/9f7cf60d4d554fa8a4239d77737b42fe` runs
+2026-10-02 03:10:09.7916836-03:24:41.7370957 UTC; result root is
+`slice4be-production-complete-baseline/12d6b22d19c04b7ab87d6828cc3689af`.
+The52 new assertions exercise native close at entry, CompletePending,
+AvailableQuantity and EntityKind through the actual Complete Run Click handler.
+
+At entry, the native form survives closure; one real click returns the existing
+captured-context refusal. Its new capture was reviewed. In all three in-action
+closures, the native form is dismissed after the already-running handler returns.
+Each case has exactly one handler entry, zero later reads and zero form
+reinitializations. Dismissed controls are not queried or recreated. Owner state,
+exact input balances, saved operator bytes and the unrelated workbook are
+preserved, with no new or redirected activity. Surviving-control assertions are
+conditional on the native window remaining available; they are not claims about
+dismissed controls. Populated field clipping and multiline acceptance remain open.
+
+Settings and all five package pins are preserved, Excel closes without assistance,
+and the delayed native audit is zero. Both overlapping desktop monitors covering
+the run finish with398 samples each and no cursor/desktop/capture failures. The
+usage interruption delayed independent receipt verification until14:17 UTC; it
+did not require restarting the test or forcing cleanup.
+
+`complete-closed-static-01` preserves291 components/6177 procedures/135555 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged caps.
+Three schemas and381 PowerShell parses pass. This is test-only evidence under
+existing D18; no product RED, runtime fix, package rebuild or new contract is
+claimed. Worksheet completion/interruption, partial-submission facts and Complete
+Run observations remain open. Existing same-package smoke/layout/chain evidence
+is retained without repeating unchanged gates.
 
 ## D18 loading and nested completion entry RED
 
