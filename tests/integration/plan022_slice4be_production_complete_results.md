@@ -1,5 +1,48 @@
 # Slice 4be Production Complete Run
 
+## D18 and D-NAS completion interruption RED
+
+The initial binding correction below does not protect later yielding boundaries.
+D18 requires captured-context integrity; D-NAS requires current Core capability
+checks for operator writes. Test-only expansion on unchanged complete-binding01
+adds six interruptions: sign-out or revocation of the fixture producer's PROD_POST
+capability after the real reusable `ShowPersistencePending` return, or after real
+`AvailableQuantity`/`EntityKind` Domain reads. Existing Check In interruption
+adapters apply and verify each interruption; no completion owner, writer, processor
+or read result is replaced. The permission fixture remains signed in with the same
+captured context, isolating capability loss from sign-out.
+
+RED is126 PASS/24 FAIL/150 unique checks, retaining all89 prior ordered PASS
+results and adding61 checks. Controller
+`production-run-local-controller/a8222d8687a14df09841cac385806c46`, result
+`slice4be-production-complete-baseline/c3dad397684c435592a5e9d47440b1d9/red.json`,
+2026-10-02 00:21:56.3359746-00:30:16.3881465 UTC. Each interruption reaches its
+real boundary. At the pending UI yield, both interruption types still enter the
+owner and perform later reads. After AvailableQuantity they still perform later
+reads. All six cases alter owner staging and its displayed projection, then show
+writer refusal instead of the boundary context/permission refusal. Exact input
+balances remain unchanged in all six cases; no inventory-consumption failure is
+claimed here. Disposable authorization bytes are restored, and operator bytes,
+custom value/formula, decoy and other-warehouse pins are preserved.
+
+Shared42/five instrumented compiles, canonical package pins, settings restoration,
+unassisted closure and delayed zero native audit pass. All six new interruption
+captures were individually reviewed; long field clipping remains. Other
+regenerated captures were not additionally reviewed. `complete-yield-red-static-01`
+retains290 components/6175 procedures/135521 lines,9 literal/45 unresolved calls,
+190 duplicate candidates and28 non-growing caps; three schemas/378 PowerShell
+parses pass. A test-comment reference was corrected from D5 to D-NAS without
+changing test behavior; D5 governs Config commands specifically.
+
+No runtime correction or GREEN is claimed for this expansion. Source review
+identifies the missing continuation: the form yields before owner entry, and
+`CompleteReusableProcess` calls `CheckInReusableProcess` without its existing
+optional captured-action parameter. Next is to carry the existing context/Core
+permission checks through those boundaries, preserving owner state at interruption.
+This constrains existing rules and adds no activity ID, observation contract,
+authority store, permission, automatic retry or rollback claim. Closed-workbook
+entry, reentrancy, later partial submissions and complete tracking remain open.
+
 ## D18 captured binding at completion entry
 
 D18 requires each action to check its captured warehouse, invSys session and role
@@ -54,7 +97,13 @@ the exact hash linkage. Geometry remains unchanged. Both gates preserve packages
 restore settings/tracked reports, close Excel and pass delayed zero native audits.
 These empty-form views do not prove populated scrolling or multiline acceptance.
 
-New-hash live-role/full-chain and Check In regressions, closed-workbook entry and
+New-hash full-chain also passes32/32, live-role48/48 and warehouse creation15/15,
+retaining every prior ordered PASS result: controller
+`complete-binding01-regression/chain-3c500425e8ee410c83e965fa4b1737a7`,
+2026-10-02 00:16:12.1291833-00:21:37.0738826 UTC. Settings and tracked reports are
+restored, packages preserved, Excel closed and delayed native failures zero.
+
+New-hash Check In regression, closed-workbook entry and
 changes during yields, partial submissions, observation integration, populated
 scrolling and full human/NAS acceptance remain open. Earlier complete-selection01
 evidence below applies to that older candidate; it is not substituted for new-hash evidence.
