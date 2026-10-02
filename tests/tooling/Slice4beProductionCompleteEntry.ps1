@@ -12,6 +12,7 @@ function Install-ProductionCompleteEntryProbe {
     if($hits.Count -ne 1){throw 'Completion pending-yield anchor changed; not product RED.'}
     $form.InsertLines($hits[0]+1,'    TestProductionDesigner.CompleteEntryPending')
     $form.InsertLines(1,'Private mCompleteEntryGuardsRestored As Boolean')
+    $form.InsertLines(1,'Private mCompleteFaultError As Boolean, mCompleteFaultGuards As Boolean')
     $form.AddFromString(@'
 Public Function CompleteEntryActForTest(ByVal guard As String) As Boolean
     Dim priorLoading As Boolean, priorBusy As Boolean, entryLoading As Boolean, entryBusy As Boolean
@@ -40,24 +41,50 @@ Public Function CompleteEntrySuccessMessageForTest() As Boolean
     CompleteEntrySuccessMessageForTest = _
         InStr(1, mTxtStatus.Text, "Production batch completed and persisted.", vbBinaryCompare) = 1
 End Function
+Public Function CompleteEntryFaultForTest() As Boolean
+    On Error GoTo Failed
+    mCompleteFaultError = False: mCompleteFaultGuards = False
+    mBtnManagerApplyOutput_Click
+    Exit Function
+Failed:
+    mCompleteFaultError = Err.Number = vbObjectError + 17664 And _
+        Err.Source = "invSys.CompleteEntryTest" And Err.Description = "Complete entry forced error." And _
+        Err.HelpFile = "invsys-complete-entry-test.chm" And Err.HelpContext = 42
+    mCompleteFaultGuards = Not mLoading And Not mDesignerActionInProgress
+    CompleteEntryFaultForTest = mCompleteFaultError
+End Function
+Public Function CompleteEntryFaultGuardsForTest() As Boolean
+    CompleteEntryFaultGuardsForTest = mCompleteFaultGuards
+End Function
 '@)
     $adapter=$project.VBComponents.Item('TestProductionDesigner').CodeModule
     $adapter.InsertLines(1,@'
 Private mCompleteEntryCount As Long, mCompleteEntryArm As Boolean, mCompleteEntryReached As Boolean
 Private mCompleteEntryNestedReturn As Boolean, mCompleteEntryOwnerSame As Boolean
 Private mCompleteEntryProjectionSame As Boolean, mCompleteEntryMessageSame As Boolean
+Private mCompleteFaultArm As Boolean, mCompleteFaultReached As Boolean
+Private mCompleteFaultOwner As String, mCompleteFaultProjection As String, mCompleteFaultStatus As String
 '@)
     $adapter.AddFromString(@'
 Public Sub CompleteEntryReset(ByVal nested As Boolean)
     mCompleteEntryCount = 0: mCompleteEntryArm = nested: mCompleteEntryReached = False
     mCompleteEntryNestedReturn = False: mCompleteEntryOwnerSame = False
     mCompleteEntryProjectionSame = False: mCompleteEntryMessageSame = False
+    mCompleteFaultArm = False: mCompleteFaultReached = False
+    mCompleteFaultOwner = "": mCompleteFaultProjection = "": mCompleteFaultStatus = ""
 End Sub
 Public Sub CompleteEntryHit()
     mCompleteEntryCount = mCompleteEntryCount + 1
 End Sub
 Public Sub CompleteEntryPending()
     Dim ownerState As String, projection As String, status As String
+    If mCompleteFaultArm Then
+        mCompleteFaultArm = False: mCompleteFaultReached = True
+        mCompleteFaultOwner = modProductionReusableRun.RunLocalStateForTest()
+        mCompleteFaultProjection = mForm.CheckYieldProjectionForTest(): mCompleteFaultStatus = mForm.TestStatusText()
+        Err.Raise vbObjectError + 17664, "invSys.CompleteEntryTest", _
+            "Complete entry forced error.", "invsys-complete-entry-test.chm", 42
+    End If
     If Not mCompleteEntryArm Then Exit Sub
     mCompleteEntryArm = False: mCompleteEntryReached = True
     ownerState = modProductionReusableRun.RunLocalStateForTest()
@@ -88,6 +115,22 @@ Public Function CompleteEntryFact(ByVal fact As String) As Boolean
         Case "MessageSame": CompleteEntryFact = mCompleteEntryMessageSame
         Case "GuardsRestored": CompleteEntryFact = mForm.CompleteEntryGuardsForTest()
         Case "SuccessMessage": CompleteEntryFact = mForm.CompleteEntrySuccessMessageForTest()
+    End Select
+End Function
+Public Sub CompleteEntryArmFault()
+    CompleteEntryReset False
+    mCompleteFaultArm = True
+End Sub
+Public Function CompleteEntryFaultAct() As Boolean
+    CompleteEntryFaultAct = mForm.CompleteEntryFaultForTest()
+End Function
+Public Function CompleteEntryFaultFact(ByVal fact As String) As Boolean
+    Select Case fact
+        Case "Reached": CompleteEntryFaultFact = mCompleteFaultReached
+        Case "GuardsRestored": CompleteEntryFaultFact = mForm.CompleteEntryFaultGuardsForTest()
+        Case "OwnerSame": CompleteEntryFaultFact = (modProductionReusableRun.RunLocalStateForTest() = mCompleteFaultOwner)
+        Case "ProjectionSame": CompleteEntryFaultFact = (mForm.CheckYieldProjectionForTest() = mCompleteFaultProjection)
+        Case "MessageSame": CompleteEntryFaultFact = (mForm.TestStatusText() = mCompleteFaultStatus)
     End Select
 End Function
 '@)
@@ -128,4 +171,33 @@ function Test-ProductionCompleteEntry($Fixture,$Book,$Decoy,[string]$Canary){
         CaptureOwnedFormByCaptionEvidence 'Production' ('complete-entry-'+$mode.ToLowerInvariant()+'.png')
         [void](Probe 'CompleteEntryReset' @($false))
     }
+    [void](Probe 'CheckYieldReset')
+    SelectTarget $Fixture 'config-producer'
+    [void](Probe 'RunLocalReopen' @($Book.Name))
+    if(-not [bool](Probe 'CompleteBaselinePrepare' @($true))){throw 'Completion fault prerequisite unavailable; not product RED.'}
+    [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
+    [void](Probe 'CompleteEntryArmFault')
+    Check 'CompleteEntry.Fault.OriginalErrorEscapes' ([bool](Probe 'CompleteEntryFaultAct'))
+    Check 'CompleteEntry.Fault.ActualHandlerEntry' ([int](Probe 'CompleteEntryCount') -eq 1)
+    foreach($fact in @('Reached','GuardsRestored','OwnerSame','ProjectionSame','MessageSame')){
+        Check ('CompleteEntry.Fault.'+$fact) ([bool](Probe 'CompleteEntryFaultFact' @($fact)))
+    }
+    Check 'CompleteEntry.Fault.NoCompletionOwnerEntered' ([string](Probe 'CompleteBaselineOwners') -ceq '0|0')
+    Check 'CompleteEntry.Fault.ExactInputBalancesPreserved' ([bool](Owner 'CompleteBaselineBalancesForTest' @($false)))
+    Check 'CompleteEntry.Fault.CapturedBookCustomValueAndFormula' ($sheet.Cells.Item(2,1).Value2 -ceq $Canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
+    Check 'CompleteEntry.Fault.DecoyPreserved' ($decoySheet.Cells.Item(1,1).Value2 -ceq $Canary -and $Decoy.Worksheets.Count -eq 1)
+    CaptureOwnedFormByCaptionEvidence 'Production' 'complete-entry-fault.png'
+    # A separate delivered click, without reopening or resetting any production flags.
+    Check 'CompleteEntry.Recovery.ActualHandlerReturned' ([bool](Probe 'CompleteEntryAct' @('')))
+    Check 'CompleteEntry.Recovery.SeparateHandlerEntry' ([int](Probe 'CompleteEntryCount') -eq 2)
+    Check 'CompleteEntry.Recovery.OnlyOneCompletionOwnerEntered' ([string](Probe 'CompleteBaselineOwners') -ceq '1|0')
+    Check 'CompleteEntry.Recovery.ProcessAndBatchCompleted' ([bool](Probe 'CompleteBaselineCompleted'))
+    Check 'CompleteEntry.Recovery.ExactAllocatedEntitiesConsumedOnce' ([bool](Owner 'CompleteBaselineBalancesForTest' @($true)))
+    Check 'CompleteEntry.Recovery.FreshOutputEntityQuantity' ([bool](Owner 'CompleteBaselineOutputForTest'))
+    Check 'CompleteEntry.Recovery.SuccessMessage' ([bool](Probe 'CompleteEntryFact' @('SuccessMessage')))
+    Check 'CompleteEntry.Recovery.GuardsRestored' ([bool](Probe 'CompleteEntryFact' @('GuardsRestored')))
+    Check 'CompleteEntry.Recovery.CapturedBookCustomValueAndFormula' ($sheet.Cells.Item(2,1).Value2 -ceq $Canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
+    Check 'CompleteEntry.Recovery.DecoyPreserved' ($decoySheet.Cells.Item(1,1).Value2 -ceq $Canary -and $Decoy.Worksheets.Count -eq 1)
+    CaptureOwnedFormByCaptionEvidence 'Production' 'complete-entry-recovery.png'
+    [void](Probe 'CompleteEntryReset' @($false))
 }

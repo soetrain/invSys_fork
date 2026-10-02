@@ -41,10 +41,86 @@ oversized caps,9 literal/45 unresolved calls and190 duplicate candidates are
 unchanged. Three schemas/379 parses pass. This accounts for the new entry helper;
 there is no oversized-cap or dynamic-call exception.
 
-New-candidate Check In/smoke/layout/live-role/full-chain gates remain pending.
-Forced-exception restoration, closed-workbook entry, worksheet interruption,
-partial-submission facts and observations remain open. The tested entry cases are
-reusable normal-return paths, not proof of every exit or full Slice4be acceptance.
+The subsequent error/recovery expansion and new-candidate Check In regression
+are recorded below. Same-candidate smoke/layout pass below; live-role/full-chain
+acceptance is blocked by the preserved native-crash evidence below.
+Closed-workbook entry, worksheet interruption, partial-submission facts and
+observations remain open; the tested cases do not prove every exit or full
+Slice4be acceptance.
+
+## Entry error restoration and explicit recovery
+
+On unchanged entry02, a test-only expansion raises a fixed error at the real
+reusable pending UI yield through the actual Complete Run handler. The caller
+checks all five original error fields and observes restored loading/busy flags
+before fixture cleanup. Owner state, displayed projection and message are compared
+at that boundary; prior staging is not claimed to roll back. No completion owner
+is entered and exact input balances remain unchanged. A separate actual-handler
+click then completes once, with fresh output and success, without reopening the
+form or resetting production flags before delivery. This adds 21 checks without
+changing runtime or claiming a new product RED.
+
+GREEN is206/206, preserving all185 prior ordered PASS results: controller
+`production-run-local-controller/8edff1e8e31345cbab31712a58a986a1`, result
+`slice4be-production-complete-baseline/31cd319dcee44bb2abca813ebecfe8f0/green.json`,
+2026-10-02 02:09:33.7330157-02:21:27.6784245 UTC. Shared42/five compiles, package/
+settings preservation, normal unassisted closure and delayed zero native audit
+pass. Both new captures were individually reviewed: the injected fault retains
+READY rows and the pending saving message; the subsequent click shows COMPLETE
+rows and success. The test adapter catches the original error; this does not
+prove new operator-facing error presentation. Other regenerated captures were
+not additionally reviewed. Long field clipping remains unresolved.
+
+`complete-entry-fault-static-01` preserves291 components/6177 procedures/135555
+lines,9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged caps;
+three schemas and379 PowerShell parses pass. There is no runtime growth.
+
+Check In also passes629/629 on entry02, preserving all629 prior ordered PASS
+results: controller `production-run-local-controller/f2e362fb8a8b47ffba0b1f4b1034a5d0`,
+result `slice4be-production-check-in-activity/790cdede229940e299bb9c62e35e08fb/green.json`,
+01:52:03.3196997-02:09:07.4274392 UTC. Shared42/five compiles, canonical pins,
+settings restoration, normal unassisted closure and delayed zero native audit
+pass. Its captures were regenerated but not additionally reviewed. Controllers
+were retained through slow responsive Excel cleanup; desktop error5 was not
+observed. Same-candidate smoke/layout pass below; the chain subsequently failed
+with a native Excel crash. Full acceptance remains pending.
+
+## Entry02 packaged regressions
+
+Packaged smoke passes86/86 with exact prior ordered results, both unassisted
+Excel exits, canonical package pins, restored settings/tracked reports and a
+delayed zero native audit: `complete-entry02-regression/smoke-49febf96c67144ccb8d3b87ff5eed634`,
+2026-10-02 02:21:50.5854110-02:22:13.1182464 UTC.
+
+Layout retains all18 requested size/page pairs across six activated/maximized
+pages, five native transitions and two actual sizes, with unchanged representative
+geometry: `complete-entry02-regression/layout-a3d52668f9bc44ea8c2f1a702a9c0383`,
+02:23:02.3954611-02:23:19.2601835 UTC. All six PNGs are byte-identical to the
+previously reviewed continuation01 captures; `visual-comparison.json` records
+the hash linkage. Preservation, natural shutdown and delayed zero audit pass.
+These empty Run List/Settings images do not establish populated-list or multiline
+acceptance.
+
+The chain failed, not GREEN: `complete-entry02-regression/chain-220ba60d60da4ccba3da2e56b7cbdad1`,
+02:23:41.9299813-02:32:14.8377131 UTC. Warehouse creation passes15/15; live-role
+records32 PASS/1 Harness.Exception and the chain records5 PASS/1 Harness.Exception.
+Production's form Check In and completion checks pass before the failure at
+`Delete and rebuild canonical inventory projections`,
+`modProcessor.RunBatchReportForAutomation`, HRESULT `0x800706BE`.
+
+Application1000 records an Excel crash at02:25:24.3295609 UTC in `ntdll.dll`,
+exception `c0000028`, offset `0000000000012d2f`; Application1001 at02:25:31.6699393
+reports `OFFICE_MODULE_VERSION_MISMATCH`. These are two records for native failure,
+not product RED or desktop error5. Excel restarted and reopened ten test-fixture
+workbooks. After verifying their process identity and fixture-only paths, they
+were closed without save; their saved bytes remained identical. The parent
+controllers were retained and restored settings and tracked reports. All five
+package pins are preserved and Excel is closed. The delayed native audit confirms
+two events; `failure-verification.json` and `assisted-recovery-closure.json`
+explicitly reject unassisted/full-chain acceptance. The source of the native crash
+is unresolved; no blind retry or claim that the completion helper caused it is
+made. Investigate this boundary before a new chain attempt. Prior continuation01
+chain results do not establish entry02 acceptance.
 
 ## D18 loading and nested completion entry RED
 
