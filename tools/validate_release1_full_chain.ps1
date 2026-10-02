@@ -888,6 +888,8 @@ try {
     New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
     Invoke-AdminEntryGate
+    # Quit can return before the Admin Excel process exits. Keep stages serial.
+    Wait-RecordingCleanup -Creator $null -Worker $null
 
     $createWarehouse = Invoke-RepositoryScript `
         -Path (Join-Path $repo "tools/run_create_warehouse_integration.ps1") `

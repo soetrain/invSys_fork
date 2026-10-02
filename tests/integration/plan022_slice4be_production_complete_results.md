@@ -43,7 +43,8 @@ there is no oversized-cap or dynamic-call exception.
 
 The subsequent error/recovery expansion and new-candidate Check In regression
 are recorded below. Same-candidate smoke/layout pass below; live-role/full-chain
-acceptance is blocked by the preserved native-crash evidence below.
+also pass after the focused stage-exit tooling correction below. Earlier native
+failures remain preserved; their cause is not established by the later success.
 Closed-workbook entry, worksheet interruption, partial-submission facts and
 observations remain open; the tested cases do not prove every exit or full
 Slice4be acceptance.
@@ -188,6 +189,65 @@ delete assertions or infer full-chain success from the standalone48 result.
 9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged oversized
 caps. Three schemas and all379 PowerShell parses pass. The only diagnostic code
 change is the Full option; no runtime package rebuild or product fix is claimed.
+
+## Chain setup lifetime and focused stage-exit correction
+
+The diagnostic gains optional None/Admin/Source/Chain setup using the actual
+chain helpers. It records fixed lifecycle/process metadata and check identities,
+omits helper result details, preserves the source report bytes, and retains the
+private settings snapshot through cleanup. The first immediate-exit calibration,
+`projection-live-control/d3b046a427bd4ed68537d75fe23eb7e6`, passes all three Admin
+checks but stops before source/live stages because Admin Excel remains just after
+Quit. It exits naturally during cleanup; settings/packages and delayed zero native
+audit pass. This calibration is not product RED or evidence of a stuck process.
+
+The diagnostic then observes up to30 seconds of natural stage exit. With both
+actual setup stages, `projection-live-control/d60f570110ac45279e2fe3bfd78d9949`
+passes Admin3, source15 and all48 prior ordered live-role checks. Start02:53:21.1969840,
+audit02:56:09.2722742 UTC on2026-10-02. Admin's first residual-process observation
+is02:53:33.9338532; exit is observed02:53:39.7687459. The source-stage residual
+exits between02:54:01.1354027 and02:54:01.6604680. No Excel remains before live
+actions. All source/live report bytes, settings and package pins are preserved;
+normal shutdown and delayed zero native audit pass. The diagnostic's waits differ
+from the original chain; this is not an established native-crash cause.
+
+`Test-Slice4beChainStageExit.ps1` protects the actual canonical chain prefix up to
+the source-stage assignment. It extracts the unchanged Admin helper and original
+top-level statements, runs the real packaged entry, then observes process exit
+before any source integration begins. On the unmodified chain, root
+`chain-stage-exit/ca1b6de2b4f64374a9808c98f7cd066d` records tooling RED3 PASS/1
+expected FAIL,02:57:39.1641275-02:58:08.9217051 UTC. Generation, seeding and canonical
+inventory creation pass; `AdminEntry.ExcelExitedBeforeSource` fails with one
+remaining Excel process. It exits naturally during cleanup, and settings/packages
+and the delayed native audit are clean. This is meaningful stage-lifetime evidence,
+not a product behavioral RED or a claimed reproduction of the native crash.
+
+The canonical chain now calls the existing `Wait-RecordingCleanup` immediately
+after `Invoke-AdminEntryGate`, before source integration. No product, package,
+business phase, assertion, permission or architectural contract changes. Focused
+GREEN retains the same four identities and passes4/4:
+`chain-stage-exit/9c31850834294664b1523d31ddd26288`,02:58:30.9933277-
+02:59:00.5136621 UTC. No Excel remains at the observed boundary; normal closure,
+settings/package preservation and delayed zero native audit pass. The changed
+chain's full validation is recorded below; the earlier native failures remain
+preserved and unexplained.
+
+`chain-stage-exit-static-01` retains291 components/6177 procedures/135555 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged caps.
+Three schemas and380 PowerShell parses pass, including the new focused harness.
+There is no runtime-source growth or package rebuild in this tooling correction.
+
+The unchanged entry02 packages then pass the corrected full chain:
+`complete-entry02-regression/chain-a98044117e04412d98d6d30a403bc752`,
+2026-10-02 02:59:19.1108119-03:04:59.7629941 UTC. All32 chain,48 live-role and15
+warehouse checks pass with exact prior ordered identities preserved. The later
+restart/runtime-evidence/static stages are reached. Excel closes without
+assistance, settings and all three tracked reports are restored, all five package
+pins remain unchanged, and the delayed native audit is zero. This verifies the
+current candidate's chain gate after the tooling correction; it does not prove
+that stage overlap caused either earlier native crash or establish Slice4be
+acceptance. Resume the remaining Complete Run closure/interruption/submission
+and observation coverage rather than repeating this passing chain unchanged.
 
 ## D18 loading and nested completion entry RED
 

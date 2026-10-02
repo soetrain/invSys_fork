@@ -2,6 +2,7 @@
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-settings-diagnostic',
       [ValidateSet('BeforeProjection','AfterProjection','Full')][string]$Cut='AfterProjection',
+      [ValidateSet('None','Admin','Source','Chain')][string]$Setup='None',
       [string]$PackagePinsPath='reports/runtime/settings-diagnostic-package-pins.json',
       [switch]$TraceBoundaries)
 $ErrorActionPreference='Stop'
@@ -104,9 +105,61 @@ $tracked=Join-Path $repo 'tests/unit/phase6_live_role_workflow_results.md'
 $trackedHash=(Get-FileHash -LiteralPath $tracked).Hash
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
+$setupChecks=[Collections.Generic.List[object]]::new()
+$setupReport=Join-Path $repo 'tests/integration/create-warehouse-results.md'
+$setupReportBytes=$null
+if($Setup -cin @('Source','Chain')){$setupReportBytes=[IO.File]::ReadAllBytes($setupReport)}
+function Write-SetupProcesses([string]$Stage){
+    $deadline=[DateTimeOffset]::UtcNow.AddSeconds(30);$first=$true
+    do{
+        $processes=@(Get-Process EXCEL -ErrorAction SilentlyContinue|ForEach-Object{
+            [pscustomobject]@{Id=$_.Id;StartUTC=$_.StartTime.ToUniversalTime().ToString('o');Responding=$_.Responding}
+        })
+        if($first -or -not $processes.Count){
+            [pscustomobject]@{Stage=$Stage;UTC=[DateTimeOffset]::UtcNow.ToString('o');Excel=$processes;InitialObservation=$first}|
+                ConvertTo-Json -Depth 4 -Compress|Add-Content (Join-Path $root 'setup-lifecycle.jsonl')
+        }
+        if(-not $processes.Count){return}
+        $first=$false;Start-Sleep -Milliseconds 500
+    }while([DateTimeOffset]::UtcNow -lt $deadline)
+    throw 'Setup Excel remains after the observation limit; diagnostic only.'
+}
+function Add-Result([string]$Check,[bool]$Passed,[string]$Detail){
+    # The original Admin helper supplies details; never retain their values.
+    $setupChecks.Add([pscustomobject]@{Check=$Check;Passed=$Passed})
+    $setupChecks.ToArray()|ConvertTo-Json|Set-Content (Join-Path $root 'setup-checks.json')
+}
+function Restore-SetupReport {
+    if($null -eq $setupReportBytes){return $true}
+    [IO.File]::WriteAllBytes($setupReport,$setupReportBytes)
+    return [Convert]::ToBase64String([IO.File]::ReadAllBytes($setupReport)) -ceq [Convert]::ToBase64String($setupReportBytes)
+}
 $child=$null;$restored=$false;$start=[DateTimeOffset]::UtcNow
-[pscustomobject]@{Cut=$Cut;TraceBoundaries=[bool]$TraceBoundaries;StartUTC=$start.ToString('o');GeneratedHash=(Get-FileHash -LiteralPath $generated).Hash;ChainHash=(Get-FileHash -LiteralPath $chain).Hash;LiveHash=(Get-FileHash -LiteralPath (Join-Path $repo 'tools/validate_phase6_live_role_workflows.ps1')).Hash;PackagePinsHash=(Get-FileHash -LiteralPath (Join-Path $repo $PackagePinsPath)).Hash;FullChainAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'start.json')
+[pscustomobject]@{Cut=$Cut;Setup=$Setup;TraceBoundaries=[bool]$TraceBoundaries;StartUTC=$start.ToString('o');GeneratedHash=(Get-FileHash -LiteralPath $generated).Hash;ChainHash=(Get-FileHash -LiteralPath $chain).Hash;LiveHash=(Get-FileHash -LiteralPath (Join-Path $repo 'tools/validate_phase6_live_role_workflows.ps1')).Hash;PackagePinsHash=(Get-FileHash -LiteralPath (Join-Path $repo $PackagePinsPath)).Hash;FullChainAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'start.json')
 try {
+    if($Setup -cne 'None'){
+        foreach($name in 'Release-ComObject','Run-WorkbookMacro','Invoke-RepositoryScript','Invoke-AdminEntryGate'){
+            $function=$ast.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name},$false)
+            if($null -eq $function){throw 'Actual chain setup helper unavailable.'}
+            . ([scriptblock]::Create($function.Extent.Text))
+        }
+        $deployPath=$deploy
+        Write-SetupProcesses 'BeforeSetup'
+        if($Setup -cin @('Admin','Chain')){
+            Invoke-AdminEntryGate
+            if($setupChecks.Count -ne 3 -or @($setupChecks|Where-Object{-not $_.Passed}).Count){throw 'Actual Admin setup failed; not product RED.'}
+            Write-SetupProcesses 'AfterAdmin'
+        }
+        if($Setup -cin @('Source','Chain')){
+            $createWarehouse=Invoke-RepositoryScript -Path (Join-Path $repo 'tools/run_create_warehouse_integration.ps1') -Arguments @('-RepoRoot',$repo)
+            $sourceChecks=@([regex]::Matches([IO.File]::ReadAllText($setupReport),'(?m)^\| ([^|]+) \| (PASS|FAIL) \|')|ForEach-Object{[pscustomobject]@{Check=$_.Groups[1].Value.Trim();Passed=$_.Groups[2].Value -ceq 'PASS'}})
+            $sourceChecks|ConvertTo-Json|Set-Content (Join-Path $root 'setup-source-checks.json')
+            Add-Result 'AdminEntry.SourceIntegrationRegression' ($createWarehouse.ExitCode -eq 0 -and $createWarehouse.Text -match 'OVERALL=PASS') ''
+            if($sourceChecks.Count -ne 15 -or @($sourceChecks|Where-Object{-not $_.Passed}).Count -or @($setupChecks|Where-Object{-not $_.Passed}).Count){throw 'Source setup failed; not product RED.'}
+            Write-SetupProcesses 'AfterSource'
+        }
+        Write-SetupProcesses 'BeforeLive'
+    }
     $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$generated+'"'),'-RepoRoot',('"'+$repo+'"'),'-DeployRoot',('"'+$DeployRoot+'"'))
     $child=Start-Process powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $root 'worker.stdout.log') -RedirectStandardError (Join-Path $root 'worker.stderr.log')
     $null=$child.Handle
@@ -120,6 +173,7 @@ try {
     }
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     if(-not $restored){throw 'Settings restoration differs.'}
+    if(-not (Restore-SetupReport)){throw 'Source report restoration differs.'}
     Start-Sleep -Seconds 12
     $audit=[DateTimeOffset]::UtcNow;$queryErrors=@()
     $events=@(Get-WinEvent -FilterHashtable @{LogName='Application';Id=1000,1001,1002;StartTime=$start.LocalDateTime;EndTime=$audit.LocalDateTime} -ErrorAction SilentlyContinue -ErrorVariable queryErrors)
@@ -131,10 +185,14 @@ try {
     $marks=@(Get-Content (Join-Path $root 'lifecycle.jsonl')|ForEach-Object {ConvertFrom-Json $_})
     $complete=@($marks|Where-Object Stage -CEQ 'CutReached').Count -eq 1
     $failed=@($checks|Where-Object {-not $_.Passed}).Count
-    $result=[pscustomobject]@{Cut=$Cut;WorkerExit=$child.ExitCode;Checks=$checks;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;CutReached=$complete;StartUTC=$start.ToString('o');AuditUTC=$audit.ToString('o');ApplicationEvents=$events.Count;SettingsRestored=$restored;PackagePins=5;TrackedReportUnchanged=$true;ExcelClosed=@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0;DiagnosticPassed=($child.ExitCode -eq 0 -and $complete -and $failed -eq 0 -and $events.Count -eq 0);FullChainAccepted=$false}
+    $result=[pscustomobject]@{Cut=$Cut;Setup=$Setup;SetupChecks=$setupChecks.ToArray();SetupSourceReportRestored=$true;WorkerExit=$child.ExitCode;Checks=$checks;PassedChecks=$checks.Count-$failed;FailedChecks=$failed;CutReached=$complete;StartUTC=$start.ToString('o');AuditUTC=$audit.ToString('o');ApplicationEvents=$events.Count;SettingsRestored=$restored;PackagePins=5;TrackedReportUnchanged=$true;ExcelClosed=@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0;DiagnosticPassed=($child.ExitCode -eq 0 -and $complete -and $failed -eq 0 -and $events.Count -eq 0);FullChainAccepted=$false}
     $result|ConvertTo-Json -Depth 5|Set-Content (Join-Path $root 'result.json')
     $result|Select-Object Cut,WorkerExit,PassedChecks,FailedChecks,CutReached,ApplicationEvents,SettingsRestored,ExcelClosed,DiagnosticPassed|ConvertTo-Json
     if(-not $result.DiagnosticPassed){exit 1}
 } finally {
-    if(-not $restored){Wait-RecordingCleanup -Creator $null -Worker $child;$restored=Restore-InvSysTestSettingsSnapshot $settings;[pscustomobject]@{SettingsRestored=$restored}|ConvertTo-Json|Set-Content (Join-Path $root 'failure-restoration.json')}
+    $failureCleanup=-not $restored
+    if($failureCleanup){Wait-RecordingCleanup -Creator $null -Worker $child;$restored=Restore-InvSysTestSettingsSnapshot $settings}
+    $sourceReportRestored=Restore-SetupReport
+    if($failureCleanup){[pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');SettingsRestored=$restored;SetupSourceReportRestored=$sourceReportRestored}|ConvertTo-Json|Set-Content (Join-Path $root 'failure-restoration.json')}
+    if(-not $sourceReportRestored){throw 'Source report restoration differs.'}
 }
