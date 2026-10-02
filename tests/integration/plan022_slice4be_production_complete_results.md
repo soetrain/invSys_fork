@@ -1,5 +1,32 @@
 # Slice 4be Production Complete Run
 
+## Broader gates on the corrected package
+
+The unchanged, unpromoted complete-selection01 candidate passes the following
+gates on its canonical five-package pins. Each controller restored settings,
+preserved packages and restored any tracked test reports before terminal exit.
+Excel was closed and the delayed Application1000/1001/1002 audit found zero
+Excel failures for each gate. Raw reports and captures remain ignored.
+
+| Gate | Evidence under reports/runtime/complete-selection01-regression | Result |
+| --- | --- | --- |
+| Packaged smoke | `smoke-60f4b5a4d14d432f8013082fbad2a3e2` | 86/86; exact prior check order; initial/final unassisted closure verified |
+| Packaged layout | `layout-2d3ca5d270224d49867a7b5d384db208` | 18 requested size/page pairs, six activated/maximized pages, five native transitions, two distinct actual sizes; representative geometry preserved |
+| Full Release1 chain | `chain-625b549f08094ec786e94c0ccecaf6fe` | 32/32 chain,48/48 live-role,15/15 warehouse creation; exact prior ordered PASS results retained |
+
+Smoke ran2026-10-01 23:50:38.8715725-23:51:01.4770427 UTC; layout ran
+23:51:39.4175655-23:51:56.6063880 UTC; chain ran
+23:52:43.1959440-23:58:07.1783001 UTC. The chain harness completed its ordered
+warehouse/Seed/Receiving/Production/Boxing/Shipping/restart sequence.
+
+All six new layout captures were individually reviewed and their hashes recorded
+in the ignored capture-review record. No overlap or out-of-bounds regression was
+found. These are empty Run List and Settings views; they do not establish populated
+list scrolling, multiline rendering or human usability acceptance. No runtime,
+test or contract change was needed for this evidence-only checkpoint; no new RED
+is claimed. Owner interruption/partial-submission tests, Complete Run observations
+and full human/NAS Release1 acceptance remain open.
+
 ## Selected Process with an unallocated second Process
 
 Test-only expansion on unchanged complete-selection01 passes68/68, preserving
@@ -24,7 +51,8 @@ establish a new minimum-row contract. `complete-multi-static-01` retains290
 components/6175 procedures/135521 lines,9 literal/45 unresolved calls,190 duplicate
 candidates and28 non-growing caps; three schemas/377 parses pass. There is no
 runtime change or new product RED in this expansion. Complete Run tracking,
-interruption/partial-submission evidence and broader release gates remain open.
+interruption/partial-submission evidence and full acceptance remain open; the
+broader gates above have now passed.
 
 ## Check In regression on the corrected package
 
@@ -38,7 +66,7 @@ and the delayed native audit with zero Excel failures pass. Excel shutdown again
 took several minutes; the controller was retained until natural exit. Captures
 were regenerated but not additionally reviewed in this regression. No runtime
 change or new product RED is claimed. The later multi-Process gate above adds
-selected-only owner evidence; other new-candidate packaged gates remain pending.
+selected-only owner evidence; the broader new-candidate gates are recorded above.
 
 ## D15 selected-Process prerequisite
 
@@ -98,5 +126,6 @@ parses pass. The RED baseline is `complete-baseline-static-01` (135522 lines).
 
 Check In629 was subsequently verified on this candidate above. This
 one-Process positive fixture does not establish multi-Process completion;
-the later gate above adds that focused case. Interruption behavior, observations, packaged smoke/layout,
-live-role/full-chain and full human/NAS Release1 acceptance remain open.
+the later gate above adds that focused case. Packaged smoke/layout and live-role/
+full-chain subsequently passed above. Interruption behavior, observations and
+full human/NAS Release1 acceptance remain open.
