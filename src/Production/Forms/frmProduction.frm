@@ -4371,7 +4371,7 @@ Private Sub CompleteProductionRun()
     Dim enteredRealOutput As String
     Dim lo As ListObject
     Dim reusableReport As String
-
+    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         If ActiveRunProcess() = "" Then
             ShowStatus "Choose one Process before Complete Run."

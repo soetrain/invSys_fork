@@ -1,4 +1,4 @@
-# D15 selected-Process owner boundary, before any Complete Run activity contract.
+# D15 selected-Process and D18 captured-binding owner boundaries, before tracking.
 # Unsaved probes observe real owners; the operator callback remains unchanged.
 function Install-ProductionCompleteBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
@@ -293,6 +293,26 @@ function Test-ProductionCompleteBaseline($Fixture,$Other) {
         Check 'CompleteBaseline.Multi.CapturedBookCustomValueAndFormula' ($sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
         Check 'CompleteBaseline.Multi.DecoyPreserved' ($decoySheet.Cells.Item(1,1).Value2 -ceq $canary -and $decoy.Worksheets.Count -eq 1)
         CaptureOwnedFormByCaptionEvidence 'Production' 'complete-baseline-multi-selected.png'
+        foreach($guard in @('Target','Session','SignedOut')){
+            SelectTarget $Fixture 'config-producer'
+            [void](Probe 'RunLocalReopen' @($book.Name))
+            if(-not [bool](Probe 'CompleteBaselinePrepare' @($true))){throw 'Captured-binding completion prerequisite unavailable; not product RED.'}
+            $before=[string](Probe 'RunLocalOwnerState');$label='CompleteBaseline.Context.'+$guard
+            [void](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'));$decoy.Activate()
+            if($guard -ceq 'Target'){SelectTarget $Other 'config-producer'}
+            if($guard -ceq 'Session'){SelectTarget $Fixture 'config-producer'}
+            if($guard -ceq 'SignedOut'){[void](Run 'invSys.Core.xlam' 'modAuth.SignOut')}
+            if([bool](Probe 'RunLocalClosedBindingCurrent')){throw 'Captured binding was not invalidated; not product RED.'}
+            Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CompleteBaselineAct'))
+            Check ($label+'.NoCompletionOwnerEntered') ([string](Probe 'CompleteBaselineOwners') -ceq '0|0')
+            Check ($label+'.OwnerStagingPreserved') ([string](Probe 'RunLocalOwnerState') -ceq $before)
+            Check ($label+'.VisibleContextRefusal') ([bool](Probe 'CheckBaselineContextRefused'))
+            CaptureOwnedFormByCaptionEvidence 'Production' ('complete-baseline-context-'+$guard.ToLowerInvariant()+'.png')
+            SelectTarget $Fixture 'config-producer'
+            Check ($label+'.ExactInputBalancesPreserved') ([bool](Owner 'CompleteBaselineBalancesForTest' @($false)))
+            Check ($label+'.CapturedBookCustomValueAndFormula') ($sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
+            Check ($label+'.DecoyPreserved') ($decoySheet.Cells.Item(1,1).Value2 -ceq $canary -and $decoy.Worksheets.Count -eq 1)
+        }
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
         Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

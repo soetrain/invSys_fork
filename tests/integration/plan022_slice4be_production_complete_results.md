@@ -1,5 +1,64 @@
 # Slice 4be Production Complete Run
 
+## D18 captured binding at completion entry
+
+D18 requires each action to check its captured warehouse, invSys session and role
+workbook. The actual `mBtnManagerApplyOutput_Click` lacked that entry check.
+The expanded packaged baseline invalidates the binding after real Check In by
+changing target, replacing the session, or signing out. It retains all68 earlier
+ordered checks and adds21. Owner-entry probes observe the original completion
+owner; inventory reads, writes and processing remain real disposable-fixture work.
+
+On unchanged complete-selection01, RED passes80/fails9 of89 unique checks:
+controller `production-run-local-controller/4ddd87c3b66c438b96ea98ab7e32fbb9`,
+result `slice4be-production-complete-baseline/a7811824e5c546c8ba158340ba0cd180/red.json`,
+2026-10-02 00:01:23.0509757-00:06:54.1014669 UTC. All68 prior checks pass. Target
+change still enters the owner and shows a stock refusal instead of a context
+refusal. A replaced session permits completion and actual input consumption.
+Sign-out enters the owner and changes staging before the writer rejects it.
+Exact original input balances remain unchanged for target/sign-out; other-warehouse
+pins, operator bytes, custom value/formula and decoy remain preserved.
+
+The correction calls the existing `modProductionRunBinding.RequireCurrentContext`
+at the start of `frmProduction.CompleteProductionRun`, before either completion
+branch. It uses the existing context-refusal message and changes no contract or
+tracking catalog. It does not establish protection across later yields.
+
+New unpromoted `validation-production-complete-binding-01` was built and cold
+compiled under `complete-binding-build-01`,00:07:37.1833200-00:08:14.7507983 UTC.
+Cold Operations startup/all five compiles pass. Only Operations/frmProduction
+changes among283 packaged components;282 remain identical and the old candidate
+is preserved. GREEN passes89/89 with all ordered identities and prior passes
+retained: controller `production-run-local-controller/358760a7ddb24e28994a3455170405bd`,
+result `slice4be-production-complete-baseline/3de518bb39274a8a9b914748345df281/green.json`,
+00:08:36.4675150-00:13:50.9942211 UTC. All three invalid bindings are refused before
+owner entry; staging, exact input balances and unrelated surfaces are preserved.
+
+Both focused gates retain shared42/five instrumented compiles, package/settings
+preservation, unassisted closure and delayed zero native audits. The build audit
+also passes. Three new RED and three new GREEN captures were individually reviewed;
+GREEN's existing context message is legible. Other regenerated baseline captures
+were not additionally reviewed. Long labels still clip. Ignored static evidence
+`complete-binding-red-static-01` and `complete-binding-green-static-01` retains290
+components/6175 procedures/135521 lines,9 literal/45 unresolved calls,190 duplicate
+candidates and28 non-growing caps; three schemas/377 PowerShell parses pass.
+
+New-hash smoke passes86/86 with exact prior ordered checks and both unassisted
+exits: `complete-binding01-regression/smoke-02934cc44ac74a808bd143bdd42e6e59`,
+00:14:20.8088609-00:14:54.5160064 UTC. New-hash layout passes18 requested size/page
+pairs, six activated/maximized pages, five native transitions and two actual sizes:
+`complete-binding01-regression/layout-425f3afc1ae24046abd0cc6c6c801ef9`,
+00:15:30.9620903-00:15:47.8976385 UTC. All six PNGs are byte-identical to the six
+individually reviewed complete-selection01 captures; the ignored review records
+the exact hash linkage. Geometry remains unchanged. Both gates preserve packages,
+restore settings/tracked reports, close Excel and pass delayed zero native audits.
+These empty-form views do not prove populated scrolling or multiline acceptance.
+
+New-hash live-role/full-chain and Check In regressions, closed-workbook entry and
+changes during yields, partial submissions, observation integration, populated
+scrolling and full human/NAS acceptance remain open. Earlier complete-selection01
+evidence below applies to that older candidate; it is not substituted for new-hash evidence.
+
 ## Broader gates on the corrected package
 
 The unchanged, unpromoted complete-selection01 candidate passes the following
