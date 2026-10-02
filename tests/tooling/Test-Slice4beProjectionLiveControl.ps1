@@ -1,7 +1,7 @@
 # Same-session diagnostic cut of the actual ordered live validator; not full R1.
 [CmdletBinding()]
 param([string]$RepoRoot='.',[string]$DeployRoot='deploy/validation-settings-diagnostic',
-      [ValidateSet('BeforeProjection','AfterProjection')][string]$Cut='AfterProjection',
+      [ValidateSet('BeforeProjection','AfterProjection','Full')][string]$Cut='AfterProjection',
       [string]$PackagePinsPath='reports/runtime/settings-diagnostic-package-pins.json',
       [switch]$TraceBoundaries)
 $ErrorActionPreference='Stop'
@@ -32,10 +32,16 @@ $definition=$definition.Replace($read,$read+"`r`n"+$credentialTransform)
 $generated=New-OrderedLiveValidator
 $source=Get-Content -LiteralPath $generated -Raw
 $cutAnchor=if($Cut -ceq 'BeforeProjection'){'$currentStep = "Delete and rebuild canonical inventory projections"'}else{'$currentStep = "Run two consecutive Production batches through form actions"'}
-$cutAt=$source.IndexOf($cutAnchor,[StringComparison]::Ordinal)
 $tail=[regex]::Match($source,'(?m)^}\r?\ncatch \{')
-if($cutAt -lt 0 -or -not $tail.Success -or $tail.Index -le $cutAt){throw 'Phase cut anchors differ.'}
-$source=$source.Substring(0,$cutAt)+'Write-ControlMark ''CutReached'''+"`r`n"+$source.Substring($tail.Index)
+if(-not $tail.Success){throw 'Phase tail anchor differs.'}
+if($Cut -ceq 'Full'){
+    # Retain all ordered live-role assertions; isolate the enclosing chain context.
+    $source=$source.Insert($tail.Index,"Write-ControlMark 'CutReached'`r`n")
+}else{
+    $cutAt=$source.IndexOf($cutAnchor,[StringComparison]::Ordinal)
+    if($cutAt -lt 0 -or $tail.Index -le $cutAt){throw 'Phase cut anchors differ.'}
+    $source=$source.Substring(0,$cutAt)+'Write-ControlMark ''CutReached'''+"`r`n"+$source.Substring($tail.Index)
+}
 $outputAnchor='$resultPath = Join-Path $repo "tests/unit/phase6_live_role_workflow_results.md"'
 if([regex]::Matches($source,[regex]::Escape($outputAnchor)).Count -ne 1){throw 'Report anchor differs.'}
 $source=$source.Replace($outputAnchor,'$resultPath = Join-Path $PSScriptRoot ''results.md''')

@@ -122,6 +122,73 @@ is unresolved; no blind retry or claim that the completion helper caused it is
 made. Investigate this boundary before a new chain attempt. Prior continuation01
 chain results do not establish entry02 acceptance.
 
+## Focused investigation of the projection crash
+
+The compiled-source manifests for continuation01 and entry02 retain identical
+Core and Inventory Domain components. Only Operations/frmProduction changes and
+modProductionCompleteActions is added (282 old components unchanged). This rules
+out a source delta in those owning components; it does not prove the native cause.
+The established investigation in `plan022_slice4be_shutdown_header_results.md`
+documents the same projection boundary/signature and the focused control to use
+before any further full-chain attempt.
+
+The existing `Test-Slice4beProjectionLiveControl.ps1 -Cut AfterProjection
+-TraceBoundaries` runs the actual preceding ordered role sequence and projection
+rebuild against entry02, then cuts later chain stages. No runtime, test or package
+file is changed. Its unsaved instrumentation uses fixed stage identifiers only.
+Root `projection-live-control/1bf808489592489286c1667f6609c580` passes35/35,
+retaining the exact ordered first35 PASS identities from the prior complete
+live-role result, including all four projection assertions. Four traced packages
+compile; 37 markers are installed and33 distinct markers are observed. The real
+processor reaches its return and the diagnostic cut. Start02:35:52.0989368 UTC,
+delayed audit02:37:22.0865834 UTC on2026-10-02. Normal unassisted closure, settings/
+tracked-report/package preservation and zero Application failure events pass.
+`source-comparison.json` and `scope-verification.json` preserve the comparison and
+ordered checks. This is focused diagnostic evidence, not product RED/GREEN,
+native-cause repair or complete chain acceptance. It supports one subsequent
+uninstrumented full-chain verification on the unchanged candidate.
+
+That second chain also fails: `complete-entry02-regression/chain-8d85e98b462346b48eeae55fbbc7d659`,
+02:37:54.1620794-02:40:19.2625079 UTC. Counts remain chain5 PASS/1 harness failure,
+live-role32 PASS/1 harness failure, warehouse15 PASS. The failed call and HRESULT
+match the first attempt. Application1000 at02:39:34.1293030 UTC again records
+`ntdll.dll/c0000028/0000000000012d2f`; Application1001 at02:39:40.8139857 reports
+the Office mismatch. Ten verified recovered fixture workbooks are closed without
+save, preserving their saved bytes; both controllers restore settings/reports and
+all package pins. The delayed audit retains two native events. No third unchanged
+broad chain is justified by these results.
+
+The untraced AfterProjection control also passes35/35:
+`projection-live-control/c0dc992b439d4475ae69bfb9510d4681`, start02:40:49.4895977,
+audit02:42:16.4575751 UTC. It retains the exact prior ordered checks, returns from
+the real processor, closes normally and preserves settings/report/packages with
+zero native events. Tracing/recompilation is therefore not required for the
+observed focused success; this does not establish any crash cause.
+
+The diagnostic harness gains a `-Cut Full` option that keeps the entire generated
+ordered live-role body and inserts only its completion marker before the existing
+catch/finally. Existing cuts retain their behavior. No runtime/XLAM or architectural
+contract changes; this is diagnostic expansion rather than product RED/GREEN.
+Untraced Full passes48/48, retaining every prior ordered PASS identity:
+`projection-live-control/aeacb58738ef46898f529fd7729fdf77`, start02:43:06.8507818,
+audit02:45:15.4534042 UTC. All later role actions run; normal unassisted closure,
+settings/tracked-report/package preservation and zero delayed native events pass.
+The scope receipts explicitly keep full-chain acceptance false.
+
+The remaining comparison is the enclosing chain's preceding packaged Admin entry
+and source Create Warehouse setup versus these standalone ordered-live controls.
+That context is a hypothesis to test with the actual helpers and process/lifecycle
+observations, not an established root cause. Other diagnostic differences remain:
+ephemeral fixture credential generation, report redaction, lifecycle markers and
+child launch/output capture. Standalone48 alone does not isolate Admin setup.
+Do not change product authority,
+delete assertions or infer full-chain success from the standalone48 result.
+
+`projection-context-static-01` retains291 components/6177 procedures/135555 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 unchanged oversized
+caps. Three schemas and all379 PowerShell parses pass. The only diagnostic code
+change is the Full option; no runtime package rebuild or product fix is claimed.
+
 ## D18 loading and nested completion entry RED
 
 Architecture's Complete Run action-entry clarification constrains existing D18
