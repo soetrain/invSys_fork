@@ -4357,7 +4357,7 @@ Private Function OutputUomIsCatalogValue(ByVal uomName As String) As Boolean
     Next idx
 End Function
 
-Private Sub CompleteProductionRun()
+Public Sub CompleteProductionRun()
     Dim outputIndex As Long
     Dim outputRowNumber As Long
     Dim outputRowVal As String
@@ -11369,7 +11369,7 @@ Private Sub mBtnManagerCheckIn_Click()
 End Sub
 
 Private Sub mBtnManagerApplyOutput_Click()
-    CompleteProductionRun
+    modProductionCompleteActions.Execute Me, mLoading, mDesignerActionInProgress
 End Sub
 
 Private Sub mCmbRunProcess_Change()

@@ -1,5 +1,51 @@
 # Slice 4be Production Complete Run
 
+## D18 completion entry guard correction
+
+`modProductionCompleteActions.Execute` now wraps the actual form handler with
+typed calls. It suppresses loading/busy entry before owner work, holds busy through
+the original completion, restores prior flags and rethrows captured errors. The
+form's completion method becomes Public for this same-project typed call; its
+algorithm and form line count are unchanged. No observation/catalog or inventory
+contract is added.
+
+New unpromoted `validation-production-complete-entry-02` was built under
+`complete-entry-build-02`,2026-10-02 01:38:54.9399549-01:39:34.6645530 UTC. Cold
+Operations startup/five compiles pass. Of283 old components,282 remain identical
+and only Operations/frmProduction changes; the new guard module makes284 total.
+Settings/frozen continuation01 are preserved, with normal cleanup/delayed zero audit.
+
+The first attempt, `complete-entry-build-01`,01:37:13.3416033-01:37:28.1681218 UTC,
+failed before Operations import when Excel crashed in VBE7.DLL (c0000005,
+offset275b57; WER reported OFFICE_MODULE_VERSION_MISMATCH). Its two native event
+records are failure evidence, not product RED. Excel closed and settings/prior
+candidate were preserved. The incomplete entry01 candidate remains untouched.
+The fresh entry02 build passed; this does not establish a root-cause repair for
+that native crash. Desktop error5 was not observed.
+
+Focused GREEN is185/185, retaining every RED identity and all169 prior passes:
+controller `production-run-local-controller/44800f286a65445c9019d51478a09419`, result
+`slice4be-production-complete-baseline/b5a6d01fc24c4c28bc9c11577e47f61c/green.json`,
+01:40:03.2229820-01:51:00.2420470 UTC. Loading/busy entry preserves flags,
+staging/projection/message and exact inputs without owner entry. Nested entry
+preserves the active action's state/message, while the outer action enters its
+owner once, consumes exact inputs once, creates the expected fresh output and
+retains success. Shared42/five instrumented compiles, package/settings preservation,
+unassisted closure and delayed zero native audit pass. All three new captures were
+individually reviewed; other regenerated captures were not additionally reviewed.
+Long field clipping and populated-list/multiline acceptance remain unresolved.
+
+`complete-entry-green-static-01` records291 components/6177 procedures/135555 lines:
+exactly one small module/procedure and25 lines above the RED baseline. All28
+oversized caps,9 literal/45 unresolved calls and190 duplicate candidates are
+unchanged. Three schemas/379 parses pass. This accounts for the new entry helper;
+there is no oversized-cap or dynamic-call exception.
+
+New-candidate Check In/smoke/layout/live-role/full-chain gates remain pending.
+Forced-exception restoration, closed-workbook entry, worksheet interruption,
+partial-submission facts and observations remain open. The tested entry cases are
+reusable normal-return paths, not proof of every exit or full Slice4be acceptance.
+
 ## D18 loading and nested completion entry RED
 
 Architecture's Complete Run action-entry clarification constrains existing D18
