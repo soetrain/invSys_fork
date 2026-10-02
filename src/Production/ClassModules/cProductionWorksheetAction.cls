@@ -21,6 +21,15 @@ Public Property Get OperatorWorkbook() As Workbook
     Set OperatorWorkbook = mWorkbook
 End Property
 
+' Bind an owner continuation without starting or retaining an observation.
+Public Function BeginOwner(ByVal capturedContext As String, ByVal operatorBook As Workbook, _
+                           ByRef report As String) As Boolean
+    Set mWorkbook = operatorBook: mContext = capturedContext
+    mActivityId = "": mNotice = "": mReferences = "": mInvalidReferences = False
+    OutcomeCode = "FAILED"
+    BeginOwner = CanContinue(report)
+End Function
+
 Public Function Begin(ByVal controlId As String, ByVal capturedContext As String, _
                       ByVal operatorBook As Workbook, ByRef report As String) As Boolean
     Set mWorkbook = operatorBook: mContext = capturedContext

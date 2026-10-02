@@ -5,8 +5,8 @@ function Install-ProductionCompleteBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $owner=$project.VBComponents.Item('modProductionReusableRun').CodeModule
     foreach($entry in @(
-        @{Name='CompleteReusableRun';Anchor='If Not mCheckedIn Then';Kind='Whole'},
-        @{Name='CompleteReusableProcess';Anchor='Set node = FindNodeByProcessName(processName)';Kind='Selected'}
+        @{Name='CompleteReusableRun';Anchor='On Error GoTo Failed';Kind='Whole'},
+        @{Name='CompleteReusableProcess';Anchor='On Error GoTo Failed';Kind='Selected'}
     )){
         $start=$owner.ProcStartLine($entry.Name,0)
         $body=$owner.Lines($start,$owner.ProcCountLines($entry.Name,0)) -split '\r?\n'

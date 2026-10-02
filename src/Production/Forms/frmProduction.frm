@@ -4361,17 +4361,15 @@ Private Sub CompleteProductionRun()
     Dim outputIndex As Long
     Dim outputRowNumber As Long
     Dim outputRowVal As String
-    Dim outputProcess As String
-    Dim outputName As String
+    Dim outputProcess As String, outputName As String
     Dim processName As String
     Dim prepared As Variant
-    Dim completionReport As String
-    Dim completionResult As String
+    Dim completionReport As String, completionResult As String
     Dim reportSeparator As Long
     Dim enteredRealOutput As String
     Dim lo As ListObject
-    Dim reusableReport As String
-    If Not modProductionRunBinding.RequireCurrentContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
+    Dim reusableReport As String, action As New cProductionWorksheetAction
+    If Not action.BeginOwner(mActivityContext, mOperatorWorkbook, reusableReport) Then ShowStatus reusableReport: Exit Sub
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         If ActiveRunProcess() = "" Then
             ShowStatus "Choose one Process before Complete Run."
@@ -4383,8 +4381,9 @@ Private Sub CompleteProductionRun()
         End If
         If Not StageSelectedReusableActualOutput(True) Then Exit Sub
         ShowPersistencePending "Saving the reusable Process run to the warehouse server..."
+        If Not action.CanContinue(reusableReport) Then ShowStatus reusableReport: Exit Sub
         If modProductionReusableRun.CompleteReusableProcess(ActiveRunProcess(), _
-                ActiveRunLocation(), reusableReport) Then
+                ActiveRunLocation(), reusableReport, action) Then
             ResetInventoryCache
             RefreshReusableRunControls True
         End If
@@ -4449,6 +4448,7 @@ Private Sub CompleteProductionRun()
     ApplySelectedProductionOutput
     BindOperatorWorkbookForRun
     ShowPersistencePending "Saving the completed production run to the warehouse server..."
+    If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
     completionResult = CStr(mProduction.CompleteProductionRunAfterCheckInForOutputResult(outputRowNumber))
     reportSeparator = InStr(1, completionResult, vbTab, vbBinaryCompare)
     If reportSeparator > 0 Then

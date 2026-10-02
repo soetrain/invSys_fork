@@ -1,5 +1,56 @@
 # Slice 4be Production Complete Run
 
+## D18 and D-NAS interruption correction
+
+The correction enforces the existing captured-context and Core capability rules.
+`cProductionWorksheetAction.BeginOwner` binds an owner continuation without
+starting an observation; the existing tracked `Begin` is unchanged. The form
+checks at entry and after both pending UI yields. The selected reusable owner
+accepts the existing optional action, checks entry, passes it through real Check
+In reads and checks again before generating output keys. Existing direct callers
+without an action retain their optional-argument behavior. No new activity ID,
+permission, authority, retry or rollback contract is introduced.
+
+New unpromoted `validation-production-complete-continuation-01` was built under
+`complete-continuation-build-01`,2026-10-02 00:34:17.1184213-00:34:54.7928211 UTC.
+Cold Operations startup/five compiles pass. Of283 components, exactly the
+Operations action class, form and reusable owner change;280 remain identical.
+Frozen binding01/settings are preserved, with natural closure/delayed zero audit.
+
+Final GREEN is150/150, retaining all150 RED identities and126 prior passes:
+controller `production-run-local-controller/2756cf2f9b904bda97e9e30da4d582e3`,
+result `slice4be-production-complete-baseline/513182fc040f44bb9f98522a5ccc15c6/green.json`,
+00:44:41.8669611-00:53:36.4456737 UTC. All six interruptions preserve the owner
+and displayed projection at the interrupted boundary, stop later reads and
+preserve exact input balances. Pending-yield cases never enter the completion
+owner; read-return cases enter once. Shared42/five instrumented compiles,
+authorization/settings/package preservation, normal unassisted shutdown and
+delayed zero native audit pass. All six new refusal captures were individually
+reviewed; other regenerated captures were not additionally reviewed. Long field
+clipping remains; this is not populated-list or multiline acceptance.
+
+A preliminary150/150 GREEN used controller
+`production-run-local-controller/53d44b38d8874ea2a2eefeeaac198a4a`, result
+`slice4be-production-complete-baseline/4a524467b089444e9b6d47bdaae8cc09/green.json`,
+00:35:12.9673336-00:44:03.5325714 UTC. Preservation/closure/audit passed, but its
+entry counter followed the newly added owner guard. Both owner counters were
+moved before the first `On Error` statement, ahead of all guards, and the entire
+gate was rerun above. No runtime/package/assertion was changed for that rerun;
+the earlier RED on binding01 remains valid. Preliminary captures were not reviewed.
+
+`complete-continuation-static-01` records290 components/6176 procedures/135530 lines,
+9 literal/45 unresolved calls,190 duplicate candidates and28 non-growing oversized
+caps. The only growth is one method/nine lines in the existing small action class,
+explicitly accounting for owner-only binding; form and reusable-owner line counts
+are unchanged. Three schemas/378 PowerShell parses pass. This introduces no
+oversized-cap or dynamic-call exception. Raw reports/packages/captures stay ignored.
+
+New-candidate Check In and broader regression gates are pending. Closed-workbook
+entry, reentrancy, post-submission interruptions, exact partial-write facts and
+Complete Run observations remain open. Worksheet yield checks are implemented,
+but these six interruption cases exercise the reusable branch only. This focused
+correction is not full Complete Run or Slice4be acceptance.
+
 ## D18 and D-NAS completion interruption RED
 
 The initial binding correction below does not protect later yielding boundaries.

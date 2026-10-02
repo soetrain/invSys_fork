@@ -1057,18 +1057,17 @@ End Function
 
 Public Function CompleteReusableProcess(ByVal processName As String, _
                                         ByVal runLocation As String, _
-                                        Optional ByRef report As String = "") As Boolean
+                                        Optional ByRef report As String = "", _
+                                        Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     On Error GoTo Failed
 
     Dim node As Object
-    Dim nodeId As String
-    Dim recheckReport As String
+    Dim nodeId As String, recheckReport As String
     Dim items As Collection
-    Dim eventId As String
-    Dim queueError As String
-    Dim processorReport As String
+    Dim eventId As String, queueError As String, processorReport As String
     Dim processedNow As Long
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     Set node = FindNodeByProcessName(processName)
     If node Is Nothing Then
         report = "Choose one Process before Complete Run."
@@ -1080,11 +1079,12 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
                  RunRecordText(node, "ProcessName") & " before completing it."
         Exit Function
     End If
-    If Not CheckInReusableProcess(processName, runLocation, recheckReport) Then
+    If Not CheckInReusableProcess(processName, runLocation, recheckReport, action) Then
         report = recheckReport
         Exit Function
     End If
     If Not ValidateReusableActualOutputsForNode(nodeId, report) Then Exit Function
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     AssignFreshOutputKeysForNode nodeId
     If mRunId = "" Then _
         mRunId = "PROD-RUN-" & Replace$(modRoleEventWriter.CreateSystemKey(), "-", "")
