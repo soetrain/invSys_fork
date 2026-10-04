@@ -1,0 +1,65 @@
+# Slice 4be-A: Production Next Batch binding
+
+2026-10-04. Existing Architecture v4.11 D18 captured warehouse/session/workbook
+rule; Operations `frmProduction.mBtnManagerNext_Click`. Observation integration
+and full acceptance remain open. Candidate: `deploy/validation-production-next-binding-01`.
+
+The actual packaged handler advanced a completed reusable batch after a target
+change, replacement sign-in or sign-out. Its existing typed owner guard now
+refuses those entries before changing owner state or projection. A current
+context still advances once. No activity registration or business owner changed.
+
+Reproduce using `tests/tooling/Test-Slice4beProductionRunLocal.ps1` with
+`-CompleteBaselineOnly -NextBaselineOnly -Phase RED|GREEN -DeployRoot <candidate>`.
+RED uses frozen `deploy/validation-production-complete-entry-02`; GREEN uses
+the candidate above. Probes count real owner entry without replacing the handler.
+
+| Evidence | Result |
+|---|---|
+| Focused RED | 58 PASS / 12 expected FAIL / 70; four binding failures for each stale context |
+| Focused GREEN | 70/70, identical ordered checks and all 58 prior passes retained |
+| Preservation | Current owner entry once; stale owner/projection unchanged; custom value/formula, decoy, saved operator bytes and other warehouse preserved |
+| Build/compile | Five packages compile; 283/284 compiled components unchanged; only Operations/frmProduction differs |
+| Packaged smoke | 86/86; prior ordered identities retained |
+| Layout | 18 requested size/page pairs, six activated/maximized pages and five native transitions; geometry unchanged |
+| Static | 291 components, 6177 procedures, 135555 lines; 9 literal/45 unresolved Application.Run; 28 oversized caps unchanged; three schemas and 382 PowerShell parses pass |
+| Full chain | FAILED: native Excel crash during Shipping form action; no full-chain acceptance |
+
+Focused RED/GREEN, build, smoke and layout close normally, restore settings,
+preserve package pins and pass delayed native-event audits. Two focused GREEN
+captures were reviewed (current/target); this does not accept populated long-value
+or multiline Production content. Six first-run layout images were reviewed;
+minimum/default clamp to the same size and the small output region remains.
+Two previews appeared blank, prompting a second layout run; original-resolution
+review proves the original PNGs render correctly. No capture-tool defect is
+established. Empty-list geometry is not populated/multiline user acceptance.
+
+The first probe attempt failed instrumented compilation because insertion used
+ProcStartLine's blank preamble. Anchoring the exact declaration corrected the
+harness. That attempt is not product RED; its empty owned Excel needed assisted
+cleanup. The full-chain failure likewise is not product RED or desktop error 5.
+Its ten recovered test workbooks were closed without save; saved bytes, settings,
+tracked reports and packages were preserved. Investigate before repeating the chain.
+
+The existing ordered-live diagnostic (`-Cut Full -Setup None`) passes all 48 prior
+ordered checks on this candidate, with normal closure, preserved settings/report/
+packages and zero delayed native events. This isolates a passing workflow without
+the preceding setup; it does not establish crash causation or full-chain acceptance.
+Next test the source-setup process-exit boundary before changing orchestration.
+
+Ignored evidence roots (relative to `reports/runtime/`):
+
+- Focused controllers: `production-run-local-controller/49aeffa130d64567a7efe13eafd73606`
+  (RED), `production-run-local-controller/24113bca1515423ab878b7d2cfd84917` (GREEN).
+- Focused reports: `slice4be-production-next-baseline/31c6f8916e954b648756941a38bc9fa8/red.json`,
+  `slice4be-production-next-baseline/3b185675312f491f97e6c5dd3e85cf64/green.json`;
+  `next-binding-focused-verification.json`.
+- Build/static: `next-binding-build-01/verification.json`,
+  `next-binding-green-static-01/ratchet-verification.json`.
+- Smoke: `next-binding-regression/smoke-d13932b6ca72489786960599c4ac1dda/verification.json`.
+- Layout: `next-binding-regression/layout-54c394ba707240c3a8fe63d31796b601`
+  and `next-binding-regression/layout-4666c4d580384f79863110eed5e902d1`.
+- Failed chain: `next-binding-regression/chain-676c70950cba483db488924629f5c7d4`
+  (closure and assisted-recovery receipts); 21:00:14–21:04:08 UTC.
+- Initial harness failure: `production-run-local-controller/b9f60819994a4d608d255ad3afa499b9`.
+- Ordered live control: `projection-live-control/e6afea160c4a40e49147450b5e8277f7/scope-verification.json`.

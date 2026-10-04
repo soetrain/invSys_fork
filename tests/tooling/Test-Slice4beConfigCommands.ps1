@@ -36,6 +36,7 @@ param(
     [switch]$RunLocalClosedDiagnostic,
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteBaselineOnly,
+    [switch]$RunNextBaselineOnly,
     [switch]$RunCheckInBaselineOnly,
     [switch]$RunCheckInRoutedOnly,
     [switch]$RunCheckInClosedOnly,
@@ -170,6 +171,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
@@ -516,6 +518,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-baseline/'+[guid]::NewGuid().ToString('N'))}
+    if($RunNextBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInRoutedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-routed/'+[guid]::NewGuid().ToString('N'))}
@@ -1305,6 +1308,10 @@ End Function
                 if($RunCompleteBaselineOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteBaseline.ps1')
                     Install-ProductionCompleteBaselineProbe
+                    if($RunNextBaselineOnly){
+                        . (Join-Path $PSScriptRoot 'Slice4beProductionNextBaseline.ps1')
+                        Install-ProductionNextBaselineProbe
+                    }
                 }
                 if($RunCheckInActivityOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInActivity.ps1')
@@ -1796,6 +1803,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
+            elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
             elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
