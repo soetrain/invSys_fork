@@ -23,7 +23,7 @@ the candidate above. Probes count real owner entry without replacing the handler
 | Packaged smoke | 86/86; prior ordered identities retained |
 | Layout | 18 requested size/page pairs, six activated/maximized pages and five native transitions; geometry unchanged |
 | Static | 291 components, 6177 procedures, 135555 lines; 9 literal/45 unresolved Application.Run; 28 oversized caps unchanged; three schemas and 382 PowerShell parses pass |
-| Full chain | FAILED: native Excel crash during Shipping form action; no full-chain acceptance |
+| Full chain | Corrected harness: chain32/live-role48/warehouse15 PASS; earlier native Shipping failure retained below |
 
 Focused RED/GREEN, build, smoke and layout close normally, restore settings,
 preserve package pins and pass delayed native-event audits. Two focused GREEN
@@ -39,13 +39,25 @@ ProcStartLine's blank preamble. Anchoring the exact declaration corrected the
 harness. That attempt is not product RED; its empty owned Excel needed assisted
 cleanup. The full-chain failure likewise is not product RED or desktop error 5.
 Its ten recovered test workbooks were closed without save; saved bytes, settings,
-tracked reports and packages were preserved. Investigate before repeating the chain.
+tracked reports and packages were preserved. The scoped investigation follows.
 
 The existing ordered-live diagnostic (`-Cut Full -Setup None`) passes all 48 prior
 ordered checks on this candidate, with normal closure, preserved settings/report/
 packages and zero delayed native events. This isolates a passing workflow without
 the preceding setup; it does not establish crash causation or full-chain acceptance.
-Next test the source-setup process-exit boundary before changing orchestration.
+The actual source-setup prefix then proves tooling RED4 PASS/1 expected FAIL:
+source integration succeeds while its Excel process remains alive. Waiting with
+the existing cleanup helper before ordered live work yields GREEN5/5. Both retain
+identical checks, normal closure, settings/report/package preservation and zero
+delayed native events. This changes orchestration only; runtime packages are unchanged.
+The original Admin-boundary mode also retains4/4 after the test extension.
+
+The corrected full chain passes32/live-role48/warehouse15 with every prior ordered
+check retained, normal unassisted closure, restored settings/reports, pinned packages
+and zero delayed native events. New static evidence retains all metrics/28 caps,
+three schemas and 382 parses. The sequencing defect is proved; causation of the
+earlier native crash is not. Do not repeat these unchanged passing gates.
+Next Batch observation integration and the remaining 4be-A/B0 work stay open.
 
 Ignored evidence roots (relative to `reports/runtime/`):
 
@@ -63,3 +75,11 @@ Ignored evidence roots (relative to `reports/runtime/`):
   (closure and assisted-recovery receipts); 21:00:14–21:04:08 UTC.
 - Initial harness failure: `production-run-local-controller/b9f60819994a4d608d255ad3afa499b9`.
 - Ordered live control: `projection-live-control/e6afea160c4a40e49147450b5e8277f7/scope-verification.json`.
+- Source exit RED/GREEN: `chain-stage-exit/8095d6adb8d04a0a87ea5635d1cbc7d9/red.json`,
+  `chain-stage-exit/663e8c054e8c44248328a4f39c93dfe3/green.json`;
+  `next-binding-source-exit-verification.json`. Command: `Test-Slice4beChainStageExit.ps1`
+  with `-Boundary Source -Phase RED|GREEN`, candidate DeployRoot and focused GREEN
+  controller's `package-pins.json` supplied through `-PackagePinsPath`.
+- Corrected chain: `next-binding-regression/chain-e482188f1f294a5abefc86c0a41e0759/verification.json`.
+- Tooling static: `next-binding-source-exit-static-01/ratchet-verification.json`.
+- Retained Admin boundary: `chain-stage-exit/fef8d3616c72493aa8ca39c1b2024bb8/green.json`.

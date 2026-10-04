@@ -899,6 +899,9 @@ try {
          $createWarehouse.Text -match 'OVERALL=PASS') `
         "Create Warehouse D14 source integration remained green."
 
+    # The source harness can return before its Excel process has finished exiting.
+    Wait-RecordingCleanup -Creator $null -Worker $null
+
     $orderedValidator = New-OrderedLiveValidator
     $live = Invoke-RepositoryScript -Path $orderedValidator `
         -Arguments @("-RepoRoot", $repo, "-DeployRoot", $DeployRoot)
