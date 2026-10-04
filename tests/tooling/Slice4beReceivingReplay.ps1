@@ -169,7 +169,12 @@ function Test-Slice4beReceivingReplay($Fixture,$Other) {
         Check 'ReceivingReplay.SetupEntryDoesNotExecute' ((BoundSame $original (BoundPins $journalRoot)) -and (PinsRetained $activity) -and (ActivityPins).Count -eq $activity.Count -and $staging.ListRows.Count -eq 0)
         . (Join-Path $PSScriptRoot 'Slice4beExecutionProfile.ps1')
         Test-ReceivingExecutionProfile $guide $staging $journalRoot (Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')) $Fixture $Other
-        [pscustomobject]@{SourceGuideCreated=$true;SourceSteps=$guide.Steps.Count;SourceExactEventObserved=$true;ReplayExecuted=$false;FreshReplayProof=$false;B0Accepted=$false}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'receiving-replay-scope.json')
+        $runScope=[pscustomobject]@{ReplayExecuted=$false;FreshReplayProof=$false;B0Accepted=$false}
+        if(@($results|Where-Object {$_.Check -like 'ExecutionProfile.*' -and -not $_.Passed}).Count -eq 0){
+            . (Join-Path $PSScriptRoot 'Slice4beReceivingRun.ps1')
+            Test-ReceivingRun $guide $source $staging (Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')) $Fixture $Other ([ref]$runScope)
+        }
+        [pscustomobject]@{SourceGuideCreated=$true;SourceSteps=$guide.Steps.Count;SourceExactEventObserved=$true;ReplayExecuted=$runScope.ReplayExecuted;FreshReplayProof=$runScope.FreshReplayProof;B0Accepted=$false}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'receiving-replay-scope.json')
     } finally {
         CloseRecordingViewer
         [void](Run 'invSys.Operations.xlam' 'modTS_Received.ReplaySourceForTest' @('Close'))

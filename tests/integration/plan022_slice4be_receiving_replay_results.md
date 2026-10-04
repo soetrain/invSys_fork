@@ -1,8 +1,9 @@
 # Slice 4be-A / early B0: Receiving replay
 
 Last verified: 2026-10-04. D18-REPLAY-01 is approved. Profile authoring is focused
-GREEN on `validation-execution-profile-03`; the combined B0 gate remains RED:
-**42 PASS / 1 FAIL**, because Run How-To is not implemented. No replay is claimed.
+GREEN on `validation-execution-profile-03`; the expanded B0 gate remains RED:
+**45 PASS / 17 FAIL**, because Run How-To and fresh proof are not implemented.
+All 42 prior passing identities remain passing. No replay is claimed.
 
 ## Evidence
 
@@ -45,9 +46,10 @@ layout, visible, live-role, full-chain or acceptance gates.
 
 ## Next protecting test
 
-Extend this same packaged flow through Run setup, target-local entity selection,
-explicit Start Run, fresh recording and exact new owner results before implementing
-the runner. Protect target/rights/context refusals and setup non-execution.
+The same packaged flow now protects Run setup, target-local entity selection,
+explicit Start Run, fresh recording and exact new owner results. Implement the
+runner against its RED; extend target/rights/policy/stop guards before changing
+their behavior. Setup must not execute, and guide use must not require authoring rights.
 Do not satisfy B0 with empty editor controls or reuse the original transaction's
 success as replay evidence. Full B0, remaining A scope and broader B remain open.
 
@@ -109,3 +111,41 @@ Additional local receipts under `reports/runtime/`:
 The Phase=GREEN filename does not override the exit1/remaining Run failure. Profile
 proof is a scoped checkpoint; B0, 4be-A, broader B, visible acceptance and the open
 native full-chain failure remain separate outstanding work. No deployment.
+
+## Runner protecting RED
+
+The same actual recording and authored profile now feed `Slice4beReceivingRun.ps1`
+and `Slice4beReceivingRunProof.ps1`. Their ordinary form actions cover setup,
+exact guide/profile/Training target, missing local entity, changed context,
+explicit Start Run and read-only Verify. Independent reads require an immutable
+run chain, fresh recording/activity/source identities, exact new entity and
+quantity2.5 application, cleared staging and the preserved custom column. The
+evaluator must conclude from this fresh recording and exact applied event;
+ordinary Viewer Refresh is explicit and Verify cannot publish or dispatch.
+
+Candidate03 final RED: **45 PASS/17 FAIL**, exit1, 23:48:22.856--23:51:55.601 UTC.
+All 42 preceding GREEN identities remain GREEN; zero harness exceptions. The 17
+failures are missing Run entry/setup/dispatch/fresh proof. Three new preservation
+checks pass; passing preservation alone is not evidence of replay. Setup checks
+permit non-executing run metadata, but require unchanged owner files and recordings.
+
+Local receipts under `reports/runtime/`:
+
+- `receiving-replay-controller/05849c8b66cd49acbf982ccf8ceab1db/closure.json`
+- `slice4be-receiving-replay/2ae83ac13f9044058937fe16db7a4895/red.json`
+  and `receiving-replay-scope.json`
+- `receiving-run-red-verification.json`
+
+Closure preserves all five package hashes/settings and closes Excel. Five saved
+disposable probes compile; all391 repository PowerShell scripts parse. No runtime
+source changed since the validated profile checkpoint, so its static evidence
+remains applicable. Application audit since23:05:32 UTC finds no new Excel native
+failure. Desktop probe23:52:10.198 UTC (16:52 PDT) passes cursor/input desktop/capture
+with errors0/0/0. No visible acceptance or deployment is claimed.
+
+Earlier controller225d94ac62dd4fafafb94c3afa47e8ca ended with a harness error:
+an empty activity list produced a non-Boolean regex assertion. It is not the RED
+receipt. Explicit array JSON fixes that; controller11ec9bee3e7742799000c40f46201cdf
+then passes the harness with45/17, and the final run repeats it after removing an
+unnecessary read of a null unselected list value. Further permission/policy/stop,
+packaged owner dispatch, layout, visible and full-chain gates remain open.
