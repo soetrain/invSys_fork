@@ -3516,24 +3516,22 @@ Public Function TestLogProductionOutputRow(ByVal wsProd As Worksheet, ByVal loOu
 End Function
 '@TestOnlyEnd
 
-Public Sub BtnNextBatch()
+Public Sub BtnNextBatch(Optional ByRef didComplete As Boolean = False, Optional ByRef report As String = "")
     On Error GoTo ErrHandler
-    Dim ws As Worksheet: Set ws = SheetExists(SHEET_PRODUCTION)
-    If ws Is Nothing Then Exit Sub
+    Dim ws As Worksheet, invLo As ListObject, loOut As ListObject, lo As ListObject
+    didComplete = False: report = "": Set ws = SheetExists(SHEET_PRODUCTION)
+    If ws Is Nothing Then report = "Production worksheet is unavailable.": Exit Sub
 
     EnsurePaletteTableMetaForExistingTables ws
 
-    Dim invLo As ListObject
     Set invLo = GetInvSysTable()
 
-    Dim loOut As ListObject
     Set loOut = FindListObjectByNameOrHeaders(ws, "ProductionOutput", Array("PROCESS", "OUTPUT"))
     If Not loOut Is Nothing Then
         EnsureOutputBatchNumbers loOut
         ClearProductionOutputForNextBatch ws, loOut
     End If
 
-    Dim lo As ListObject
     For Each lo In ws.ListObjects
         If IsPaletteTable(lo) Then
             If lo.Range.row >= PALETTE_LINES_STAGING_ROW Then GoTo NextLo
@@ -3555,9 +3553,10 @@ NextLo:
     Next lo
 
     MsgBox "Next Batch ready. Inventory selections cleared for unchecked processes.", vbInformation
+    didComplete = True
     Exit Sub
 ErrHandler:
-    MsgBox "BTN_NEXT_BATCH failed: " & Err.description, vbCritical
+    report = "BTN_NEXT_BATCH failed: " & Err.description: MsgBox report, vbCritical
 End Sub
 
 Public Sub BtnPrintRecallCodes()

@@ -1,4 +1,65 @@
-# Slice 4be-A: Production Next Batch binding
+# Slice 4be-A: Production Next Batch binding and recording
+
+## Recording candidate, 2026-10-04
+
+Architecture D18 catalog26 registers `PRODUCTION_RUN_NEXT_BATCH`. The real form
+handler now delegates to a typed guarded action: local STAGED requires owner
+acknowledgment and refresh; incomplete batches are REJECTED, missing worksheets
+are FAILED and denied attempts remain DENIED. Loading/busy/nested entries are
+suppressed. Worksheet selection/keep rules and normal notifications are retained.
+
+Frozen binding01 produces meaningful RED110 PASS/57 FAIL; candidate
+`deploy/validation-production-next-activity-01` produces GREEN167/167.
+Both close normally, restore settings, preserve packages and pass delayed native
+audits. Identical ordered checks and all70 previous GREENs are verified;
+Candidate smoke86 and layout18 size/page pairs pass with prior ordered checks,
+normal closure/preservation and delayed zero native audits. Six layout captures
+are reviewed; minimum/default share one clamped size. Full-chain fails at the
+versioned Boxing form action with a native Excel crash (22:06:08.983 UTC,
+ntdll.dll/c0000028, offset12d2f; harness HRESULT0x800706BE). This is not meaningful
+product RED or desktop error5. Ten recovered fixture workbooks close without save;
+saved bytes, settings, tracked reports and packages are preserved. The earlier
+source-exit wait remains in place; crash causation is unproved. The standalone
+ordered live-role comparison passes48/48 with all prior checks, normal closure,
+preservation and delayed zero native events. This does not substitute for a passing
+full chain; investigate the preceding setup context rather than repeat unchanged gates.
+Use the earlier reproduction command with `-NextActivityOnly`; both runs retain
+the original70 binding checks. The extension covers catalog history, actual owner
+state, optional-policy off, exact actor/target and linked attempt/outcome records,
+redaction/integrity, local-only completion, custom columns/formulas and saved bytes.
+
+All five candidate packages compile;280/284 previous compiled components remain
+unchanged. Core's catalog/Run codes and Operations' form/worksheet owner change;
+Operations adds one typed action helper. Static:292 components/6178 procedures/
+135605 lines,9 literal/45 unresolved Application.Run,190 duplicate candidates;
+all28 oversized caps hold. Growth is one helper/procedure and50 net lines.
+Three schemas and383 PowerShell parses pass. Two original-resolution captures
+show ready and stale-context refusal; clipped long labels and the small output
+region remain. This does not establish populated/multiline or human acceptance.
+
+Earlier probe attempts exposed an unrecognized fixture palette name, a hash read
+sharing violation and a native fixture-sheet deletion prompt. These are harness
+issues, not product RED. Corrected setup and the owned notification observer yield
+the final unassisted RED; the earlier assisted run is retained separately.
+Tracking-fault/interruption, recording-to-guide evidence, remaining control
+coverage and overall4be-A/B0 acceptance remain open.
+
+Ignored receipts under `reports/runtime/`:
+
+- RED controller `production-run-local-controller/bc452a3c80ed41baa968a7d80435a694`,
+  report `slice4be-production-next-activity/5649dd246bbe4f2eb73f817ccd31db23/red.json`.
+- GREEN controller `production-run-local-controller/140012873a394fb199a8c9b3707ba950`,
+  report `slice4be-production-next-activity/3efa68f56a3a4d198521266edc6ef3c5/green.json`.
+- Build `next-activity-build-01`; static `next-activity-static-01/ratchet-verification.json`.
+- Verification `next-activity-focused-verification.json`; smoke
+  `next-activity-regression/smoke-d16c3698ecb0439c92d93f6779d659f0/verification.json`;
+  layout `next-activity-regression/layout-c479aea610c8429ab08b77a6b45d1eb1`.
+- Failed chain `next-activity-regression/chain-d48688a2911448efa86efc11e8a61220`
+  retains sanitized native failure and assisted-preservation receipts.
+- Ordered live comparison `projection-live-control/77043e5b14084a159a6bf83d2ee567dc/scope-verification.json`.
+- Assisted RED `production-run-local-controller/4067d70c06da4187899cc89460aa28f7`.
+
+## Prior binding checkpoint
 
 2026-10-04. Existing Architecture v4.11 D18 captured warehouse/session/workbook
 rule; Operations `frmProduction.mBtnManagerNext_Click`. Observation integration

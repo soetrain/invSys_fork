@@ -37,6 +37,7 @@ param(
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteBaselineOnly,
     [switch]$RunNextBaselineOnly,
+    [switch]$RunNextActivityOnly,
     [switch]$RunCheckInBaselineOnly,
     [switch]$RunCheckInRoutedOnly,
     [switch]$RunCheckInClosedOnly,
@@ -172,6 +173,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
+if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
@@ -519,6 +521,7 @@ if($CheckProductionDesignerActivity){
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-baseline/'+[guid]::NewGuid().ToString('N'))}
+    if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInRoutedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-routed/'+[guid]::NewGuid().ToString('N'))}
@@ -1311,6 +1314,10 @@ End Function
                     if($RunNextBaselineOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionNextBaseline.ps1')
                         Install-ProductionNextBaselineProbe
+                        if($RunNextActivityOnly){
+                            . (Join-Path $PSScriptRoot 'Slice4beProductionNextActivity.ps1')
+                            Install-ProductionNextActivityProbe
+                        }
                     }
                 }
                 if($RunCheckInActivityOnly){

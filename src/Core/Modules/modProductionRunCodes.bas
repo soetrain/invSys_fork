@@ -2,8 +2,8 @@ Attribute VB_Name = "modProductionRunCodes"
 Option Explicit
 Option Private Module
 
-' D18 catalogs24/25: local Run preparation, allocation, presentation and Check In.
-Public Function ControlIds(Optional ByVal version As Long = 25) As Variant
+' D18 catalogs24-26: local Run preparation, allocation and presentation.
+Public Function ControlIds(Optional ByVal version As Long = 26) As Variant
     Dim ids As Variant
     ids = Array("PRODUCTION_RUN_SCALE", "PRODUCTION_RUN_CLEAR", "PRODUCTION_RUN_LOAD", _
         "PRODUCTION_RUN_LOADER_REFRESH", "PRODUCTION_RUN_MANAGER_REFRESH", "PRODUCTION_RUN_ALLOCATE", _
@@ -12,14 +12,18 @@ Public Function ControlIds(Optional ByVal version As Long = 25) As Variant
         ReDim Preserve ids(0 To 9)
         ids(9) = "PRODUCTION_RUN_CHECK_IN"
     End If
+    If version >= 26 Then
+        ReDim Preserve ids(0 To 10)
+        ids(10) = "PRODUCTION_RUN_NEXT_BATCH"
+    End If
     ControlIds = ids
 End Function
 
-Public Function Control(ByVal id As String, Optional ByVal version As Long = 25) As Object
+Public Function Control(ByVal id As String, Optional ByVal version As Long = 26) As Object
     Dim ids As Variant, captions As Variant, index As Long, record As Object, surface As String
     ids = ControlIds(version)
     captions = Array("Apply Scale", "Clear Run", "Load Recipe", "Refresh", "Refresh", "Apply", _
-                     "Apply", "Expand", "Collapse", "Check In")
+                     "Apply", "Expand", "Collapse", "Check In", "Next Batch")
     For index = LBound(ids) To UBound(ids)
         If id = ids(index) Then
             surface = "Operations > Production > Production Run - List"
@@ -36,7 +40,7 @@ Public Function PositiveOutcome(ByVal id As String) As String
     Select Case id
         Case "PRODUCTION_RUN_SCALE", "PRODUCTION_RUN_CLEAR", "PRODUCTION_RUN_LOAD", _
              "PRODUCTION_RUN_ALLOCATE", "PRODUCTION_RUN_TREE_ALLOCATE", _
-             "PRODUCTION_RUN_CHECK_IN": PositiveOutcome = "STAGED"
+             "PRODUCTION_RUN_CHECK_IN", "PRODUCTION_RUN_NEXT_BATCH": PositiveOutcome = "STAGED"
         Case "PRODUCTION_RUN_LOADER_REFRESH", "PRODUCTION_RUN_MANAGER_REFRESH": PositiveOutcome = "REFRESHED"
         Case "PRODUCTION_RUN_TREE_EXPAND", "PRODUCTION_RUN_TREE_COLLAPSE": PositiveOutcome = "PRESENTED"
     End Select
@@ -71,6 +75,8 @@ Public Function Outcome(ByVal id As String, ByVal code As String) As Object
     End Select
     If id = "PRODUCTION_RUN_CHECK_IN" And code = "STAGED" Then _
         message = "Check In finished local validation and staging; inventory was not reserved, consumed or submitted."
+    If id = "PRODUCTION_RUN_NEXT_BATCH" And code = "STAGED" Then _
+        message = "Next Batch finished local preparation; saved inventory and definitions were not changed."
     Set record = CreateObject("Scripting.Dictionary")
     record.Add "EventCode", id & "_" & code: record.Add "OutcomeCode", code
     record.Add "Severity", severity: record.Add "DataEffect", effect

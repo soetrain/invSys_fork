@@ -11395,21 +11395,7 @@ Private Sub mCmbTreeRunProcess_Change()
 End Sub
 
 Private Sub mBtnManagerNext_Click()
-    Dim reusableReport As String, action As New cProductionWorksheetAction
-    If Not action.BeginOwner(mActivityContext, mOperatorWorkbook, reusableReport) Then ShowStatus reusableReport: Exit Sub
-    If modProductionReusableRun.ReusableRunIsLoaded() Then
-        If modProductionReusableRun.BeginNextReusableBatch(reusableReport) Then
-            RefreshReusableRunControls True
-        End If
-        ShowStatus reusableReport
-        Exit Sub
-    End If
-    BindOperatorWorkbookForRun
-    mProduction.BtnNextBatch
-    ResetInventoryCache
-    RefreshLoaderState
-    RefreshManagerState
-    ShowStatus "Next Batch completed."
+    modProductionNextActions.Execute Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress
 End Sub
 
 Private Sub mBtnManagerPrint_Click()

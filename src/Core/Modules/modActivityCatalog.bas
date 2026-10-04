@@ -2,11 +2,11 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 25
+Public Const CATALOG_VERSION As Long = 26
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
-    If version = 24 Or version = 25 Then
+    If version >= 24 And version <= 26 Then
         ids = ControlIds(23): added = modProductionRunCodes.ControlIds(version)
         offset = UBound(ids) + 1
         ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)

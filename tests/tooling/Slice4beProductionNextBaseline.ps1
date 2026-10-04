@@ -85,6 +85,7 @@ function Test-ProductionNextBaseline($Fixture,$Other) {
             Check ($label+'.DecoyPreserved') ($decoySheet.Cells.Item(1,1).Value2 -ceq $canary -and $decoy.Worksheets.Count -eq 1)
             CaptureOwnedFormByCaptionEvidence 'Production' ('next-baseline-'+$guard.ToLowerInvariant()+'.png')
         }
+        if($RunNextActivityOnly){Test-ProductionNextActivity $Fixture $Other $book $decoy $canary}
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'NextBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
         Check 'NextBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
