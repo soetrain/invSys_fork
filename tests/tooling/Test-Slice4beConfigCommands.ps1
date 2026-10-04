@@ -130,6 +130,7 @@ param(
     [switch]$CheckRecordingIsolation,
     [switch]$CheckRecordingRestart,
     [switch]$CheckRecordingOperations,
+    [switch]$CheckReceivingReplay,
     [switch]$CheckRecordingEvaluation,
     [switch]$CheckEvaluationContracts,
     [switch]$CheckExpectationCompatibility,
@@ -365,6 +366,10 @@ if($CheckRecordingRestart) {
     $CheckRecordingReader = $true
 }
 if($CheckRecordingReader) { $CheckActionRecording = $true }
+if($CheckReceivingReplay) {
+    if(-not $CompileEvaluationProbesForTest){throw 'Receiving replay requires compiled packaged probes.'}
+    $CheckGuideDraft = $true
+}
 if($CheckGuideDraft) { $CheckActionRecording = $true }
 if($CheckRecordingIsolation) { $CheckActionRecording = $true }
 if($CheckActionRecording) { $CheckViewerPublishedRead = $true }
@@ -564,6 +569,10 @@ if($CheckAuthReadOnly){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-auth-read/'+[guid]::NewGuid().ToString('N'))
     Write-Output ('Auth read report: '+$reportRoot)
     . (Join-Path $PSScriptRoot 'Slice4beAuthReadOnly.ps1')
+}
+if($CheckReceivingReplay){
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-receiving-replay/'+[guid]::NewGuid().ToString('N'))
+    Write-Output ('Receiving replay evidence: '+$reportRoot)
 }
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
@@ -917,6 +926,7 @@ function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
         4 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3]) }
         5 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4]) }
         6 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4],$Values[5]) }
+        7 { $excel.Run($name,$Values[0],$Values[1],$Values[2],$Values[3],$Values[4],$Values[5],$Values[6]) }
         default { throw 'Unsupported macro argument count' }
     }
     if($attempt -gt 1){
@@ -998,7 +1008,9 @@ function NewFixture([string]$Suffix) {
     $share=Join-Path $runRoot ($Suffix+'-share')
     New-Item -ItemType Directory -Path $share -Force | Out-Null
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($root))
-    $created=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.BootstrapWarehouseLocalAdmin' @($wh,'Config command fixture','S1','config-admin',$root,$share))
+    $creationArgs=@($wh,'Config command fixture','S1','config-admin',$root,$share)
+    if($CheckReceivingReplay -and $Suffix -ceq 'a'){$creationArgs+='Training'}
+    $created=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.BootstrapWarehouseLocalAdmin' $creationArgs)
     if(-not $created){throw 'Admin Generate Warehouse fixture failed.'}
     $secret=[guid]::NewGuid().ToString('N')
     $auth=$excel.Workbooks.Open((Join-Path $root ($wh+'.invSys.Auth.xlsb')),0,$false)
@@ -1218,6 +1230,10 @@ End Function
             if($CheckGuideDraft -or $CheckOperationsGuidePresentation){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
+            }
+            if($CheckReceivingReplay){
+                . (Join-Path $PSScriptRoot 'Slice4beReceivingReplay.ps1')
+                Install-ReceivingReplayProbe
             }
             if($CheckRecordingOperations){
                 . (Join-Path $PSScriptRoot 'Slice4beRecordingOperations.ps1')
@@ -1540,7 +1556,9 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
     }
-    [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @((Join-Path $repo 'deploy/current/templates')))
+    $templateRoot=Join-Path $repo 'deploy/current/templates'
+    if($CheckReceivingReplay){$templateRoot=Join-Path $inputDeploy 'templates'}
+    [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @($templateRoot))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
     if($GuideCaptureSavedWorkbookForTest){
         . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
@@ -1602,7 +1620,10 @@ End Function
         }
     }
     if($CheckViewerPublishedRead) {
-        if($GuideActionCurationOnly){
+        if($CheckReceivingReplay){
+            $step='B0 actual Receiving recording and guide execution entry'
+            Test-Slice4beReceivingReplay $a $b
+        } elseif($GuideActionCurationOnly){
             $step='direct tracked-action curation through packaged handlers'
             . (Join-Path $PSScriptRoot 'Slice4beGuideActionCuration.ps1')
             Test-GuideActionCuration $a $b
