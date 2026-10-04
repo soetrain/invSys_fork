@@ -48,6 +48,7 @@ Private Const ANCHOR_BOTTOM As Long = 8
 
 Private mAnchors As Object
 Private mResizeInitialized As Boolean
+Private mWarehousePurpose As MSForms.ComboBox
 
 Private Sub UserForm_Initialize()
     Me.Caption = "Create Warehouse"
@@ -67,6 +68,7 @@ Private Sub UserForm_Initialize()
     ConfigureHubPathHelperButton
     ConfigureSharePointHelperButton
     ConfigureOpenReceivingButton
+    ConfigureWarehousePurpose
     Me.btnOK.Caption = "Create"
     Me.btnCancel.Caption = "Cancel"
     Me.chkPublishInitial.Value = True
@@ -235,7 +237,7 @@ Private Sub btnOK_Click()
         Exit Sub
     End If
 
-    If Not modAdminConsole.BootstrapWarehouseLocalAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint) Then
+    If Not modAdminConsole.BootstrapWarehouseLocalAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, CStr(mWarehousePurpose.Value)) Then
         ShowSummary "Warehouse hub bootstrap failed:" & vbCrLf & modWarehouseBootstrap.GetLastWarehouseBootstrapReport(), COLOR_ERROR
         Exit Sub
     End If
@@ -248,6 +250,7 @@ Private Sub btnOK_Click()
     mCreatedPathSharePoint = pathSharePoint
     mCreatedOperatorWorkbookPath = modWarehouseBootstrap.GetLastWarehouseOperatorWorkbookPath()
     mLocalBootstrapComplete = True
+    mWarehousePurpose.Enabled = False
     summaryText = "Warehouse hub bootstrap complete for " & warehouseId & "."
     If mCreatedOperatorWorkbookPath <> "" Then
         summaryText = summaryText & vbCrLf & "Receiving workbook created: " & GetFileNameForm(mCreatedOperatorWorkbookPath)
@@ -325,7 +328,7 @@ Private Function BuildSpecFromForm(ByRef warehouseId As String, _
     pathLocal = Trim$(CStr(Me.txtPathLocal.Value))
     pathSharePoint = Trim$(CStr(Me.txtPathSharePoint.Value))
 
-    isValid = modAdminConsole.ValidateWarehouseSpecAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report)
+    isValid = modAdminConsole.ValidateWarehouseSpecAdmin(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report, CStr(mWarehousePurpose.Value))
     If Not isValid Then SetErrorCaption Me.lblWarehouseIdError, report
 
     If stationId = "" Then
@@ -422,7 +425,9 @@ End Sub
 
 Private Sub InitializeCreateWarehouseAnchors()
     Set mAnchors = modDynamicForms.CreateFormAnchorManager()
-    mAnchors.Initialize Me, 620, 470
+    mAnchors.Initialize Me, 620, 610
+    mAnchors.Add mWarehousePurpose, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add Me.Controls("lblWarehousePurpose"), ANCHOR_LEFT Or ANCHOR_TOP
 
     mAnchors.Add Me.txtWarehouseId, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
     mAnchors.Add Me.txtWarehouseName, ANCHOR_LEFT Or ANCHOR_TOP Or ANCHOR_RIGHT
@@ -443,6 +448,39 @@ Private Sub InitializeCreateWarehouseAnchors()
     If Not mBtnHubPathHelper Is Nothing Then mAnchors.Add mBtnHubPathHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnSharePointHelper Is Nothing Then mAnchors.Add mBtnSharePointHelper, ANCHOR_RIGHT Or ANCHOR_TOP
     If Not mBtnOpenReceiving Is Nothing Then mAnchors.Add mBtnOpenReceiving, ANCHOR_LEFT Or ANCHOR_BOTTOM
+End Sub
+
+Private Sub ConfigureWarehousePurpose()
+    Dim ctl As Object, purposeLabel As MSForms.Label, rowTop As Single
+    rowTop = Me.chkPublishInitial.Top
+    For Each ctl In Me.Controls
+        If ctl.Top >= rowTop Then ctl.Top = ctl.Top + 36
+    Next ctl
+    Me.lblSummary.Top = Me.chkPublishInitial.Top + Me.chkPublishInitial.Height + 12
+    Me.btnOK.Top = Me.lblSummary.Top + Me.lblSummary.Height + 18
+    Me.btnCancel.Top = Me.btnOK.Top
+    mBtnOpenReceiving.Top = Me.btnOK.Top
+    Me.Height = 610
+    Set purposeLabel = Me.Controls.Add("Forms.Label.1", "lblWarehousePurpose", True)
+    With purposeLabel
+        .Caption = "Warehouse purpose"
+        .Left = 18
+        .Top = rowTop + 3
+        .Width = 118
+        .Height = 18
+    End With
+    Set mWarehousePurpose = Me.Controls.Add("Forms.ComboBox.1", "cboWarehousePurpose", True)
+    With mWarehousePurpose
+        .Left = 140
+        .Top = rowTop
+        .Width = 180
+        .Height = 22
+        .Style = fmStyleDropDownList
+        .AddItem "Operational"
+        .AddItem "Training"
+        .ListIndex = 0
+        .ControlTipText = "Automatic How-To replay requires a separately generated Training warehouse."
+    End With
 End Sub
 
 Private Function FormatSummaryMessage(ByVal messageText As String) As String

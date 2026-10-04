@@ -24,6 +24,7 @@ Public Type WarehouseSpec
     AdminUser As String
     PathLocal As String
     PathSharePoint As String
+    WarehousePurpose As String
 End Type
 
 Public Function ValidateWarehouseSpecValues(ByVal warehouseId As String, _
@@ -32,7 +33,7 @@ Public Function ValidateWarehouseSpecValues(ByVal warehouseId As String, _
                                             ByVal adminUser As String, _
                                             ByVal pathLocal As String, _
                                             ByVal pathSharePoint As String, _
-                                            Optional ByRef report As String = "") As Boolean
+                                            Optional ByRef report As String = "", Optional ByVal warehousePurpose As String = "Operational") As Boolean
     Dim spec As WarehouseSpec
 
     spec.WarehouseId = warehouseId
@@ -41,6 +42,7 @@ Public Function ValidateWarehouseSpecValues(ByVal warehouseId As String, _
     spec.AdminUser = adminUser
     spec.PathLocal = pathLocal
     spec.PathSharePoint = pathSharePoint
+    spec.WarehousePurpose = warehousePurpose
     ValidateWarehouseSpecValues = ValidateWarehouseSpec(spec, report)
 End Function
 
@@ -49,7 +51,7 @@ Public Function BootstrapWarehouseLocalValues(ByVal warehouseId As String, _
                                               ByVal stationId As String, _
                                               ByVal adminUser As String, _
                                               ByVal pathLocal As String, _
-                                              ByVal pathSharePoint As String) As Boolean
+                                              ByVal pathSharePoint As String, Optional ByVal warehousePurpose As String = "Operational") As Boolean
     Dim spec As WarehouseSpec
 
     spec.WarehouseId = warehouseId
@@ -58,6 +60,7 @@ Public Function BootstrapWarehouseLocalValues(ByVal warehouseId As String, _
     spec.AdminUser = adminUser
     spec.PathLocal = pathLocal
     spec.PathSharePoint = pathSharePoint
+    spec.WarehousePurpose = warehousePurpose
     BootstrapWarehouseLocalValues = BootstrapWarehouseLocal(spec)
 End Function
 
@@ -81,6 +84,7 @@ End Function
 Public Function ValidateWarehouseSpec(ByRef spec As WarehouseSpec, _
                                       Optional ByRef report As String = "") As Boolean
     NormalizeWarehouseSpec spec
+    If Not modWarehouseProvisioning.NormalizePurpose(spec.WarehousePurpose, report) Then Exit Function
 
     If spec.WarehouseId = "" Then
         report = "WarehouseId is required."
@@ -723,47 +727,8 @@ End Function
 Private Function StampBootstrapConfigWorkbook(ByVal wbCfg As Workbook, _
                                               ByRef spec As WarehouseSpec, _
                                               ByRef report As String) As Boolean
-    Dim loWh As ListObject
-    Dim loSt As ListObject
-
-    On Error GoTo FailStamp
-
-    Set loWh = wbCfg.Worksheets("WarehouseConfig").ListObjects("tblWarehouseConfig")
-    Set loSt = wbCfg.Worksheets("StationConfig").ListObjects("tblStationConfig")
-    If loWh Is Nothing Or loSt Is Nothing Then
-        report = "Config tables were not available after bootstrap."
-        Exit Function
-    End If
-
-    SetTableCellByColumnBootstrap loWh, 1, "WarehouseId", spec.WarehouseId
-    SetTableCellByColumnBootstrap loWh, 1, "WarehouseName", IIf(Trim$(spec.WarehouseName) = "", spec.WarehouseId, spec.WarehouseName)
-    SetTableCellByColumnBootstrap loWh, 1, "PathDataRoot", spec.PathLocal
-    SetTableCellByColumnBootstrap loWh, 1, "PathSharePointRoot", spec.PathSharePoint
-
-    SetTableCellByColumnBootstrap loSt, 1, "StationId", spec.StationId
-    SetTableCellByColumnBootstrap loSt, 1, "WarehouseId", spec.WarehouseId
-    SetTableCellByColumnBootstrap loSt, 1, "StationName", spec.AdminUser
-    SetTableCellByColumnBootstrap loSt, 1, "PathInboxRoot", spec.PathLocal & "\inbox\"
-    SetTableCellByColumnBootstrap loSt, 1, "RoleDefault", "RECEIVE"
-
-    SaveWorkbookIfWritableBootstrap wbCfg
-    StampBootstrapConfigWorkbook = True
-    Exit Function
-
-FailStamp:
-    report = "StampBootstrapConfigWorkbook failed: " & Err.Description
+    StampBootstrapConfigWorkbook = modWarehouseProvisioning.StampConfig(wbCfg, spec, report)
 End Function
-
-Private Sub SetTableCellByColumnBootstrap(ByVal lo As ListObject, _
-                                          ByVal rowIndex As Long, _
-                                          ByVal columnName As String, _
-                                          ByVal valueOut As Variant)
-    Dim idx As Long
-
-    If lo Is Nothing Then Exit Sub
-    idx = lo.ListColumns(columnName).Index
-    lo.DataBodyRange.Cells(rowIndex, idx).Value = valueOut
-End Sub
 
 Private Function BuildReceivingOperatorPathBootstrap(ByRef spec As WarehouseSpec) As String
     BuildReceivingOperatorPathBootstrap = _

@@ -36,8 +36,8 @@ Public Function ValidateWarehouseSpecAdmin(ByVal warehouseId As String, _
                                            ByVal adminUser As String, _
                                            ByVal pathLocal As String, _
                                            ByVal pathSharePoint As String, _
-                                           Optional ByRef report As String = "") As Boolean
-    ValidateWarehouseSpecAdmin = modWarehouseBootstrap.ValidateWarehouseSpecValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report)
+                                           Optional ByRef report As String = "", Optional ByVal warehousePurpose As String = "Operational") As Boolean
+    ValidateWarehouseSpecAdmin = modWarehouseBootstrap.ValidateWarehouseSpecValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, report, warehousePurpose)
 End Function
 
 Public Function BootstrapWarehouseLocalAdmin(ByVal warehouseId As String, _
@@ -45,8 +45,8 @@ Public Function BootstrapWarehouseLocalAdmin(ByVal warehouseId As String, _
                                              ByVal stationId As String, _
                                              ByVal adminUser As String, _
                                              ByVal pathLocal As String, _
-                                             ByVal pathSharePoint As String) As Boolean
-    BootstrapWarehouseLocalAdmin = modWarehouseBootstrap.BootstrapWarehouseLocalValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint)
+                                             ByVal pathSharePoint As String, Optional ByVal warehousePurpose As String = "Operational") As Boolean
+    BootstrapWarehouseLocalAdmin = modWarehouseBootstrap.BootstrapWarehouseLocalValues(warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, warehousePurpose)
 End Function
 
 Public Function PublishInitialArtifactsAdmin(ByVal warehouseId As String, _
