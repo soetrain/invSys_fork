@@ -108,7 +108,7 @@ End Function
 ' Fixed children share the journal's allowed-target and ancestor checks.
 Public Function ChildRoot(ByVal target As WarehouseTarget, ByVal child As String, ByVal create As Boolean) As String
     Dim root As String, fso As Object
-    If child <> "Guides" And child <> "Evaluations" Then Exit Function
+    If child <> "Guides" And child <> "Evaluations" And child <> "ExecutionProfiles" Then Exit Function
     root = JournalRoot(target, create)
     If root = "" Then Exit Function
     Set fso = CreateObject("Scripting.FileSystemObject")

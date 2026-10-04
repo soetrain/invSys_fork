@@ -31,6 +31,8 @@ Private mStatus As MSForms.Label
 Private mObserved As MSForms.Label
 Private WithEvents mUse As MSForms.CommandButton
 Private WithEvents mEdit As MSForms.CommandButton
+Private WithEvents mConfigure As MSForms.CommandButton
+Private mExecution As frmActionPathExecution
 Private mObservedId As String
 Private mObservedBinding As String
 
@@ -53,6 +55,7 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblGuideObservedRun", "", 12, 542, 650, 36, 13), _
         Array("CommandButton", "btnUseGuideForRun", "Use for selected run", 674, 546, 206, 28, 12), _
         Array("CommandButton", "btnEditPublishedGuide", "Edit guide", 614, 588, 150, 26, 12), _
+        Array("CommandButton", "btnConfigureExecution", "Configure execution", 12, 588, 190, 26, 9), _
         Array("CommandButton", "btnCloseGuides", "Close", 782, 588, 98, 26, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
         control.Move definition(3), definition(4), definition(5), definition(6)
@@ -66,6 +69,7 @@ Private Sub UserForm_Initialize()
     Set mSource = Me.Controls("lblPublishedGuideSource"): Set mStatus = Me.Controls("lblPublishedGuideStatus")
     Set mObserved = Me.Controls("lblGuideObservedRun"): Set mUse = Me.Controls("btnUseGuideForRun")
     Set mEdit = Me.Controls("btnEditPublishedGuide")
+    Set mConfigure = Me.Controls("btnConfigureExecution"): mConfigure.Enabled = False
     mUse.Enabled = False: mEdit.Enabled = False
     mGuides.ColumnCount = 3: mGuides.BoundColumn = 1
     mGuides.ColumnWidths = "0 pt;400 pt;420 pt": mGuides.IntegralHeight = False
@@ -107,6 +111,9 @@ Public Sub ValidateSelection()
     If Not ContextValid() Then Exit Sub
     If mGuides.ListIndex < 0 Then ClearSelection "Select a published guide version.": Exit Sub
     key = CStr(mGuides.Value)
+    If Not mExecution Is Nothing Then
+        If Not mExecution.Matches(mContext, key) Then CloseExecution
+    End If
     modGuideEditor.ValidatePublishedSelection Me, key
     If Not modGuideLibraryRead.ReadGuide(mContext, key, instructions, observations, provenance, notice) Then
         ClearSelection notice
@@ -117,6 +124,8 @@ Public Sub ValidateSelection()
     mInstructions.Value = instructions: mObservations.Value = observations
     mSource.Caption = provenance: mStatus.Caption = notice
     mEdit.Enabled = modActionGuideDraft.CanEditPublished(mContext, key, editNotice)
+    mConfigure.Enabled = mEdit.Enabled
+    If Not mConfigure.Enabled Then CloseExecution
     If Not mEdit.Enabled Then modGuideEditor.ClosePublishedReader Me
     mUse.Enabled = False
     If Not mOwner Is Nothing And mObservedId <> "" Then
@@ -146,7 +155,12 @@ Private Sub RefreshGuides()
     Next row
 Done:
     mLoading = False: mStatus.Caption = notice
-    If mGuides.ListIndex >= 0 Then ValidateSelection Else modGuideEditor.ClosePublishedReader Me
+    If mGuides.ListIndex >= 0 Then
+        ValidateSelection
+    Else
+        modGuideEditor.ClosePublishedReader Me
+        CloseExecution
+    End If
     Exit Sub
 Failed:
     mLoading = False
@@ -154,17 +168,45 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
+    If Not mLoading Then CloseExecution
+    mConfigure.Enabled = False
     mUse.Enabled = False: mEdit.Enabled = False
     If Not mLoading Then modGuideEditor.ClosePublishedReader Me
     mInstructions.Value = "": mObservations.Value = "": mSource.Caption = "": mStatus.Caption = notice
 End Sub
 
 Public Sub ReleaseReader()
+    CloseExecution
     modGuideEditor.ClosePublishedReader Me
     mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
     Set mOwner = Nothing: mContext = ""
     mLoading = True: mGuides.Clear: mSearch.Value = "": mLoading = False
     ClearSelection ""
+End Sub
+
+Public Sub CloseExecution()
+    Dim closing As frmActionPathExecution
+    Set closing = mExecution: Set mExecution = Nothing
+    If Not closing Is Nothing Then
+        closing.ReleaseDraft
+        Unload closing
+    End If
+End Sub
+
+Private Sub mConfigure_Click()
+    Dim notice As String, token As String
+    ValidateSelection
+    If Not mConfigure.Enabled Or mGuides.ListIndex < 0 Then Exit Sub
+    If Not mExecution Is Nothing Then Exit Sub
+    If Not modExecutionProfile.OpenDraft(mContext, CStr(mGuides.Value), token, notice) Then
+        mStatus.Caption = notice: Exit Sub
+    End If
+    Set mExecution = New frmActionPathExecution
+    If mExecution.BindContext(mContext, CStr(mGuides.Value), token, Me, notice) Then
+        mExecution.Show vbModeless
+    Else
+        CloseExecution: mStatus.Caption = notice
+    End If
 End Sub
 
 Private Sub mEdit_Click()

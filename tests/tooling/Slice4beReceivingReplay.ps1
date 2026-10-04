@@ -167,6 +167,8 @@ function Test-Slice4beReceivingReplay($Fixture,$Other) {
         Check 'ReceivingReplay.EditorBindsExactGuide' ($opened -and $binding.Contains([string]$guide.ActionPathId) -and $binding.Contains([string]$guide.ContentSha256))
         Check 'ReceivingReplay.RunHowToControlPresent' ((BoundControl 'btnRunHowTo' 'State') -match '^True\|')
         Check 'ReceivingReplay.SetupEntryDoesNotExecute' ((BoundSame $original (BoundPins $journalRoot)) -and (PinsRetained $activity) -and (ActivityPins).Count -eq $activity.Count -and $staging.ListRows.Count -eq 0)
+        . (Join-Path $PSScriptRoot 'Slice4beExecutionProfile.ps1')
+        Test-ReceivingExecutionProfile $guide $staging $journalRoot (Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')) $Fixture $Other
         [pscustomobject]@{SourceGuideCreated=$true;SourceSteps=$guide.Steps.Count;SourceExactEventObserved=$true;ReplayExecuted=$false;FreshReplayProof=$false;B0Accepted=$false}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'receiving-replay-scope.json')
     } finally {
         CloseRecordingViewer
