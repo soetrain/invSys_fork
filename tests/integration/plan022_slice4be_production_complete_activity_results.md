@@ -330,16 +330,69 @@ in the initial viewport. These captures do not establish complete multiline or
 scrolling acceptance. The logger's PENDING outcome is tested separately from the
 unchanged owner message. No package promotion or A1/A2 acceptance is claimed.
 
+## Recording-to-guide proof, 2026-10-05
+
+The separate CompletePathsOnly gate exercises two real completions: an authored
+guide source and a distinct observed run. Exact Inventory events, System_Key,
+quantity deltas and audit rows are checked independently. An older loaded
+publication cannot prove the fresh references; subsequent owning publication and
+actual Evaluate prove both. CommandCompleted remains a separate conclusion.
+Actual authoring, immutable guide provenance, a reader without author capability,
+exact guide/run pairing and How-To/Diagnostic/Compare preserve the same evidence.
+No runtime or architectural contract changes; this extends existing D13 proof.
+
+Harness trials are retained, not counted as product RED:
+
+- 41 PASS/1 setup failure: controller `production-run-local-controller/3dd4eeb600c84f11afa72fc79b6c0dac`,
+ worker `slice4be-production-complete-paths-reusable/376d0f7bd3274805b96cfdfcafa325eb/green.json`,
+ 13:18:49.639--13:21:02.597 UTC. Default-policy loading reset capture; the fixture
+ now enables recording afterward. Return-value helpers also isolate check output.
+- 94 PASS/1 incorrect assertion: controller `production-run-local-controller/d6920b959e3f4bc1bd6340f781b45db0`,
+ worker `slice4be-production-complete-paths-reusable/3e4c79c7d54e4e218eabea4d5fa48926/green.json`.
+ 13:21:59.549--13:29:19.347 UTC; normal closure and preservation pass.
+ Reopening Viewer loaded the owner's newer snapshot; its valid applied conclusion
+ was not evidence against the old publication. Keep the original loaded Viewer
+ for that countercheck. Stage-qualified choice names replace one duplicated name.
+ This trial's guide captures are obscured by the library and are not visible acceptance.
+
+Reusable **95/95**: controller `production-run-local-controller/270b09aa1bf3456dbe850308a4ee217e`,
+worker `slice4be-production-complete-paths-reusable/4066d2ef1e5248adb0fbcf10c770be4f/green.json`,
+13:29:35.291--13:36:34.083 UTC. All91 unrenamed prior GREEN checks remain in order;
+all three renamed choice checks and the corrected publication countercheck pass.
+Five instrumented compiles, normal closure, settings/package preservation and
+delayed zero Excel errors pass. Four current captures are unobscured and reviewed:
+`complete-reusable-{how-to,diagnostic,compare-both,conclusion}.png`. They show
+authored instructions, distinct source/observed provenance and both applied sources.
+Read-only native inspection confirms normal window order in this run; it does not
+establish the cause of the earlier obstructed captures. No form change was made.
+
+Worksheet **101/101**: controller `production-run-local-controller/d0f7f484aba243dd8e40fb0f56411a13`,
+worker `slice4be-production-complete-paths-worksheet/24d9dec5825240de8a14969d999bc035/green.json`,
+13:37:01.617--13:44:08.863 UTC. Five compiles, normal closure, settings/package
+preservation and delayed zero Excel errors pass. All four guide captures were
+reviewed but remain obscured. Native inspection shows the library above the focused
+guide, with neither window topmost. A later bounded raise experiment found the
+guide already closed and made no change. Foreground identity alone is insufficient
+capture evidence; protect unobstructed content with a focused test before changing
+capture or form behavior. This is not error5 or functional guide failure.
+
+Static `complete-paths-static-04/` passes415 script parses, three schemas and28
+unchanged caps; all runtime metrics remain unchanged from the404 checkpoint.
+Retain activity04 cold build, smoke86/layout18,432 interruption/policy and404
+submission-fault gates. No package rebuild, promotion, Production replay or broader
+A1/A2 acceptance is claimed. No error5 occurred during these runs.
+
 ## Next test-first work
 
 Retain native closure, permission, identity, interruption and optional logging
-proofs. Next cover publication, fresh source evaluation, guide views and
-the worksheet status scrolling capture. The older live-role
+proofs and both recording-to-guide gates. Next establish unobstructed worksheet
+guide captures, then the worksheet status scrolling capture. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`
 can distinguish attempted uncertain writes from unused allocated event IDs.
 
-Fresh exact source application/evaluation, publication and
-How-To/Diagnostic/Compare remain required. Focused observation GREEN is established;
+Complete Run publication, fresh exact source evaluation and all three presentation
+modes now have functional proof; worksheet visible acceptance remains open.
+Focused observation GREEN is established;
 package promotion, comprehensive A1 and Slice4be-A acceptance are not claimed.
