@@ -36,7 +36,39 @@ calls,190 duplicate groups and28 non-growing oversized caps. No exception needed
 Form comparison retains537/539 exact procedure bodies; only CompleteProductionRun
 and its click handler change. Layout owners are unchanged, so prior scoped layout
 evidence remains valid alongside the two fresh populated captures.
-Full completion regression is in progress; no candidate promotion or acceptance.
+Smoke86/86 retains every prior ordered check with both unassisted exits, settings/
+package/tracked-report preservation and delayed zero Excel errors:
+`complete-activity01-regression/smoke-910e11258e9841b8af46ca34a8420392`,
+10:46:51.145--10:47:15.360 UTC.
+Guide58/58 retains exact prior identities/order with five compiles, preservation,
+normal closure and delayed zero Excel errors: controller
+`execution-profile-guide-regression/fe56f9cb2b614a56a9042222ebfb0de0`, worker
+`slice4be-viewer-published-read/b011312243ab480196ac72389d140ebb/green.json`,
+10:48:04.121--10:55:07.907 UTC. Guide versions, layout, edit/cancel/conflict,
+rights/context and source/business preservation pass. This protects the existing
+guide contract; it does not prove Complete Run's own publication/view acceptance.
+
+Full completion regression is **incomplete** on this candidate:273 prior checks
+pass in order, one harness failure follows an assisted stop, and45 prior checks
+remain uncompleted. Controller `production-run-local-controller/b54e900a3f1f49d78e35e0d0609c1230`,
+worker `slice4be-production-complete-baseline/aac554698f0c46808e184bc294db4d97/green.json`,
+10:18:22.829--10:46:17.622 UTC. The first visible-host transition recovered without
+intervention and native Entry closure passed. The next CompletePending closure
+call stalled for over ten minutes. `complete-closure-resources.jsonl` proves the
+fixture was prepared and shown; BeforeHandler is10:33:45.382 and no HandlerReturned
+was recorded. The dispatch readiness trace says Ready. The earlier frozen318
+candidate returned at this boundary in about one second (09:31:55.886--09:31:56.884).
+Thus this is an unresolved native regression risk after dispatch, not a missing
+fixture. Trace the new completion wrapper's post-close accesses before changing it.
+No Production form or blocking dialog was
+visible in read-only probes; cursor access remained available. Graceful close was
+requested at10:45:12.208, then only the pinned test Excel was terminated at
+10:45:56.767. Parent restoration remained alive and verified settings/package
+preservation and closed Excel. CompleteEntryAct's later RPC error is a consequence
+of the stop, not established product RED or a root cause. Never report this273/1
+receipt as full GREEN or normal shutdown. Prior318 remains evidence on its frozen
+output-return candidate only. Isolate this native boundary before another full run.
+No candidate promotion or acceptance.
 
 Worksheet RED83/33 preceded the expanded baseline:
 controller `production-run-local-controller/0ec10993f21942868521624162632435`,
@@ -71,7 +103,9 @@ The four changed/new test scripts parse; generated runtime evidence stays local.
 
 ## Next test-first work
 
-Finish regression verification, then expand actual partial-submission, optional
+Isolate native CompletePending closure with a trace around the new completion
+wrapper's owner return, status read and cleanup; compare the unchanged frozen
+candidate before correcting runtime behavior. Then expand actual partial-submission, optional
 store/policy fault and publication/guide-view cases. Include the worksheet's
 PROD_POST refusal when the form's ADMIN_MAINT gate passes; preserve the distinct
 existing checks and verify outcome classification before any correction. The older live-role
