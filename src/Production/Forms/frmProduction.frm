@@ -11390,7 +11390,7 @@ Private Sub mBtnManagerNext_Click()
 End Sub
 
 Private Sub mBtnManagerPrint_Click()
-    BindOperatorWorkbookForRun
+    If Not modProductionRunBinding.RequireWorksheetContext(Me, mActivityContext, mOperatorWorkbook) Then Exit Sub
     mProduction.BtnPrintRecallCodes
     ShowStatus "Print Recall Codes completed. " & NzStr(mProduction.GetRecallPrintDiagnostic())
 End Sub

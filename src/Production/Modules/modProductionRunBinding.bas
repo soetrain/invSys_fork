@@ -7,6 +7,12 @@ Public Function RequireCurrentContext(ByVal owner As frmProduction, ByVal contex
         owner.ShowStatus "Session, warehouse, or captured workbook changed. Reopen Production before editing the draft."
 End Function
 
+Public Function RequireWorksheetContext(ByVal owner As frmProduction, ByVal context As String, ByVal operatorWb As Workbook) As Boolean
+    If Not RequireCurrentContext(owner, context, operatorWb) Then Exit Function
+    RequireWorksheetContext = BindWorksheetOwner(operatorWb)
+    If Not RequireWorksheetContext Then owner.ShowStatus "Production sheet not found."
+End Function
+
 Public Function BindWorksheetOwner(ByVal operatorWb As Workbook) As Boolean
     On Error GoTo Unavailable
 

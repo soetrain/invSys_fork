@@ -46,6 +46,7 @@ param(
     [switch]$RunCompleteVisibleHostForTest,
     [switch]$RunCompleteSavedDecoyForTest,
     [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
+    [switch]$RunPrintBaselineOnly,
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
     [switch]$RunNextTerminalOnly,
@@ -191,6 +192,7 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+if($RunPrintBaselineOnly -and (-not $CheckProductionRunLocal -or $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Print baseline requires its isolated Run fixture.'}
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
 if($RunCompletePreparationDiagnostic -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
 if($RunCompleteClosedBoundary -ne 'All' -and -not $RunCompletePreparationDiagnostic){throw 'A narrowed closure boundary requires explicit diagnostic mode.'}
@@ -564,6 +566,7 @@ if($CheckProductionDesignerActivity){
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompletePreparationDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-preparation/'+[guid]::NewGuid().ToString('N'))}
+    if($RunPrintBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-print-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteSubmissionFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-submission-fault/'+[guid]::NewGuid().ToString('N'))}
@@ -1378,6 +1381,10 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionRunLocalActivity.ps1')
             Install-ProductionDesignReadProbe
             Install-ProductionRunLocalProbe
+            if($RunPrintBaselineOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionPrintBaseline.ps1')
+                Install-ProductionPrintBaselineProbe
+            }
             if($RunCompleteBaselineOnly -or $RunCheckInPathsOnly -or $RunCheckInBaselineOnly -or $RunCheckInRoutedOnly -or $RunCheckInClosedOnly -or $RunCheckInActivityOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunStock.ps1')
                 . (Join-Path $PSScriptRoot 'Slice4beProductionRunWorksheet.ps1')
@@ -1934,7 +1941,8 @@ End Function
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRunLocal){
-            if($RunCheckInPathsOnly){
+            if($RunPrintBaselineOnly){Test-ProductionPrintBaseline $a $b}
+            elseif($RunCheckInPathsOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
