@@ -71,9 +71,37 @@ change is reverted. The parent closes at07:02:14.263 UTC with exit-1 and verifie
 settings/package restoration. No runtime, workbook authority, quota or contract
 changes. The07:02:29.916 UTC desktop probe succeeds; no error5 is observed.
 
-Next: run the prior combined completion sequence without the newly added
-post-consume cases, using the bounded diagnostic trace. The passing isolated
-groups do not establish that combined sequence or accept the current full gate.
+The bounded prior combined sequence (all earlier completion/context/interruption/
+entry cases, without post-consume cases) also fails on candidate01: controller
+`627437f5823a489dad4be2a2c70d8dba`, worker
+`slice4be-production-complete-preparation/e6f18c5dd96b474a99ddadcc91a85bbc`,
+07:04:15.634--07:13:53.915 UTC:204 PASS/1 diagnostic-bound failure. The first
+closure case remains at940 GDI through staging, then its actual Check In handler
+raises usage to3760 (observed peak3783). Cleanup closes normally and restores
+settings/packages. This is not product RED or acceptance; later closure checks
+are unreached. Added post-consume cases are not necessary to reproduce growth.
+
+The prior258 GREEN is specifically `validation-production-complete-entry-02`,
+controller `9f7cf60d4d554fa8a4239d77737b42fe`, 2026-10-02 03:10:09--03:24:41 UTC;
+it is not a completed gate on user-policy02. The identical bounded prior sequence
+on frozen `validation-user-policy-02` also fails204/1, with the same ordered205
+checks/results and Check In GDI940->3760 (observed peak3783). Controller
+`e4049e5bd5764623ac53eb896a5e9172`, worker
+`slice4be-production-complete-preparation/82349d4d043d4027bd77a7f8fa541ea2`,
+07:15:11.427--07:25:09.619 UTC, closes normally with settings/packages preserved.
+This failure predates the continuation guard. Next compare complete-entry02 using
+the same bounded harness; tracing remains matched. No acceptance is inferred.
+Historical test source at `50241047` and its controller receipt establish that
+the original258 used `OriginalReadOnly` package loading. Current bounded comparisons
+use saved writable probe copies. Preserve this distinction: a saved-copy failure
+alone does not establish regression of the original loading mode.
+The older complete-entry02 package also fails204/1 with the saved-copy bounded
+harness: controller `28ac0ea972874e04bf32215f9f7080ed`, worker
+`slice4be-production-complete-preparation/c257f101f71240a2a57d062880d1c268`.
+Its first closure Check In increases GDI941->3761 (observed peak3784). It runs
+07:26:12.843--07:35:46.026 UTC and closes without intervention, restoring settings
+and package hashes. Next run the full current candidate in the original read-only loading mode, including
+post-consume checks. The saved-copy failure remains recorded, not waived.
 
 ## Post-consume continuation, 2026-10-05 UTC — under validation
 
