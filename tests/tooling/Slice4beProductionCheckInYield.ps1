@@ -179,7 +179,8 @@ function Test-ProductionCheckInYield($Fixture,$Other,$Book,[string]$SelectedKey,
 # Read-only journal assertions shared by the actual-handler interruption gates.
 # REQUESTED alone is intentional after sign-out: never invent a terminal record.
 function Test-ProductionCheckInJournal($Fixture,$Other,[string[]]$Before,[string[]]$OtherBefore,
-                                      [string]$Outcome,[string]$Label,[string]$Canary){
+                                      [string]$Outcome,[string]$Label,[string]$Canary,
+                                      [string]$ControlId='PRODUCTION_RUN_CHECK_IN',[int]$CatalogVersion=25){
     $files=@(Get-Slice4beActivityFiles $Fixture)
     $raw=@($files|Where-Object{$_ -cnotin $Before}|ForEach-Object{[IO.File]::ReadAllText($_)})
     $records=@($raw|ForEach-Object{$_|ConvertFrom-Json}|Sort-Object @{Expression={if($_.OutcomeCode -ceq 'REQUESTED'){0}else{1}}})
@@ -188,11 +189,11 @@ function Test-ProductionCheckInJournal($Fixture,$Other,[string[]]$Before,[string
     $context=$exact;$safe=$exact;$integrity=$exact;$linked=$exact;$facts=$exact;$terminal=$exact
     $keys=([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockKeysForTest')).Split("`t")
     foreach($r in $records){
-        $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 25
+        $context=$context -and $r.ControlId -ceq $ControlId -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq 'config-producer' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq $CatalogVersion
         $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
         # These gates do not start a recording: ordinal is per action, not per record.
         $linked=$linked -and $r.ActivityId -cne '' -and $r.ActivityId -ceq $records[0].ActivityId -and $r.RecordId -cne '' -and $r.Ordinal -eq 0 -and $r.SequenceId -ceq ''
-        $definition=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @('PRODUCTION_RUN_CHECK_IN',$r.OutcomeCode))
+        $definition=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Outcome' @($ControlId,$r.OutcomeCode))
         if(-not $definition){$facts=$false}else{
             $d=$definition|ConvertFrom-Json
             $facts=$facts -and $r.EventCode -ceq $d.EventCode -and $r.Severity -ceq $d.Severity -and $r.DataEffect -ceq $d.DataEffect -and $r.UserMessage -ceq $d.UserMessage -and $r.NextStep -ceq $d.NextStep

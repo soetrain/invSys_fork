@@ -1,5 +1,33 @@
 # Slice 4be-A: Production Next Batch binding and recording
 
+## Mid-action context/permission evidence, 2026-10-05
+
+Unchanged `deploy/validation-complete-activity-04` passes231/231, retaining all70
+binding checks in exact order. Eight cases invoke the actual Next Batch handler: sign-out/permission
+loss at the reusable/worksheet owner return and at the real RunPalette/InventoryPicker
+read return. Later reads stop; owner/projection state at the boundary, exact keys,
+custom values/formulas, history and canonical bytes remain preserved. Sign-out
+leaves REQUESTED only; permission loss records FAILED with fixed catalog facts,
+no source references and no successful terminal. Four refusal captures are reviewed.
+
+Five instrumented compiles pass. Static `next-yield-static-04/` passes418 script
+parses, three schemas and28 unchanged caps; all runtime metrics are unchanged.
+The shared journal verifier accepts explicit control/catalog arguments while
+retaining its Check In defaults. No runtime edit or new product RED is claimed.
+Unassisted closure, settings/package preservation and delayed zero Excel Application
+failures pass. Interval18:11:39.055--18:19:54.621 UTC; desktop access passed before
+the run and no error5 occurred. No rebuild, promotion or wider acceptance.
+
+Controller `production-run-local-controller/405d83276ab54569836c0abe67b40a21`;
+worker `slice4be-production-next-yield/b4582a335b3a492b92d099138bff9688/green.json`.
+Reproduce: `Test-Slice4beProductionRunLocal.ps1 -DeployRoot
+deploy/validation-complete-activity-04 -Phase GREEN -CompleteBaselineOnly
+-NextBaselineOnly -NextYieldOnly`.
+
+Keep the separate302 policy/store and86/94 guide gates. Native workbook dismissal,
+mid-action recording-policy changes and incomplete-guide proof remain open for
+Next Batch; this is not comprehensive A1/A2 or full-chain acceptance.
+
 ## Optional recording policy/store evidence, 2026-10-05
 
 The unchanged `deploy/validation-complete-activity-04` candidate passes302/302,
