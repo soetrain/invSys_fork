@@ -9,6 +9,11 @@ function Test-ReceivingRun($Guide,$Original,$Staging,[string]$InventoryPath,$Fix
         if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Accepted recording library is unavailable; not runner RED.'}
         BoundOpen;BoundSelect $Guide
         $delivered=(BoundControl 'btnRunHowTo' 'Click') -ceq 'DELIVERED'
+        if($delivered -and (RunnerControl '' 'Count') -cne '1') {
+            $stage=Run 'invSys.Core.xlam' 'modExecutionRun.ExecutionSetupStageForTest'
+            $notice=BoundControl 'lblPublishedGuideStatus' 'Label'
+            [pscustomobject]@{ExecutionSetupStage=$stage;TargetRefusal=$notice.StartsWith('Run requires');Unconfigured=$notice.StartsWith('Execution not configured');PermissionRefusal=$notice.Contains('permission');ProfileRefusal=$notice.Contains('profiles are invalid')}|ConvertTo-Json -Compress|Write-Host
+        }
         return ($delivered -and (RunnerControl '' 'Count') -ceq '1')
     }
     function RunFiles {
@@ -73,16 +78,20 @@ function Test-ReceivingRun($Guide,$Original,$Staging,[string]$InventoryPath,$Fix
     $runRows=@($newFiles|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
     $latest=$null
     if($runRows.Count){$latest=$runRows[-1]}
+    $chainFiles=@()
+    if($null -ne $latest){$chainFiles=@(RunFiles|Where-Object {$_.Name.StartsWith(([string]$latest.RunId+'.'),[StringComparison]::Ordinal)})}
     $dispatched=$opened -and $selected -and $mode -and $started -and $null -ne $latest -and $latest.State -ceq 'Completed'
     Check 'ReceivingRun.StartDispatchesOrderedGuide' ($dispatched -and (@($latest.Steps|ForEach-Object ControlId) -join '|') -ceq (@($Guide.Steps|ForEach-Object ControlId) -join '|') -and @($latest.Steps|Where-Object State -CNE 'Completed').Count -eq 0)
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRunProof.ps1')
     $proof=$false
-    Test-ReceivingRunProof $Guide $savedProfile $Original $latest $newFiles $priorEvents $priorKeys $InventoryPath $Staging $dispatched ([ref]$proof)
+    Test-ReceivingRunProof $Guide $savedProfile $Original $latest $chainFiles $priorEvents $priorKeys $InventoryPath $Staging $dispatched ([ref]$proof)
     Check 'ReceivingRun.SourceGuideAndProfileVersionsPreserved' ((BoundSame $profilePins (BoundPins $profileRoot)) -and (BoundSame $guidePins (BoundPins (Join-Path $journalRoot 'Guides'))))
     Check 'ReceivingRun.OtherRuntimePreserved' ((Get-FileHash -LiteralPath $otherInventory).Hash -ceq $businessBefore[$otherInventory] -and (Get-FileHash -LiteralPath $Other.Config).Hash -ceq $businessBefore[$Other.Config])
     $replayActions=@(foreach($file in Get-ChildItem -LiteralPath $activityRoot -File -Filter '*.json') {
         if(-not $activityBefore.ContainsKey($file.Name)){Get-Content -LiteralPath $file.FullName -Raw|ConvertFrom-Json}
     })
     Check 'ReceivingRun.DummyInputsRemainOutsideActivity' ((ConvertTo-Json -InputObject @($replayActions) -Depth 15 -Compress) -notmatch 'B0-REPLAY-REFERENCE|B0-REPLAY-LOCATION|B0-REPLAY-LOT')
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRunControls.ps1')
+    Test-ReceivingRunControls
     $Scope.Value=[pscustomobject]@{ReplayExecuted=$dispatched;FreshReplayProof=$proof;B0Accepted=$false}
 }

@@ -745,7 +745,7 @@ Private Sub mLstReceiveItems_Click()
     NavigationSelection "lstReceiveItems"
 End Sub
 
-Private Sub LoadSelectedReceiveItemDetails()
+Public Sub LoadSelectedReceiveItemDetails()
     If mLstReceiveItems Is Nothing Then Exit Sub
     If mLstReceiveItems.ListIndex < 0 Then Exit Sub
     mTxtReceiveLocation.Value = NzText( _
@@ -806,7 +806,7 @@ Private Sub mLstAggregate_Click()
     NavigationSelection "lstAggregate"
 End Sub
 
-Private Sub ShowSelectedAggregateReferences()
+Public Sub ShowSelectedAggregateReferences()
     If mTxtAggregateReferences Is Nothing Or mLstAggregate Is Nothing Then Exit Sub
     If mLstAggregate.ListIndex < 0 Then
         ClearAggregateReferenceDetail
@@ -907,30 +907,14 @@ Private Sub mCboDisposition_Click()
 End Sub
 
 Private Sub NavigationSelection(ByVal controlName As String)
-    Dim activityId As String, notice As String, report As String, outcome As String
-    On Error GoTo Failed
-    If Not modReceivingNavigation.BeginSelection(Me, mNavigationInputs, controlName, _
-        ResolveOperatorWorkbook(), mActivityContext, activityId, notice, report) Then
-        If report <> "" Then ShowStatus report
-        Exit Sub
-    End If
-    outcome = "FAILED"
-    Select Case controlName
-        Case "tabsReceiving": ApplyReceivingTab
-        Case "lstReceiveItems": LoadSelectedReceiveItemDetails
-        Case "lstAggregate": ShowSelectedAggregateReferences
-    End Select
-    outcome = "SELECTED"
-Done:
-    modReceivingAddInput.Finish activityId, outcome, notice, report
-    If report <> "" Then ShowStatus Trim$(CStr(mTxtStatus.Value) & " " & report)
-    Exit Sub
-Failed:
-    report = "Selection failed: " & Err.Description
-    Resume Done
+    modReceivingNavigation.ApplySelection Me, mNavigationInputs, ResolveOperatorWorkbook(), mActivityContext, controlName
 End Sub
 
-Private Sub ApplyReceivingTab()
+Public Function SelectExecutionEntity(ByVal key As String) As Boolean
+    SelectExecutionEntity = modReceivingExecution.SelectEntity(mLstReceiveItems, mReceiveItemSystemKeys, mNavigationInputs, key)
+End Function
+
+Public Sub ApplyReceivingTab()
     If mTabs Is Nothing Or Not mBuilt Then Exit Sub
     ShowStatus modReceivingNavigation.ApplyTab(Me, mTabs.Value)
     ResizeReceivingLayout
@@ -1160,7 +1144,7 @@ Public Function TestReceivingSearchAndHeaderContract() As String
     End If
 End Function
 
-Private Sub ShowStatus(ByVal messageText As String)
+Public Sub ShowStatus(ByVal messageText As String)
     If mTxtStatus Is Nothing Then Exit Sub
     mTxtStatus.Text = messageText
 End Sub

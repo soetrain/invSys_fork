@@ -149,3 +149,75 @@ receipt. Explicit array JSON fixes that; controller11ec9bee3e7742799000c40f46201
 then passes the harness with45/17, and the final run repeats it after removing an
 unnecessary read of a null unselected list value. Further permission/policy/stop,
 packaged owner dispatch, layout, visible and full-chain gates remain open.
+
+## Packaged runner checkpoint (2026-10-04)
+
+The corrected preimplementation test repeats **45 PASS/17 FAIL** on frozen
+profile03. It checks all run revisions, including Ready, and distinguishes
+REQUESTED observations from completed owner outcomes.
+
+Core now binds the generated Training runtime, exact guide/profile, permissions,
+policy and loaded builds; it appends immutable run revisions and reuses the recorder
+and evaluator. Operations supplies typed inputs to ordinary Receiving handlers,
+retaining the exact generated operator workbook object. The runner has Start,
+Next, Stop and separate read-only Verify; no retry, rollback or repair.
+Receiving list preparation and selection handling are factored without growing
+their oversized source modules. Replay deliberately arms the existing selection
+input boundary; ordinary programmatic list changes retain their previous rules.
+
+- Candidate01: five compiles pass, **46/16**; expanded controls give **47/25**.
+  Disposable stage markers identify package discovery as the setup refusal.
+  Training authority, guide/profile, policy and permissions already pass.
+- Candidate02 uses named loaded-XLAM lookup instead of workbook enumeration:
+  **71 PASS/1 FAIL**, 00:18:02.877--00:22:54.285 UTC. All six Receiving actions
+  complete through ordinary owners. Independent proof finds fresh identities,
+  an exact applied event/new System_Key/quantity2.5, preserved custom column and
+  cleared staging. Verify concludes from that exact event and leaves business,
+  publication and run evidence unchanged.
+- Step through waits for Next, executes one owner, rejects repeat Start, retains
+  Stop after one step and refuses later dispatch. A stopped run cannot borrow the
+  completed run's success. All prior profile checks remain GREEN.
+- Sole failure: minimum-width Stop/Next overlap. Default/enlarged layouts pass.
+  Candidate03 fixes the Stop anchor; its final evidence follows below.
+- Candidate02 static:306 components/6278 procedures/137359 lines (+8/+56/+998);
+  dynamic calls9/45, duplicates190 and all28 oversized caps retained. All393
+  PowerShell scripts parse. Compiled comparison preserves284/291 existing
+  components; seven intended existing components change and eight are added.
+
+Local receipts: controller directories below are under
+`reports/runtime/receiving-replay-controller/`; other paths are under `reports/runtime/`.
+
+- Corrected RED: controller`03ae5425810a4b419c642ca797e25205`,
+  worker`slice4be-receiving-replay/51c4b9d019fc433e8623df58f4c1e434/red.json`.
+- Candidate01: controller`20e97490c8724dc49e4e6b0df11f7c9c`;
+  diagnostic/controls controller`70064844ae024fb5b762441436e40214`.
+- Candidate02: controller`e77afae56ef843a2b1b4df3ec2de5070/closure.json`,
+  worker`slice4be-receiving-replay/9c7e4c4cd6c24a6d83da1eba646b700f/green.json`;
+  `receiving-run-build-02/`, `receiving-run-static-02/`.
+
+All completed controllers restore settings, preserve packages and close Excel.
+No deployment or B0/A/B/R1 acceptance is claimed. Focused permission/policy/nested
+entry and workbook-replacement guards, Receiving/native and published-guide
+regressions, control observations, visible proof and the open full-chain native
+failure remain outstanding.
+
+Final candidate03: **72 PASS/0 FAIL**. Minimum/default/enlarged layouts all pass;
+all71 candidate02 GREEN identities and all42 profile-checkpoint GREEN identities
+are retained. Five cold compiles pass. Static evidence is306 components/6278
+procedures/137360 lines (+8/+56/+999); dynamic calls9/45, duplicates190, all28
+oversized caps and all three evidence schemas pass. Source comparison still
+preserves284/291 existing components. All393 PowerShell scripts parse.
+
+Final receipts:
+
+- `receiving-replay-controller/8d659cbd855d4179b07169f4491260e9/closure.json`
+- `slice4be-receiving-replay/7acfae6f3dfb41829e456c24a9d99d8f/green.json`
+- `receiving-run-build-03/` (including`source-preservation.json`)
+- `receiving-run-static-03/ratchet-verification.json`
+- `receiving-run-focused-verification.json`, `receiving-run-native-audit.json`
+
+Desktop probe00:28:03.762 UTC (17:28 PDT) passes cursor/input desktop/capture0/0/0.
+Application audit23:54:23.853--00:27:03.641 UTC finds zero new Excel native failures.
+These checks do not close the earlier full-chain native failure. Next, add focused
+permission/policy/nested-entry and exact-workbook replacement tests against this
+frozen candidate before further runtime changes; then run affected owner regressions.

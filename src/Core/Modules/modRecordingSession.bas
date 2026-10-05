@@ -130,6 +130,17 @@ Public Function ActiveFor(ByVal context As String) As Boolean
     ActiveFor = (mActive And mContext = context)
 End Function
 
+' Private Core reader for the runner; no observation can be supplied by its caller.
+Public Function ExecutionEvidence(ByVal context As String, ByRef header As Object, ByRef observations As Collection) As Boolean
+    Set header = Nothing: Set observations = Nothing
+    If context = "" Or context <> mContext Or mBusy Or mHeader Is Nothing Then Exit Function
+    Set header = modRecordingJournal.ReadEntry(mTarget, CStr(mHeader("ActionPathId")), mVersion)
+    If header Is Nothing Then Exit Function
+    If header("RecordId") <> mPreviousId Or header("ContentSha256") <> mPreviousHash Then Exit Function
+    Set observations = mObservations
+    ExecutionEvidence = True
+End Function
+
 Public Function ReadExpectation(ByVal context As String, ByRef sequenceId As String, _
                                 ByRef definition As Object, ByRef notice As String) As Boolean
     Dim active As Boolean, canStart As Boolean

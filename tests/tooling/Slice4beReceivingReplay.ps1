@@ -1,6 +1,8 @@
 # B0 entry RED uses a real successful Receiving recording and authored guide.
 # It does not manufacture a journal/profile or mistake original success for replay.
 function Install-ReceivingReplayProbe {
+    . (Join-Path $PSScriptRoot 'Slice4beExecutionDiagnostics.ps1')
+    Install-ExecutionSetupDiagnostics
     $project=$packages['invSys.Operations.xlam'].VBProject
     # Deliver the existing input handlers, never set the provenance token or
     # manufacture an activity. Native input behavior has its own packaged gate.

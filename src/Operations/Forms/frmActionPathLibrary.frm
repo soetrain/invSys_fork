@@ -33,6 +33,10 @@ Private WithEvents mUse As MSForms.CommandButton
 Private WithEvents mEdit As MSForms.CommandButton
 Private WithEvents mConfigure As MSForms.CommandButton
 Private mExecution As frmActionPathExecution
+Private WithEvents mRunHowTo As MSForms.CommandButton
+Private mRunner As frmActionPathRun
+Private mRunnerContext As String
+Private mRunnerGuide As String
 Private mObservedId As String
 Private mObservedBinding As String
 
@@ -56,6 +60,7 @@ Private Sub UserForm_Initialize()
         Array("CommandButton", "btnUseGuideForRun", "Use for selected run", 674, 546, 206, 28, 12), _
         Array("CommandButton", "btnEditPublishedGuide", "Edit guide", 614, 588, 150, 26, 12), _
         Array("CommandButton", "btnConfigureExecution", "Configure execution", 12, 588, 190, 26, 9), _
+        Array("CommandButton", "btnRunHowTo", "Run How-To", 226, 588, 150, 26, 9), _
         Array("CommandButton", "btnCloseGuides", "Close", 782, 588, 98, 26, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
         control.Move definition(3), definition(4), definition(5), definition(6)
@@ -70,6 +75,7 @@ Private Sub UserForm_Initialize()
     Set mObserved = Me.Controls("lblGuideObservedRun"): Set mUse = Me.Controls("btnUseGuideForRun")
     Set mEdit = Me.Controls("btnEditPublishedGuide")
     Set mConfigure = Me.Controls("btnConfigureExecution"): mConfigure.Enabled = False
+    Set mRunHowTo = Me.Controls("btnRunHowTo"): mRunHowTo.Enabled = False
     mUse.Enabled = False: mEdit.Enabled = False
     mGuides.ColumnCount = 3: mGuides.BoundColumn = 1
     mGuides.ColumnWidths = "0 pt;400 pt;420 pt": mGuides.IntegralHeight = False
@@ -111,6 +117,9 @@ Public Sub ValidateSelection()
     If Not ContextValid() Then Exit Sub
     If mGuides.ListIndex < 0 Then ClearSelection "Select a published guide version.": Exit Sub
     key = CStr(mGuides.Value)
+    If Not mRunner Is Nothing Then
+        If mRunnerContext <> mContext Or mRunnerGuide <> key Then CloseRunner
+    End If
     If Not mExecution Is Nothing Then
         If Not mExecution.Matches(mContext, key) Then CloseExecution
     End If
@@ -122,6 +131,7 @@ Public Sub ValidateSelection()
     If Not ContextValid() Then Exit Sub
     If CStr(mGuides.Value) <> key Then Exit Sub
     mInstructions.Value = instructions: mObservations.Value = observations
+    mRunHowTo.Enabled = True
     mSource.Caption = provenance: mStatus.Caption = notice
     mEdit.Enabled = modActionGuideDraft.CanEditPublished(mContext, key, editNotice)
     mConfigure.Enabled = mEdit.Enabled
@@ -160,6 +170,7 @@ Done:
     Else
         modGuideEditor.ClosePublishedReader Me
         CloseExecution
+        CloseRunner
     End If
     Exit Sub
 Failed:
@@ -168,6 +179,8 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
+    If Not mLoading Then CloseRunner
+    mRunHowTo.Enabled = False
     If Not mLoading Then CloseExecution
     mConfigure.Enabled = False
     mUse.Enabled = False: mEdit.Enabled = False
@@ -176,12 +189,39 @@ Private Sub ClearSelection(ByVal notice As String)
 End Sub
 
 Public Sub ReleaseReader()
+    CloseRunner
     CloseExecution
     modGuideEditor.ClosePublishedReader Me
     mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
     Set mOwner = Nothing: mContext = ""
     mLoading = True: mGuides.Clear: mSearch.Value = "": mLoading = False
     ClearSelection ""
+End Sub
+
+Public Sub CloseRunner()
+    Dim closing As frmActionPathRun
+    If mRunner Is Nothing Then Exit Sub
+    If Not mRunner.ReleaseRunner() Then Exit Sub
+    Set closing = mRunner: Set mRunner = Nothing
+    mRunnerContext = "": mRunnerGuide = ""
+    Unload closing
+End Sub
+
+Private Sub mRunHowTo_Click()
+    Dim token As String, snapshot As String, guide As String, profile As String, target As String, notice As String
+    ValidateSelection
+    If Not mRunHowTo.Enabled Or mGuides.ListIndex < 0 Then Exit Sub
+    If Not mRunner Is Nothing Then Exit Sub
+    If Not modExecutionRun.OpenSetup(mContext, CStr(mGuides.Value), token, snapshot, guide, profile, target, notice) Then
+        mStatus.Caption = notice: Exit Sub
+    End If
+    Set mRunner = New frmActionPathRun
+    mRunnerContext = mContext: mRunnerGuide = CStr(mGuides.Value)
+    If mRunner.BindSetup(mContext, CStr(mGuides.Value), token, snapshot, guide, profile, target, Me, notice) Then
+        mRunner.Show vbModeless
+    Else
+        CloseRunner: mStatus.Caption = notice
+    End If
 End Sub
 
 Public Sub CloseExecution()

@@ -64,22 +64,29 @@ Public Function RefreshReceivingUiForWorkbook(Optional ByVal targetWb As Workboo
     EnforceReceivingSupportSheetsHidden wb
 End Function
 
-Public Sub ShowReceivingForm(Optional ByVal userControlAction As Boolean = False)
+Public Sub ShowReceivingForm(Optional ByVal userControlAction As Boolean = False, Optional ByVal capturedWorkbook As String = "", Optional ByVal executionContext As String = "")
     On Error GoTo ErrHandler
 
     Dim wb As Workbook, preferredWorkbookName As String, workbookName As String
-    Dim report As String, launcherStage As String, activityId As String, notice As String, outcome As String
+    Dim report As String, launcherStage As String, activityId As String, notice As String, outcome As String, resolved As Boolean
     outcome = "FAILED"
     If Not modReceivingActivityAction.BeginOpen(userControlAction, activityId, notice) Then Exit Sub
 
     launcherStage = "capture active workbook"
-    If Not Application.ActiveWorkbook Is Nothing Then
+    If executionContext <> "" Then
+        If executionContext <> modActivity.CaptureContext() Then GoTo Done
+        preferredWorkbookName = capturedWorkbook
+    ElseIf Not Application.ActiveWorkbook Is Nothing Then
         preferredWorkbookName = Application.ActiveWorkbook.Name
     End If
 
     launcherStage = "resolve or provision Receiving workbook"
-    If Not modOperationsPrimitiveBridge.OpenOrCreateCurrentReceivingOperatorWorkbook( _
-            preferredWorkbookName, workbookName, report) Then
+    If executionContext <> "" Then
+        resolved = modWarehouseBootstrap.OpenOrCreateReceivingOperatorWorkbookForCurrentTarget(workbookName, report)
+    Else
+        resolved = modOperationsPrimitiveBridge.OpenOrCreateCurrentReceivingOperatorWorkbook(preferredWorkbookName, workbookName, report)
+    End If
+    If Not resolved Then
         If Trim$(report) = "" Then
             report = "The station-local Receiving operator workbook could not be opened."
         End If
@@ -140,6 +147,16 @@ ErrHandler:
     outcome = "FAILED"
     Resume Done
 End Sub
+
+Public Function ExecutionForm(ByVal context As String, ByRef workbookName As String) As frmReceiving
+    Dim wb As Workbook
+    If context = "" Or context <> modActivity.CaptureContext() Then Exit Function
+    If mReceivingLauncherForm Is Nothing Or mReceivingLauncherFormTerminated Then Exit Function
+    Set wb = modOperationsInit.ResolveOpenWorkbookByName(mReceivingLauncherWorkbookName)
+    If Not IsReceivingLauncherFormReusable(wb) Then Exit Function
+    If workbookName <> "" And workbookName <> wb.Name Then Exit Function
+    workbookName = wb.Name: Set ExecutionForm = mReceivingLauncherForm
+End Function
 
 Public Sub NotifyReceivingLauncherFormTerminating(ByVal terminatingForm As frmReceiving)
     If terminatingForm Is Nothing Then Exit Sub
@@ -325,118 +342,16 @@ Public Sub EnforceReceivingSupportSheetsHidden(ByVal wb As Workbook)
     Next nameValue
 End Sub
 
-Public Function LoadReceivingFormInventoryForWorkbook(ByVal operatorWb As Workbook, _
-                                                      Optional ByVal filterText As String = "") As Variant
-    Dim inventoryTable As ListObject
-    Dim sourceValues As Variant
-    Dim outputValues() As Variant
-    Dim trimmedValues() As Variant
-    Dim recordIndex As Long
-    Dim fieldIndex As Long
-    Dim outputIndex As Long
-    Dim matchedIndex As Long
-    Dim searchText As String
-    Dim searchableText As String
-    Dim systemKey As String
-    Dim itemCode As String
-    Dim itemName As String
-    Dim uomValue As String
-    Dim qtyValue As Double
-    Dim qtyText As String
-    Dim locationValue As String
-    Dim conditionValue As String
-    Dim lotNumber As String
-    Dim descriptionValue As String
-    Dim vendorValue As String
-    Dim groupKey As String
-    Dim groupIndex As Object
+Public Function LoadReceivingFormInventoryForWorkbook(ByVal operatorWb As Workbook, Optional ByVal filterText As String = "") As Variant
+    LoadReceivingFormInventoryForWorkbook = modReceivingInventoryChoices.FromTable(FindTable(operatorWb, TABLE_INVENTORY), filterText)
+End Function
 
-    Set inventoryTable = FindTable(operatorWb, TABLE_INVENTORY)
-    If inventoryTable Is Nothing Or inventoryTable.DataBodyRange Is Nothing Then Exit Function
-    If ColumnIndex(inventoryTable, "System_Key") = 0 _
-       Or ColumnIndex(inventoryTable, "ITEM_CODE") = 0 Then Exit Function
+Public Function ReadInventoryColumn(ByVal table As ListObject, ByVal header As String) As Long
+    ReadInventoryColumn = ColumnIndex(table, header)
+End Function
 
-    searchText = LCase$(Trim$(filterText))
-    sourceValues = inventoryTable.DataBodyRange.Value2
-    ReDim outputValues(1 To UBound(sourceValues, 1), 1 To 10)
-    Set groupIndex = CreateObject("Scripting.Dictionary")
-    groupIndex.CompareMode = vbTextCompare
-    For recordIndex = 1 To UBound(sourceValues, 1)
-        systemKey = CellText(inventoryTable, recordIndex, "System_Key")
-        itemCode = CellText(inventoryTable, recordIndex, "ITEM_CODE")
-        itemName = CellText(inventoryTable, recordIndex, "ITEM")
-        If itemName = "" Then itemName = CellText(inventoryTable, recordIndex, "ItemName")
-        uomValue = CellText(inventoryTable, recordIndex, "UOM")
-        qtyText = CellText(inventoryTable, recordIndex, "QtyAvailable")
-        If qtyText = "" Then qtyText = CellText(inventoryTable, recordIndex, "TOTAL INV")
-        If IsNumeric(qtyText) Then qtyValue = CDbl(qtyText) Else qtyValue = 0
-        locationValue = CellText(inventoryTable, recordIndex, "LOCATION")
-        lotNumber = ReceivingInventoryLotNumber(inventoryTable, recordIndex)
-        conditionValue = UCase$(CellText(inventoryTable, recordIndex, "Condition"))
-        If conditionValue = "" Then conditionValue = "GOOD"
-        descriptionValue = CellText(inventoryTable, recordIndex, "DESCRIPTION")
-        vendorValue = CellText(inventoryTable, recordIndex, "VENDOR(s)")
-        If systemKey = "" Or itemCode = "" Then GoTo NextInventoryRecord
-
-        groupKey = UCase$(itemCode) & Chr$(30) & UCase$(uomValue) & Chr$(30) & _
-                   UCase$(locationValue) & Chr$(30) & UCase$(lotNumber) & Chr$(30) & conditionValue
-        If groupIndex.Exists(groupKey) Then
-            outputValues(CLng(groupIndex(groupKey)), 5) = _
-                CDbl(outputValues(CLng(groupIndex(groupKey)), 5)) + qtyValue
-        Else
-            outputIndex = outputIndex + 1
-            groupIndex.Add groupKey, outputIndex
-            outputValues(outputIndex, 1) = systemKey
-            outputValues(outputIndex, 2) = itemCode
-            outputValues(outputIndex, 3) = itemName
-            outputValues(outputIndex, 4) = uomValue
-            outputValues(outputIndex, 5) = qtyValue
-            outputValues(outputIndex, 6) = locationValue
-            outputValues(outputIndex, 7) = lotNumber
-            outputValues(outputIndex, 8) = conditionValue
-            outputValues(outputIndex, 9) = descriptionValue
-            outputValues(outputIndex, 10) = vendorValue
-        End If
-NextInventoryRecord:
-    Next recordIndex
-
-    If outputIndex = 0 Then Exit Function
-
-    For recordIndex = 1 To outputIndex
-        If CDbl(outputValues(recordIndex, 5)) <= 0 Then GoTo NextGroupedCount
-        searchableText = LCase$(CStr(outputValues(recordIndex, 2)) & " " & _
-                                    CStr(outputValues(recordIndex, 3)) & " " & _
-                                     CStr(outputValues(recordIndex, 6)) & " " & _
-                                     CStr(outputValues(recordIndex, 7)) & " " & _
-                                     CStr(outputValues(recordIndex, 8)) & " " & _
-                                     CStr(outputValues(recordIndex, 9)) & " " & _
-                                     CStr(outputValues(recordIndex, 10)))
-        If searchText = "" Or InStr(1, searchableText, searchText, vbTextCompare) > 0 Then _
-            matchedIndex = matchedIndex + 1
-NextGroupedCount:
-    Next recordIndex
-    If matchedIndex = 0 Then Exit Function
-
-    ReDim trimmedValues(1 To matchedIndex, 1 To 10)
-    matchedIndex = 0
-    For recordIndex = 1 To outputIndex
-        If CDbl(outputValues(recordIndex, 5)) <= 0 Then GoTo NextGroupedCopy
-        searchableText = LCase$(CStr(outputValues(recordIndex, 2)) & " " & _
-                                    CStr(outputValues(recordIndex, 3)) & " " & _
-                                     CStr(outputValues(recordIndex, 6)) & " " & _
-                                     CStr(outputValues(recordIndex, 7)) & " " & _
-                                     CStr(outputValues(recordIndex, 8)) & " " & _
-                                     CStr(outputValues(recordIndex, 9)) & " " & _
-                                     CStr(outputValues(recordIndex, 10)))
-        If searchText = "" Or InStr(1, searchableText, searchText, vbTextCompare) > 0 Then
-            matchedIndex = matchedIndex + 1
-            For fieldIndex = 1 To 10
-                trimmedValues(matchedIndex, fieldIndex) = outputValues(recordIndex, fieldIndex)
-            Next fieldIndex
-        End If
-NextGroupedCopy:
-    Next recordIndex
-    LoadReceivingFormInventoryForWorkbook = trimmedValues
+Public Function ReadInventoryCell(ByVal table As ListObject, ByVal row As Long, ByVal header As String) As String
+    ReadInventoryCell = CellText(table, row, header)
 End Function
 
 Public Function LoadReceivingFormInventory(Optional ByVal filterText As String = "") As Variant
@@ -1332,7 +1247,7 @@ Private Function ReceivingErrorSource(ByVal errorSource As String) As String
     ReceivingErrorSource = errorSource
 End Function
 
-Private Function ReceivingInventoryLotNumber(ByVal inventoryTable As ListObject, _
+Public Function ReceivingInventoryLotNumber(ByVal inventoryTable As ListObject, _
                                              ByVal rowIndex As Long) As String
     ReceivingInventoryLotNumber = CellText(inventoryTable, rowIndex, "LOT_NUMBER")
     If ReceivingInventoryLotNumber = "" Then

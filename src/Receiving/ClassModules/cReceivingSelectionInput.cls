@@ -33,6 +33,11 @@ Public Function Consume() As Boolean
     mArmed = False
 End Function
 
+' A typed replay adapter supplies deliberate input; ordinary programmatic changes do not.
+Public Sub ArmExecutionInput()
+    mArmed = True
+End Sub
+
 Private Function SelectionKey(ByVal key As Long) As Boolean
     Select Case key
         Case vbKeyLeft, vbKeyRight, vbKeyUp, vbKeyDown, vbKeyHome, vbKeyEnd, vbKeyPageUp, vbKeyPageDown

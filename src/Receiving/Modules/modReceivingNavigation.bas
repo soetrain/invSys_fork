@@ -106,3 +106,27 @@ Private Sub SetLabels(ByVal form As frmReceiving, ByVal returns As Boolean)
         form.Controls(names(index)).Caption = captions(index)
     Next index
 End Sub
+
+Public Sub ApplySelection(ByVal form As frmReceiving, ByVal inputs As Collection, ByVal wb As Workbook, ByVal context As String, ByVal controlName As String)
+    Dim activityId As String, notice As String, report As String, outcome As String
+    On Error GoTo Failed
+    If Not modReceivingNavigation.BeginSelection(form, inputs, controlName, _
+        wb, context, activityId, notice, report) Then
+        If report <> "" Then form.ShowStatus report
+        Exit Sub
+    End If
+    outcome = "FAILED"
+    Select Case controlName
+        Case "tabsReceiving": form.ApplyReceivingTab
+        Case "lstReceiveItems": form.LoadSelectedReceiveItemDetails
+        Case "lstAggregate": form.ShowSelectedAggregateReferences
+    End Select
+    outcome = "SELECTED"
+Done:
+    modReceivingAddInput.Finish activityId, outcome, notice, report
+    If report <> "" Then form.ShowStatus Trim$(CStr(form.Controls("txtStatus").Value) & " " & report)
+    Exit Sub
+Failed:
+    report = "Selection failed: " & Err.Description
+    Resume Done
+End Sub

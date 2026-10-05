@@ -25,7 +25,7 @@ function Test-ReceivingRunProof($Guide,$SavedProfile,$Original,$Latest,$Files,$P
     Check 'ReceivingRun.FreshClosedRecording' $fresh
     $ordered=$false;$identity=$false;$source=$null
     if($fresh){
-        $observed=@($closed.Observations)
+        $observed=@($closed.Observations|Where-Object OutcomeCode -CNE 'REQUESTED')
         $ordered=(@($observed|ForEach-Object ControlId) -join '|') -ceq (@($Guide.Steps|ForEach-Object ControlId) -join '|')
         $oldIds=@($Original.Observations|ForEach-Object ActivityId)
         $newIds=@($observed|ForEach-Object ActivityId)
