@@ -382,17 +382,41 @@ Retain activity04 cold build, smoke86/layout18,432 interruption/policy and404
 submission-fault gates. No package rebuild, promotion, Production replay or broader
 A1/A2 acceptance is claimed. No error5 occurred during these runs.
 
+## Unobstructed worksheet guide evidence, 2026-10-05
+
+The capture helper previously accepted a focused form even when a sibling covered
+its content. Disposable tooling RED reproduces both ordinary and topmost covers;
+GREEN passes ten cases after raising within the existing window band and refusing
+any remaining content obstruction. No application form or runtime contract changes.
+Exact tooling receipts: `plan022_slice4be_capture_foreground_results.md`.
+
+Worksheet **101/101** retains every prior check in exact order: controller
+`production-run-local-controller/7af0ad8d197146b1ad2af14683f96954`, worker
+`slice4be-production-complete-paths-worksheet/3d244c6c8dd543b5b9583ebcd40913a3/green.json`,
+13:49:55.253--13:57:12.140 UTC. All four current guide captures are unobscured and
+reviewed, showing authored instructions, distinct source/observed provenance,
+REQUESTED/CONFIRMED and the two independently applied Inventory sources. This
+supersedes the earlier worksheet capture limitation, while preserving those trials.
+Retain the readable reusable95 captures for the unchanged application surfaces.
+
+Five instrumented compiles, normal closure, settings/package preservation and
+delayed zero Excel application errors pass. No error5 occurred.
+Static `complete-paths-capture-static-04/` passes415 parses, three schemas and28
+unchanged caps; runtime metrics remain unchanged. Long Production status/warning
+scrolling, comprehensive A1/A2 and broader release gates remain open. No deployment,
+package promotion, Production replay or runtime UI change is claimed.
+
 ## Next test-first work
 
 Retain native closure, permission, identity, interruption and optional logging
-proofs and both recording-to-guide gates. Next establish unobstructed worksheet
-guide captures, then the worksheet status scrolling capture. The older live-role
+proofs and both recording-to-guide gates. Next prove worksheet status/warning
+scrolling through the existing control. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`
 can distinguish attempted uncertain writes from unused allocated event IDs.
 
 Complete Run publication, fresh exact source evaluation and all three presentation
-modes now have functional proof; worksheet visible acceptance remains open.
+modes now have functional and scoped visible guide proof; status scrolling remains open.
 Focused observation GREEN is established;
 package promotion, comprehensive A1 and Slice4be-A acceptance are not claimed.

@@ -1,7 +1,7 @@
 # Developer-only calibration of the existing capture helper with an empty fixture.
 # This script opens no invSys package and changes none; this is not product RED/GREEN.
 [CmdletBinding()]
-param([string]$RepoRoot='.',[ValidateRange(0,200)][int]$WorkbookLifecycleIterations=0)
+param([string]$RepoRoot='.',[ValidateRange(0,200)][int]$WorkbookLifecycleIterations=0,[switch]$CoveredForeground)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 # Imported capture helpers leave packaged guide diagnostics disabled here.
@@ -24,17 +24,63 @@ Initialize-SettingsCapture
 Add-Type @'
 using System;using System.Runtime.InteropServices;
 public static class ForegroundFixtureOwner {
+ [StructLayout(LayoutKind.Sequential)] public struct Point {public int X,Y;}
+ [StructLayout(LayoutKind.Sequential)] public struct Rect {public int Left,Top,Right,Bottom;}
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window,out uint process);
  [DllImport("user32.dll")] public static extern uint GetGuiResources(IntPtr process,uint flags);
  [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")] static extern IntPtr GetLong64(IntPtr window,int index);
  [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int GetLong32(IntPtr window,int index);
  public static bool Topmost(IntPtr window){return ((IntPtr.Size==8 ? GetLong64(window,-20).ToInt64() : GetLong32(window,-20)) & 8)!=0;}
+ [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window,out Rect rect);
+ [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point point);
+ [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr window,uint flags);
+ [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
+ [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+ public static bool CenterBelongsTo(IntPtr target,IntPtr expected) {
+  IntPtr prior=SetThreadDpiAwarenessContext(new IntPtr(-4));if(prior==IntPtr.Zero)throw new Exception("Fixture physical coordinates unavailable.");
+  try {Rect r;if(!GetWindowRect(target,out r))throw new Exception("Fixture bounds unavailable.");
+   return GetAncestor(WindowFromPoint(new Point {X=(r.Left+r.Right)/2,Y=(r.Top+r.Bottom)/2}),2)==expected;
+  }finally{SetThreadDpiAwarenessContext(prior);}
+ }
+ public static bool CoverCenter(IntPtr target,IntPtr cover) {
+  IntPtr prior=SetThreadDpiAwarenessContext(new IntPtr(-4));if(prior==IntPtr.Zero)throw new Exception("Fixture physical coordinates unavailable.");
+  try {Rect r;if(!GetWindowRect(target,out r))throw new Exception("Fixture bounds unavailable.");
+   return SetWindowPos(cover,IntPtr.Zero,r.Left+50,r.Top+45,r.Right-r.Left-100,r.Bottom-r.Top-65,0x50);
+  }finally{SetThreadDpiAwarenessContext(prior);}
+ }
+ public static bool RaiseTopmost(IntPtr cover){return SetWindowPos(cover,new IntPtr(-1),0,0,0,0,0x13);}
 }
 '@
-$excel=$null;$books=$null;$book=$null;$components=$null;$form=$null;$module=$null;$process=$null
+$excel=$null;$books=$null;$book=$null;$components=$null;$form=$null;$cover=$null;$module=$null;$process=$null
 $observations=[Collections.Generic.List[object]]::new()
 $started=[DateTimeOffset]::UtcNow.ToString('o')
 $failure='';$normalQuit=$false
+function Observe-CoveredForeground([switch]$TopmostCover) {
+    [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.ShowFixture"))
+    [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.ShowCover"))
+    $target=[InvSysSettingsCapture]::OwnedVisibleForm('invSys disposable capture fixture',[IntPtr]$excel.Hwnd)
+    $coverWindow=[InvSysSettingsCapture]::OwnedVisibleForm('invSys disposable cover fixture',[IntPtr]$excel.Hwnd)
+    if($target -eq [IntPtr]::Zero -or $coverWindow -eq [IntPtr]::Zero){throw 'Two owned calibration forms required; not tooling RED.'}
+    [void][InvSysSettingsCapture]::SetForegroundWindow($target)
+    Start-Sleep -Milliseconds 150
+    if(-not [ForegroundFixtureOwner]::CoverCenter($target,$coverWindow)){throw 'Cover placement unavailable; not tooling RED.'}
+    if($TopmostCover -and -not [ForegroundFixtureOwner]::RaiseTopmost($coverWindow)){throw 'Topmost cover unavailable; not tooling RED.'}
+    Start-Sleep -Milliseconds 150
+    $focused=[InvSysSettingsCapture]::GetAncestor([InvSysSettingsCapture]::GetForegroundWindow(),2) -eq $target
+    $covered=[ForegroundFixtureOwner]::CenterBelongsTo($target,$coverWindow)
+    if(-not $focused -or -not $covered){throw 'Covered foreground was not reproduced; not tooling RED.'}
+    $targetTopmost=[ForegroundFixtureOwner]::Topmost($target);$coverTopmost=[ForegroundFixtureOwner]::Topmost($coverWindow)
+    $case=if($TopmostCover){'topmost-cover'}else{'focused-covered'}
+    $captured=$false;$rejected=$false
+    try{CaptureOwnedFormEvidence 'invSys disposable capture fixture' ($case+'.png') $target.ToInt64();$captured=$true}
+    catch{if($_.Exception.GetBaseException().Message -cne 'Requested form content is obscured.'){throw};$rejected=$true}
+    $uncovered=[ForegroundFixtureOwner]::CenterBelongsTo($target,$target)
+    $preserved=[ForegroundFixtureOwner]::Topmost($target) -eq $targetTopmost -and [ForegroundFixtureOwner]::Topmost($coverWindow) -eq $coverTopmost
+    $passed=$preserved -and $(if($TopmostCover){$rejected -and -not $captured -and -not $uncovered -and -not (Test-Path (Join-Path $reportRoot ($case+'.png')))}else{$captured -and $uncovered})
+    $observations.Add([pscustomobject]@{Case=$case;ForegroundBefore=$focused;CoveredBefore=$covered;ContentUncoveredAfter=$uncovered;TopmostRestored=$preserved;Captured=$captured;Rejected=$rejected;Passed=$passed})
+    Write-Output ($case+': '+$(if($passed){'PASS'}else{'FAIL'}))
+    [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.CloseCover"))
+}
 function Observe-Capture([string]$Case,[bool]$Visible,[bool]$RequireVisibility=$true,[bool]$ExpectCaptionRejection=$false,[bool]$DirectCaptionInput=$false){
     $excel.Visible=$Visible
     $actual=$excel.Visible
@@ -103,10 +149,20 @@ Private Sub UserForm_Initialize()
     text.WordWrap = True
 End Sub
 '@)
+    $cover=$components.Add(3);$cover.Name='frmCoverFixture'
+    $cover.CodeModule.AddFromString(@'
+Option Explicit
+Private Sub UserForm_Initialize()
+    Me.Caption = "invSys disposable cover fixture"
+    Me.Width = 300: Me.Height = 120
+    Me.BackColor = RGB(240, 160, 160)
+End Sub
+'@)
     $module=$components.Add(1);$module.Name='modForegroundFixture'
     $module.CodeModule.AddFromString(@'
 Option Explicit
 Private mFixture As frmForegroundFixture
+Private mCover As frmCoverFixture
 Private mLeft As Single, mTop As Single
 Public Sub ShowFixture()
     If mFixture Is Nothing Then Set mFixture = New frmForegroundFixture
@@ -115,8 +171,18 @@ Public Sub ShowFixture()
     DoEvents
 End Sub
 Public Sub CloseFixture()
+    CloseCover
     If mFixture Is Nothing Then Exit Sub
     Unload mFixture: Set mFixture = Nothing
+End Sub
+Public Sub ShowCover()
+    If mCover Is Nothing Then Set mCover = New frmCoverFixture
+    If Not mCover.Visible Then mCover.Show vbModeless
+    mCover.Repaint: DoEvents
+End Sub
+Public Sub CloseCover()
+    If mCover Is Nothing Then Exit Sub
+    Unload mCover: Set mCover = Nothing
 End Sub
 Public Sub MoveFixtureForTest(ByVal restore As Boolean)
     If restore Then
@@ -130,6 +196,11 @@ End Sub
     Observe-Capture 'hidden-first' $false
     Observe-Capture 'visible' $true
     Observe-Capture 'hidden-restored' $false
+    if($CoveredForeground){
+        Observe-CoveredForeground
+        Observe-CoveredForeground -TopmostCover
+        if(@($observations|Where-Object {$null -ne $_.PSObject.Properties['Passed'] -and -not $_.Passed}).Count){throw 'Capture returned covered content or changed topmost state.'}
+    }
     if($WorkbookLifecycleIterations -gt 0){
         # Simulate closing the previous visible workbook/form while an add-in
         # retains its project, followed by blank workbook creation/closure and reopening.
@@ -172,7 +243,7 @@ End Sub
             if($remaining -is [int] -and $remaining -eq 0){$excel.Quit();$normalQuit=$true}
         }catch{}
     }
-    foreach($value in @($module,$form,$components,$book,$books,$excel)){
+    foreach($value in @($module,$cover,$form,$components,$book,$books,$excel)){
         if($null -ne $value){try{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($value)}catch{}}
     }
     [GC]::Collect();[GC]::WaitForPendingFinalizers()

@@ -666,6 +666,8 @@ public static class InvSysSettingsCapture {
     [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+    [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd,out Rect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr hwnd,ref Point point);
     [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
@@ -818,14 +820,38 @@ public static class InvSysSettingsCapture {
         Rect r;
         if(hwnd==IntPtr.Zero || !GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         SetForegroundWindow(hwnd);
+        // A focused Excel form can remain behind a sibling. Raise within its
+        // existing band; never turn an operator form into a topmost window.
+        if(!SetWindowPos(hwnd,IntPtr.Zero,0,0,0,0,0x213))throw new Exception("Requested form could not be raised.");
         System.Threading.Thread.Sleep(200);
         if(GetAncestor(GetForegroundWindow(),2)!=GetAncestor(hwnd,2)) throw new Exception("Requested form is not in the foreground.");
+        if(!ContentUncovered(hwnd))throw new Exception("Requested form content is obscured.");
         if(!GetWindowRect(hwnd,out r)) throw new Exception("Requested form window unavailable.");
         using(var bitmap=new Bitmap(r.Right-r.Left,r.Bottom-r.Top)) {
             using(var graphics=Graphics.FromImage(bitmap)) { graphics.CopyFromScreen(r.Left,r.Top,0,0,bitmap.Size); }
             bitmap.Save(path,System.Drawing.Imaging.ImageFormat.Png);
         }
         }
+    }
+    static bool ContentUncovered(IntPtr hwnd) {
+        Rect client;
+        if(!GetClientRect(hwnd,out client))return false;
+        var origin=new Point {X=client.Left,Y=client.Top};
+        if(!ClientToScreen(hwnd,ref origin))return false;
+        int left=origin.X,top=origin.Y,right=left+client.Right-client.Left,bottom=top+client.Bottom-client.Top;
+        if(right<=left || bottom<=top)return false;
+        foreach(var point in new Point[] {new Point {X=left,Y=top},new Point {X=right-1,Y=top},new Point {X=left,Y=bottom-1},new Point {X=right-1,Y=bottom-1}})
+            if(MonitorFromPoint(point,0)==IntPtr.Zero)return false;
+        bool reached=false,clear=true;
+        EnumWindows((window,state)=>{
+            if(window==hwnd){reached=true;return false;}
+            if(!IsWindowVisible(window) || IsIconic(window))return true;
+            int cloaked;if(DwmGetWindowAttribute(window,14,out cloaked,4)==0 && cloaked!=0)return true;
+            Rect cover;
+            if(GetWindowRect(window,out cover) && cover.Left<right && cover.Right>left && cover.Top<bottom && cover.Bottom>top){clear=false;return false;}
+            return true;
+        },IntPtr.Zero);
+        return reached && clear;
     }
     public static bool SaveOwnedForegroundForm(IntPtr owner, string[] titles, string path) {
         using(var pixels=new PhysicalPixels()) {

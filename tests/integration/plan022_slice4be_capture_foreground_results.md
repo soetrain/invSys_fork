@@ -329,3 +329,30 @@ The current 177/177 guide-capture gate supersedes the former next step. Retain t
 unresolved earlier foreground/Saved-state findings while completing broader
 regressions; no runtime caption-order or transient-workbook-visibility workaround
 is justified.
+
+## Covered foreground capture, 2026-10-05
+
+Complete Run guide screenshots exposed a separate tooling defect: Excel can keep
+a sibling above a focused form. Foreground identity alone allowed an obstructed
+screen capture. The empty-workbook calibration now creates that exact condition
+with two owned forms and independently hit-tests the covered content.
+
+Pre-fix tooling RED: three existing captures pass, both new cases fail in
+`capture-foreground-calibration/c4ef3af1c47d42b5b62b1ced26bc88f8/observations.json`,
+13:48:41.343--13:48:47.389 UTC. Ordinary and topmost covers both produced images
+despite obstruction. Initial one-case reproduction is retained at
+`capture-foreground-calibration/0ca2b5fb42544c4aa24ddf1bc8435d20/observations.json`.
+
+SaveVisibleWindow now raises the requested form within its existing window band,
+then checks client bounds against visible windows above it before copying pixels.
+It refuses remaining obstruction without writing an image. It changes no topmost
+setting, application form, workbook or architecture contract.
+
+Tooling GREEN: all ten calibration cases pass, including both obstruction cases,
+three workbook lifecycle iterations, direct native caption activation and expected
+offscreen rejection: `capture-foreground-calibration/60fb867e56cc42839428f189c8715843/observations.json`,
+13:49:33.302--13:49:41.737 UTC. All topmost states are preserved; Excel quits and
+exits normally without termination. The focused formerly-covered capture is
+reviewed and readable; the topmost-cover case produces no image. This is tooling
+RED/GREEN, not new application RED/GREEN. Packaged evidence and remaining limits:
+`plan022_slice4be_production_complete_activity_results.md`.
