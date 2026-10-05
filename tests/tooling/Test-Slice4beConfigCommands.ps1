@@ -36,6 +36,7 @@ param(
     [switch]$RunLocalClosedDiagnostic,
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteActivityOnly,
+    [switch]$RunCompleteSubmissionFaultOnly,
     [switch]$RunCompleteBaselineOnly,
     [switch]$RunCompletePreparationDiagnostic,
     [ValidateSet('All','CompletePending')][string]$RunCompleteClosedBoundary='All',
@@ -188,6 +189,7 @@ if($RunCompletePreparationPrelude -ne 'None' -and -not $RunCompletePreparationDi
 if($RunCompleteVisibleHostForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Visible-host comparison requires the isolated Complete Run fixture.'}
 if($RunCompleteSavedDecoyForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
 if($RunCompleteActivityOnly -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly -or $RunCompletePreparationDiagnostic)){throw 'Complete activity requires its isolated baseline fixture.'}
+if($RunCompleteSubmissionFaultOnly -and -not $RunCompleteActivityOnly){throw 'Complete submission faults require the activity fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
@@ -548,6 +550,7 @@ if($CheckProductionDesignerActivity){
     if($RunCompletePreparationDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-preparation/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-activity/'+[guid]::NewGuid().ToString('N'))}
+    if($RunCompleteSubmissionFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-submission-fault/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
@@ -1347,6 +1350,10 @@ End Function
                     if($RunCompleteActivityOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheet.ps1')
                         Install-ProductionCompleteWorksheetProbe
+                        if($RunCompleteSubmissionFaultOnly){
+                            . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteSubmissionFault.ps1')
+                            Install-ProductionCompleteSubmissionFaultProbe
+                        }
                     }
                     if($RunCompletePreparationDiagnostic){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionCompletePreparation.ps1')
@@ -1865,7 +1872,7 @@ End Function
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
-            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -ClosedBoundary $RunCompleteClosedBoundary}
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -SubmissionFaultOnly:$RunCompleteSubmissionFaultOnly -ClosedBoundary $RunCompleteClosedBoundary}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}

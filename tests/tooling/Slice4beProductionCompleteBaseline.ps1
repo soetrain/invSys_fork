@@ -244,7 +244,7 @@ End Function
     Install-ProductionCompleteSubmissionProbe
 }
 
-function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost,[switch]$Activity,[string]$ClosedBoundary='All') {
+function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost,[switch]$Activity,[switch]$SubmissionFaultOnly,[string]$ClosedBoundary='All') {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Owner([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('modProductionReusableRun.'+$Method) $Values}
@@ -277,7 +277,7 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
         Check 'CompleteBaseline.RealSeedAndReleasedDefinitions' $true
         if($Activity){
             . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteActivity.ps1')
-            Test-ProductionCompleteActivity $Fixture $Other $book $decoy $canary
+            Test-ProductionCompleteActivity $Fixture $Other $book $decoy $canary -SubmissionFaultOnly:$SubmissionFaultOnly
             [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
             Check 'CompleteActivity.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
             Check 'CompleteActivity.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

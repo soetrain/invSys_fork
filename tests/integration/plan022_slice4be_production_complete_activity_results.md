@@ -287,16 +287,59 @@ warning are visible. The worksheet report's initial viewport clips its trailing
 warning; the full text passes, but an operator scrolling capture remains open.
 These captures do not accept general Run sizing or A2 long/multiline rendering.
 
+## Queued and uncertain submissions, 2026-10-05
+
+The unchanged activity04 package passes **404/404** in the separate
+CompleteSubmissionFaultOnly gate. Twelve actual-handler cases cover both owners,
+first/second submissions and failure before append, uncertain acknowledgment after
+real append, or pending synchronization. Disposable writer seams raise faults or
+hold a recovery file; actual appends, synchronizer and processor determine effects.
+No business result is substituted and no runtime or contract change is made.
+
+FAILED excludes allocated-but-unattempted IDs and retains exact Submitted/Unknown
+references for actual attempts. PENDING retains acknowledged references. Exact
+queue rows, applied events, inventory audit and partial consumption are checked
+independently. No completed output, automatic retry, rollback or redirected record
+is inferred. Guards, prior observations, custom columns, decoy and authority
+workbook bytes/lifetime remain preserved. Each queue is isolated from later work.
+
+Initial380/380: controller
+`production-run-local-controller/f60c6b5bd344494ca73330bef66e3282`, worker
+`slice4be-production-complete-submission-fault/839d977af7bd4f1682d4dd1c41772a82/green.json`,
+12:57:12.304--13:03:28.912 UTC. An external finite, owned single-OK observer
+acknowledged native worksheet failure dialogs in this trial.
+
+Final404/404: controller
+`production-run-local-controller/d21a7c6926cd400c88e959b170db16d2`, worker
+`slice4be-production-complete-submission-fault/c4038c09e8e343bdb84e348a42733075/green.json`,
+13:04:28.228--13:10:41.067 UTC. The gate owns its finite dialog observers and
+retains all380 trial checks in order, adding six native acknowledgments and the
+existing18-check worksheet permission/restoration proof. Five instrumented
+compiles, normal closure, settings/package preservation and delayed zero Excel
+application errors pass. No error5 or assisted Excel closure occurred.
+
+Static `complete-submission-fault-static-04/` passes414 script parses, three
+schemas and28 unchanged size caps. Runtime metrics remain310 components/6300
+procedures/137871 lines,9 literal/45 unresolved dynamic calls and190 duplicate
+groups. Retain the separate432 interruption/policy gate and activity04 cold build,
+smoke86/layout18 and previously recorded unchanged closure/guide evidence.
+
+Reviewed four `complete-writer-{reusable,worksheet}-{afterappend,pending}.png`
+captures. Existing failure messages are visible; long pending-status tails clip
+in the initial viewport. These captures do not establish complete multiline or
+scrolling acceptance. The logger's PENDING outcome is tested separately from the
+unchanged owner message. No package promotion or A1/A2 acceptance is claimed.
+
 ## Next test-first work
 
 Retain native closure, permission, identity, interruption and optional logging
-proofs. Next cover queued/unacknowledged submissions, publication/guide views and
+proofs. Next cover publication, fresh source evaluation, guide views and
 the worksheet status scrolling capture. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`
 can distinguish attempted uncertain writes from unused allocated event IDs.
 
-Fresh exact source application/evaluation, remaining submission faults, publication and
+Fresh exact source application/evaluation, publication and
 How-To/Diagnostic/Compare remain required. Focused observation GREEN is established;
 package promotion, comprehensive A1 and Slice4be-A acceptance are not claimed.

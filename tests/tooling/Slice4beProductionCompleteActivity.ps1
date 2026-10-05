@@ -1,9 +1,9 @@
 # Observe actual Complete Run clicks and verify their independent owner effects.
 # No activity records or business results are manufactured by this fixture.
-function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary) {
+function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary,[switch]$SubmissionFaultOnly) {
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     $activities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    function Pair([string[]]$Before,[string]$Outcome,[string]$Label,[string[]]$EventIds=@(),[string]$Actor='config-producer') {
+    function Pair([string[]]$Before,[string]$Outcome,[string]$Label,[string[]]$EventIds=@(),[string]$Actor='config-producer',[string[]]$ReferenceStates=@()) {
         $raw=@(Files|Where-Object {$_ -cnotin $Before}|ForEach-Object {[IO.File]::ReadAllText($_)})
         $records=@($raw|ForEach-Object {$_|ConvertFrom-Json})
         $first=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED')
@@ -33,7 +33,13 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
             $sources=@($first[0].SourceEventRefs).Count -eq 0 -and @($last[0].SourceEventRefs).Count -eq $EventIds.Count
             $actual=@($last[0].SourceEventRefs|ForEach-Object EventId)
             $sources=$sources -and ($actual -join '|') -ceq ($EventIds -join '|')
-            foreach($reference in $last[0].SourceEventRefs){$sources=$sources -and $reference.WarehouseId -ceq $Fixture.Warehouse -and $reference.SourceKind -ceq 'Inventory' -and $reference.SubmissionState -ceq 'Submitted'}
+            if($ReferenceStates.Count -ne 0 -and $ReferenceStates.Count -ne $EventIds.Count){throw 'Source-reference assertion states must match the expected identities.'}
+            $index=0
+            foreach($reference in $last[0].SourceEventRefs){
+                $state=if($ReferenceStates.Count -eq 0){'Submitted'}elseif($index -lt $ReferenceStates.Count){$ReferenceStates[$index]}else{''}
+                $sources=$sources -and $reference.WarehouseId -ceq $Fixture.Warehouse -and $reference.SourceKind -ceq 'Inventory' -and $reference.SubmissionState -ceq $state
+                $index++
+            }
             $terminal=-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($first[0]|ConvertTo-Json -Depth 20 -Compress))) -and [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadTerminalForTest' @(($last[0]|ConvertTo-Json -Depth 20 -Compress))) -eq ($Outcome -ceq 'CONFIRMED')
         }
         Check ($Label+'.AttemptAndOutcome') $paired
@@ -49,6 +55,7 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
     SelectTarget $Fixture
     if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Tracking policy prerequisite unavailable; not product RED.'}
     SelectTarget $Fixture 'config-producer';[void](Probe 'RunLocalReopen' @($Book.Name))
+    if($SubmissionFaultOnly){Test-ProductionCompleteSubmissionFault $Fixture $Other $Book $Decoy $Canary;return}
     foreach($guard in @('Loading','Busy','Normal','NoProcess')){
         [void](Probe 'CompleteSubmissionReset')
         if(-not [bool](Probe 'CompleteBaselinePrepare' @($guard -cne 'NoProcess'))){throw 'Actual Check In prerequisite unavailable; not product RED.'}

@@ -1,11 +1,12 @@
 # Exercise both existing authorization boundaries without replacing either result.
-function Invoke-CompleteWorksheetPermissionNotice {
-    $ready=Join-Path $runRoot 'complete-worksheet-permission.ready'
-    $stop=Join-Path $runRoot 'complete-worksheet-permission.stop'
+function Invoke-CompleteWorksheetPermissionNotice([ValidateSet('Permission','Submission')][string]$Kind='Permission') {
+    $token=[guid]::NewGuid().ToString('N')
+    $ready=Join-Path $runRoot ('complete-worksheet-notice-'+$token+'.ready')
+    $stop=Join-Path $runRoot ('complete-worksheet-notice-'+$token+'.stop')
     $observer=Join-Path $repo 'tools/plan022-dialog-observer.ps1'
     $handle=[long]$excel.Hwnd
-    $job=Start-Job -ArgumentList $observer,$handle,$ready,$stop -ScriptBlock {
-        param($observer,$handle,$ready,$stop)
+    $job=Start-Job -ArgumentList $observer,$handle,$ready,$stop,$Kind -ScriptBlock {
+        param($observer,$handle,$ready,$stop,$kind)
         $ErrorActionPreference='Stop'
         . $observer
         Invoke-Plan022NativeDialogObservation -ProcessId 0 -TimeoutSeconds 0
@@ -19,6 +20,7 @@ function Invoke-CompleteWorksheetPermissionNotice {
             if((Get-Process -Id $owner).StartTime.ToUniversalTime().Ticks -ne $created){throw 'Completion process identity changed.'}
             # Raw text remains in this worker's memory; only fixed booleans leave it.
             foreach($text in @([Plan022NativeDialogs]::Poll($owner))){
+                if($kind -ceq 'Submission' -and $text -ceq 'WINDOW|Production Complete Run|#32770'){$completion=$true}
                 if($text -like 'WINDOW_ELEMENT|*|ControlType.Text|Current user lacks PROD_POST capability.*'){
                     if($text -like 'WINDOW_ELEMENT|Production Complete Run|*'){$completion=$true}else{$role=$true}
                 }
