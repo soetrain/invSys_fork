@@ -3,8 +3,8 @@
 Last verified: 2026-10-05 UTC. Approved D18-REPLAY-01 boundary7 now has a concrete
 policy-v2 wire definition in Architecture v4.11; Plan022/Controls1.453 agree.
 Initial **52/18 RED** becomes **91/0 GREEN** on `validation-user-policy-02`,
-retaining all83 preceding checks. Settings202/202, observations535/535, five cold
-compiles and static ratchets pass. Replay remains under validation; A1/4be-A
+retaining all83 preceding checks. Settings202/202, observations535/535, replay94/94,
+five cold compiles and static ratchets pass. A1/4be-A
 acceptance and deployment remain open.
 
 ## Contract and protecting route
@@ -60,9 +60,10 @@ That RED gate alone does not prove the later implementation or its acceptance.
 
 ## Remaining acceptance
 
-Finish replay regression and add removed/new-user lifecycle
-guards and actual Receiving/replay capture-loss and required-audit proof. Preserve
-runner93, guide58 and Receiving854 on the changed candidate. Broader A1/A2/B0 and
+Add removed/new-user lifecycle guards and disabled-user ordinary Receiving
+required-audit proof. Preserve guide58 and Receiving854 on the changed candidate.
+Replay94 retains all93 prior checks and proves per-user capture-loss stopping.
+Broader A1/A2/B0 and
 the previously recorded full-chain native failure remain open.
 
 ## Implementation checkpoint
@@ -143,5 +144,21 @@ Candidate02 shares the Core helper instead.
   and five package hashes pass. The current event assertion uses catalog27.
 - Candidate02's Receiving template is copied unchanged from candidate05 with an
   exact hash match after Excel closed. Cursor probe03:30:03.965 UTC succeeds;
-  no desktop error5 is observed. Receiving replay and its new own-user capture-loss
-  guard are pending; no broader acceptance claim follows from these Settings gates.
+  no desktop error5 is observed.
+- Receiving controller `receiving-replay-controller/9a235a37f49d4745b80176525474d881`:
+  **94/94**,03:30:10.465--03:39:27.864 UTC; worker
+  `slice4be-receiving-replay/4b2912b5330b40d1b0cabf4292664b88/green.json`.
+  All93 prior checks retain exact relative order. New
+  `ReceivingRun.Guard.UserDisabledStopsLaterDispatch` uses actual Admin selection,
+  toggle and Save handlers while capture remains globally enabled. Next preserves
+  one completed step and business/activity bytes and becomes Blocked. Own recording
+  is restored through the same handlers. Fresh exact owner/evaluator proof and
+  both close boundaries remain GREEN. Five instrumented compiles, settings/package
+  preservation and normal closure pass. No runtime change was needed for this
+  supplemental guard; it is GREEN coverage, not a new product RED.
+
+Final audit through03:41:04.801 UTC finds zero Excel1000/1001/1002 faults and no
+query errors; the earlier PowerShell setup failure remains recorded above. Excel
+is closed. Cursor access succeeds03:41:06.633 UTC (Oct4 20:41 PDT), with error0.
+The four unrelated user-document hashes remain unchanged. No promotion, handoff
+or full-slice acceptance is included in this checkpoint.

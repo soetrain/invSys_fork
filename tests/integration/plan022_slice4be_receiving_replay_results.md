@@ -1,12 +1,24 @@
 # Slice 4be-A / early B0: Receiving replay
 
 Last verified: 2026-10-05 UTC. D18-REPLAY-01 is approved. Frozen
-`validation-receiving-run-05` passes **93/93** focused checks, including actual
-Receiving replay and fresh exact business proof. B0 and 4be-A acceptance remain
+`validation-user-policy-02` passes **94/94** focused checks, retaining all93 prior
+checks and adding per-user capture-loss stopping through real Admin handlers.
+Actual Receiving replay and fresh exact business proof pass. B0 and 4be-A acceptance remain
 open for observations, visible evidence and broader gates. Earlier RED receipts
 below record the progression; they are not the current implementation status.
 
 ## Evidence
+
+Latest controller `receiving-replay-controller/9a235a37f49d4745b80176525474d881`,
+03:30:10.465--03:39:27.864 UTC, worker
+`slice4be-receiving-replay/4b2912b5330b40d1b0cabf4292664b88/green.json`.
+All93 prior checks retain exact relative order. The new UserDisabled guard saves
+the running user's recording flag through Admin's actual selection/toggle/Save
+handlers while global capture stays enabled; Next blocks without another owner
+dispatch, preserving the completed step and business/activity bytes. Five compiled
+packages, preserved settings/package hashes and normal Excel closure pass. This is
+supplemental coverage on the per-user policy candidate; no further runtime fix.
+See [A1 policy evidence](plan022_slice4be_user_tracking_policy_results.md).
 
 `Test-Slice4beReceivingReplay.ps1 -Phase RED` against frozen
 `deploy/validation-warehouse-purpose-02` returns **16 PASS / 4 FAIL**, exit1,

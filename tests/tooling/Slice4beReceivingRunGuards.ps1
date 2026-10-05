@@ -2,6 +2,12 @@
 function Test-ReceivingRunGuards {
     $traceReplacement=$false
     function CloseGuardRun { [void](RunnerControl 'btnCloseRun' 'Click') }
+    function SetOwnRecording([bool]$Enabled) {
+        try {
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.OpenSettings')
+            if(-not [bool](Run 'invSys.Admin.xlam' 'TestD5Commands.RecordingOwnUserForTest' @($Enabled))){throw 'Actual user recording policy save failed; not replay RED.'}
+        } finally {[void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')}
+    }
     function LatestGuardRun($Before) {
         $rows=@(RunFiles|Where-Object {-not $Before.ContainsKey($_.FullName)}|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
         if($rows.Count){return $rows[-1]}
@@ -83,7 +89,7 @@ function Test-ReceivingRunGuards {
     }
     Check 'ReceivingRun.Guard.PermissionFixtureRestored' ((Get-FileHash -LiteralPath $authPath).Hash -ceq $authHash)
 
-    foreach($case in @('RecordingStopped','PolicyDisabled')) {
+    foreach($case in @('RecordingStopped','PolicyDisabled','UserDisabled')) {
         if($TraceReceivingRunCloseForTest -and $case -ceq 'PolicyDisabled'){
             foreach($package in @('invSys.Operations.xlam','invSys.Admin.xlam')){
                 [void](Run $package 'TestRunGuardTrace.InitializeForTest' @((Join-Path $reportRoot ($package+'.guard-callbacks.log'))))
@@ -99,7 +105,7 @@ function Test-ReceivingRunGuards {
                 # Reopening the ordinary Viewer refreshes its recording controls.
                 OpenRecordingViewer
                 if((RecordingControl 'Stop Recording' 'Click') -cne 'DELIVERED'){throw 'Actual recording Stop control unavailable.'}
-            }else{SetRecordingPolicy $false}
+            }elseif($case -ceq 'UserDisabled'){SetOwnRecording $false}else{SetRecordingPolicy $false}
             $business=BusinessPins;$activity=ActivityPins
             [void](RunnerControl 'btnNextRunStep' 'Click')
             $blocked=LatestGuardRun $before
@@ -108,6 +114,7 @@ function Test-ReceivingRunGuards {
             Write-Host ($case+'.CloseRun.Before')
             CloseGuardRun
             Write-Host ($case+'.CloseRun.Returned')
+            if($case -ceq 'UserDisabled'){SetOwnRecording $true}
             if($case -ceq 'PolicyDisabled'){
                 Write-Host 'PolicyDisabled.Restore.Before'
                 SetRecordingPolicy $true

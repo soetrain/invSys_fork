@@ -1,6 +1,35 @@
 # Disposable probes attempt re-entry while the actual Start/Next handler owns the run.
 # They call public boundaries, never fabricate owner outcomes or bypass the guard.
 function Install-ReceivingRunGuardProbe {
+    $admin=$packages['invSys.Admin.xlam'].VBProject
+    $admin.VBComponents.Item('cAdminTrackingPolicy').CodeModule.AddFromString(@'
+Public Function RecordingOwnUserForTest(ByVal enabled As Boolean) As Boolean
+    Dim index As Long, id As String
+    id = modAuth.GetCurrentUserId()
+    mLoading = True
+    For index = 0 To mUsers.ListCount - 1
+        If StrComp(CStr(mUsers.List(index, 0)), id, vbTextCompare) = 0 Then mUsers.ListIndex = index: Exit For
+    Next index
+    mLoading = False
+    If index >= mUsers.ListCount Then Exit Function
+    mUsers_Change
+    mLoading = True: mUserRecord.Value = enabled: mLoading = False
+    mUserRecord_Click
+    mSave_Click
+    RecordingOwnUserForTest = (InStr(1, mStatus.Caption, " saved.", vbBinaryCompare) > 0 And _
+        modTrackingUserSettings.RecordEnabled(mRequest, id) = enabled And CBool(mCapture.Value))
+End Function
+'@)
+    $admin.VBComponents.Item('frmAdminSettings').CodeModule.AddFromString(@'
+Public Function RecordingOwnUserForTest(ByVal enabled As Boolean) As Boolean
+    RecordingOwnUserForTest = mTracking.RecordingOwnUserForTest(enabled)
+End Function
+'@)
+    $admin.VBComponents.Item('TestD5Commands').CodeModule.AddFromString(@'
+Public Function RecordingOwnUserForTest(ByVal enabled As Boolean) As Boolean
+    RecordingOwnUserForTest = mForm.RecordingOwnUserForTest(enabled)
+End Function
+'@)
     $component=$null
     foreach($item in $packages['invSys.Core.xlam'].VBProject.VBComponents){if($item.Name -ceq 'modExecutionRun'){$component=$item;break}}
     if($null -eq $component){return}
