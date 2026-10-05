@@ -11390,7 +11390,7 @@ Private Sub mBtnManagerNext_Click()
 End Sub
 
 Private Sub mBtnManagerPrint_Click()
-    modProductionRecallReport.Execute Me, mActivityContext, mOperatorWorkbook
+    modProductionRecallReport.Execute Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress
 End Sub
 
 Private Sub mBtnClose_Click()

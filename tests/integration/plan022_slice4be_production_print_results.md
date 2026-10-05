@@ -1,5 +1,66 @@
 # Slice 4be-A: Production Print Recall
 
+## Current permission and action entry, 2026-10-05
+
+Loading/busy callbacks and a nested callback at the declared preview boundary
+previously entered the Print owner, rebuilt its report and replaced active status.
+A Reader could also enter that owner through the form handler. D18 now explicitly
+states the inherited Production entry/current-capability boundaries. The typed
+Print helper suppresses loading/busy entry, retains the busy guard across its
+owner call and restores prior flags. Its existing unrecorded BeginOwner helper
+checks captured context and current PROD_POST/ADMIN_MAINT before report work.
+The compatibility report command and native-preview behavior are unchanged.
+
+Actual-handler RED290/19 becomes GREEN309/309, with exact RED/GREEN identities
+and all250 prior ordered checks retained. Six cases cover Loading, Busy, Nested,
+Reader, Admin and Producer. Suppression/denial leaves the report untouched;
+authorized outer clicks enter the owner/preview once. Guards, source/exact keys,
+decoy and warehouse files remain preserved. Six reviewed captures show the active
+status retained, the existing permission-change refusal and authorized preview
+return. Nested entry uses the declared preview test seam, not actual native preview.
+
+Run `tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly
+-SavedProbeCopiesForTest` with RED/outcome02 then GREEN/entry01. Receipts below
+are relative to `reports/runtime/`:
+
+- RED: `production-run-local-controller/6749fd1a825b492aac2d9d19cd1f5956/verification.json`;
+  worker `slice4be-production-print-baseline/5b698d74be1f4e69ae01d4fd8785305e`,
+  22:48:12-22:51:49 UTC.19 behavioral failures, including three report changes;
+  source and canonical preservation pass. Five compiles, normal closure,
+  settings/package preservation and delayed zero Excel errors pass.
+- Build: `print-entry-build-01/verification.json`,22:52:15-22:53:11 UTC.
+  Five cold compiles; only modProductionRecallReport and frmProduction change,
+  with302 other components preserved. Candidate-only compilation is saved using
+  the preceding test configuration; production build tools are unchanged.
+- GREEN: `production-run-local-controller/d27b8b5837594f36a77aa348fd4c0b2a/verification.json`;
+  worker `slice4be-production-print-baseline/25b54d8b13564c58bac0f1cdc41c6033`,
+  22:53:21-22:57:15 UTC.309/309, five compiles, normal closure,
+  settings/package preservation and delayed zero Excel errors.
+- Static: `print-entry-static-01/ratchet-verification.json`:311 components,
+  6306 procedures,137999 lines. Twenty helper lines added; no component/procedure,
+  dynamic-call or duplicate growth. Nine literal/45 unresolved calls,190 duplicate
+  candidates,28 non-growing oversized caps,3 schemas and425 PowerShell parses pass.
+- Smoke: `print-entry01-regression/smoke-437b7a8b6d9345079ccf0933a3c95db8/verification.json`,
+  22:57:33-22:57:53 UTC.86 exact ordered checks and both unassisted exits pass;
+  settings/packages/tracked reports restored, delayed zero Excel errors.
+- Layout: `print-entry01-regression/layout-bd08533351f1456f862af8b9fd4d1b01/verification.json`,
+  22:58:08-22:58:25 UTC.18 page/size and five native-window checks pass with no
+  bounds/interactive-overlap failures, restoration and delayed zero Excel errors.
+- Full chain: `print-entry01-regression/chain-338325eb282a4979b26950cc8a964eb8/verification.json`,
+  22:58:53-23:04:23 UTC. Chain32/live-role48/warehouse15 retain every prior check
+  in order. Normal unassisted closure, settings/packages/tracked-report restoration
+  and delayed zero Excel errors pass on the same candidate.
+
+An earlier trial, controller `eab314b1d4734fe58a101c9849e62cc2`, ended245 PASS/
+1 harness FAIL before the new cases: the exclusive hash reader could not read an
+open authorization fixture. The corrected reader uses shared read access and
+excludes Excel lock files; no authority data is skipped. That trial is not RED;
+its failed-run-audit.json records restoration, normal closure and no Excel errors.
+
+Candidate `deploy/validation-print-entry-01` remains unpromoted. Post-yield
+binding/permission loss, native closure/preview, report identity/provenance and
+Print observation acceptance remain open. No error5 occurred.
+
 ## Saved test-package confirmation, 2026-10-05
 
 On unchanged `validation-print-outcome-02`, the full Print handler gate passes

@@ -2,6 +2,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintRebuild.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintInventory.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintOutcome.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintEntry.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintSeedBoundary.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
@@ -61,6 +62,7 @@ Public Function PrintLoadedFormCountForTest() As Long
     Next form
 End Function
 '@)
+    Install-ProductionPrintEntryProbe
 }
 
 function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='None'){
@@ -128,6 +130,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='Non
         Test-ProductionPrintRebuild $Fixture $book $sheet
         Test-ProductionPrintInventory $Fixture $book $sheet $decoy
         Test-ProductionPrintOutcome $Fixture $book $sheet
+        Test-ProductionPrintEntry $Fixture $book $sheet $decoy
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

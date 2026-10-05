@@ -2,11 +2,31 @@ Attribute VB_Name = "modProductionRecallReport"
 Option Explicit
 Option Private Module
 
-Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, ByVal operatorBook As Workbook)
-    If Not modProductionRunBinding.RequireWorksheetContext(owner, context, operatorBook) Then Exit Sub
+Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, ByVal operatorBook As Workbook, _
+                   ByRef loading As Boolean, ByRef busy As Boolean)
+    Dim priorLoading As Boolean, priorBusy As Boolean, action As cProductionWorksheetAction
     Dim outcome As String, detail As String
+    Dim number As Long, source As String, description As String, helpFile As String, helpContext As Long
+    If loading Or busy Then Exit Sub
+    priorLoading = loading: priorBusy = busy
+    On Error GoTo Failed
+    busy = True
+    Set action = New cProductionWorksheetAction
+    If Not action.BeginOwner(context, operatorBook, detail) Then GoTo Done
+    If Not modProductionRunBinding.RequireWorksheetContext(owner, context, operatorBook) Then GoTo Done
     mProduction.BtnPrintRecallCodes outcome, detail
-    owner.ShowStatus detail
+Done:
+    loading = priorLoading: busy = priorBusy
+    If detail <> "" And modOperationsFormLifetime.IsLoaded(owner) Then owner.ShowStatus detail
+    If number <> 0 Then
+        On Error GoTo 0
+        Err.Raise number, source, description, helpFile, helpContext
+    End If
+    Exit Sub
+Failed:
+    number = Err.Number: source = Err.Source: description = Err.Description
+    helpFile = Err.HelpFile: helpContext = Err.HelpContext
+    Resume Done
 End Sub
 
 Public Sub Preview(ByRef outcome As String, ByRef detail As String)
