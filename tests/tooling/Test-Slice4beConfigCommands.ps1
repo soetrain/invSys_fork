@@ -48,6 +48,8 @@ param(
     [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
+    [switch]$RunNextPathsOnly,
+    [ValidateSet('Reusable','Worksheet')][string]$RunNextPathMode='Reusable',
     [switch]$RunCheckInBaselineOnly,
     [switch]$RunCheckInRoutedOnly,
     [switch]$RunCheckInClosedOnly,
@@ -196,6 +198,7 @@ if($RunCompleteSubmissionFaultOnly -and -not $RunCompleteActivityOnly){throw 'Co
 if($RunCompleteStatusOnly -and (-not $RunCompleteActivityOnly -or $RunCompleteSubmissionFaultOnly)){throw 'Status-only evidence requires the completion activity fixture without submission faults.'}
 if($RunCompletePathsOnly -and (-not $RunCompleteBaselineOnly -or $RunCompleteActivityOnly -or $RunCompletePreparationDiagnostic -or $RunNextBaselineOnly)){throw 'Complete paths require their isolated baseline fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
+if($RunNextPathsOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly)){throw 'Next Batch paths require the isolated Next baseline fixture.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
@@ -558,6 +561,7 @@ if($CheckProductionDesignerActivity){
     if($RunCompleteSubmissionFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-submission-fault/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompletePathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-paths-'+$RunCompletePathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
+    if($RunNextPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-paths-'+$RunNextPathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInRoutedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-routed/'+[guid]::NewGuid().ToString('N'))}
@@ -1097,7 +1101,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+    if($RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1398,7 +1402,7 @@ End Function
                     if($RunNextBaselineOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionNextBaseline.ps1')
                         Install-ProductionNextBaselineProbe
-                        if($RunNextActivityOnly){
+                        if($RunNextActivityOnly -or $RunNextPathsOnly){
                             . (Join-Path $PSScriptRoot 'Slice4beProductionNextActivity.ps1')
                             Install-ProductionNextActivityProbe
                         }
@@ -1571,7 +1575,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycle.ps1')
             Install-ProductionLifecycleProbe
         }
-        if($RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths -or $CheckProductionAssignmentSourcePaths){
+        if($RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionDesignerPaths -or $CheckProductionLifecyclePaths -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths -or $CheckProductionAssignmentSourcePaths){
             . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
             Install-ProductionPathsProbe
         }
@@ -1583,7 +1587,7 @@ End Function
             . (Join-Path $PSScriptRoot 'Slice4beProductionLifecycleNative.ps1')
             Install-ProductionLifecycleNativeProbe
         }
-        if($RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+        if($RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
             . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
             Install-GuideDraftProbe
         }
@@ -1906,6 +1910,10 @@ End Function
             if($RunCheckInPathsOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
+            }
+            elseif($RunNextPathsOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
+                Test-ProductionInstructionPaths $a -RunNext -NextMode $RunNextPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
             elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -SubmissionFaultOnly:$RunCompleteSubmissionFaultOnly -StatusOnly:$RunCompleteStatusOnly -Paths:$RunCompletePathsOnly -PathMode $RunCompletePathMode -ClosedBoundary $RunCompleteClosedBoundary}

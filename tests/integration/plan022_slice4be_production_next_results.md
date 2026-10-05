@@ -1,5 +1,55 @@
 # Slice 4be-A: Production Next Batch binding and recording
 
+## Recording-to-guide evidence, 2026-10-05
+
+The unchanged `deploy/validation-complete-activity-04` candidate records the actual
+Next Batch handler twice, once as guide provenance and once as an independent
+observed run. Reusable preparation first completes a real batch outside recording;
+worksheet preparation uses generated staging. Each Next Batch action separately
+preserves canonical workbook bytes. Worksheet facts include native notification,
+exact System_Key, incremented batch, cleared output/recall and unknown columns.
+
+The shared guide harness now has an isolated Next Batch mode. It proves stopped
+journals, exact published records and Event Detail, command/source-application
+separation, explicit authoring, reader pairing, all three presentations, immutable
+history and saved workbook bytes. This adds tests and evidence under existing D18;
+no new contract, runtime change or product RED is claimed. Prior binding/observation
+RED/GREEN remains below; comprehensive acceptance and tracking faults remain open.
+
+Reproduce with `Test-Slice4beProductionRunLocal.ps1 -DeployRoot
+deploy/validation-complete-activity-04 -Phase GREEN -CompleteBaselineOnly
+-NextBaselineOnly -NextPathsOnly -NextPathMode Reusable|Worksheet`.
+
+Reusable trial85/85: controller
+`production-run-local-controller/158c699307a3471099bdafe485dfde12`, worker
+`slice4be-production-next-paths-reusable/e6c15bb7e0b445479f3530c889c739cc/green.json`,
+17:24:48.420--17:31:59.833 UTC. Five compiles, preservation, normal closure and
+delayed zero Excel errors pass. Capture review found an inherited fixture heading
+for editing instructions despite correct Next Batch steps. The authored heading/
+scope was corrected and asserted in How-To; this was not an application defect. These
+trial images do not establish the final visible guide proof.
+
+Worksheet94/94: controller
+`production-run-local-controller/9132df1e03d0470494fa983bd4cd415c`, worker
+`slice4be-production-next-paths-worksheet/0a05c041b5ff4fe78ac814a8b1009a83/green.json`,
+17:32:19.171--17:38:32.903 UTC. Five compiles, normal closure, settings/package
+preservation and delayed zero Excel errors pass. All four guide/conclusion captures
+are reviewed and readable, including the correct Next Batch heading, instructions,
+distinct source/observed provenance and local-only diagnostic conclusion.
+
+Final reusable86/86 retains all85 trial checks in exact order: controller
+`production-run-local-controller/59e046d9907d4f3dbaba07b79f6b1477`, worker
+`slice4be-production-next-paths-reusable/c43a179cdc024838893bd962662097e1/green.json`,
+17:38:49.938--17:45:43.980 UTC. The corrected heading/scope assertion passes.
+All four current captures are readable and reviewed. Five compiles, normal closure,
+settings/package preservation and delayed zero Excel errors pass. No error5 occurred.
+
+Static `next-paths-static-04b/` passes416 parses, three schemas and28 unchanged caps.
+Runtime metrics remain310 components/6300 procedures/137871 lines,9 literal and45
+unresolved dynamic calls,190 duplicate groups. Retain valid unchanged package,
+layout/live-role and Complete Run evidence; the recorded full-chain native failure
+remains unresolved. No deployment, Next Batch replay or broader A1/A2 acceptance.
+
 ## Recording candidate, 2026-10-04
 
 Architecture D18 catalog26 registers `PRODUCTION_RUN_NEXT_BATCH`. The real form
