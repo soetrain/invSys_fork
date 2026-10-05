@@ -61,6 +61,7 @@ End Function
 
 Public Function ContinueRefresh(ByVal owner As frmProduction, ByVal action As cProductionWorksheetAction) As Boolean
     Dim report As String
+    If Not modOperationsFormLifetime.IsLoaded(owner) Then Exit Function
     ContinueRefresh = True
     If action Is Nothing Then Exit Function
     ContinueRefresh = action.CanContinue(report)

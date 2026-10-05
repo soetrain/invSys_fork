@@ -86,7 +86,8 @@ function Test-ProductionNextBaseline($Fixture,$Other) {
             CaptureOwnedFormByCaptionEvidence 'Production' ('next-baseline-'+$guard.ToLowerInvariant()+'.png')
         }
         if($RunNextActivityOnly){Test-ProductionNextActivity $Fixture $Other $book $decoy $canary}
-        if($RunNextYieldOnly){Test-ProductionNextYield $Fixture $Other $book $decoy $canary}
+        if($RunNextClosedOnly){Test-ProductionNextClosed $Fixture $Other $book $decoy $canary}
+        elseif($RunNextYieldOnly){Test-ProductionNextYield $Fixture $Other $book $decoy $canary}
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'NextBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
         Check 'NextBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

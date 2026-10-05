@@ -1,5 +1,64 @@
 # Slice 4be-A: Production Next Batch binding and recording
 
+## Native workbook-closure correction, 2026-10-05
+
+On unchanged activity04, closing the captured workbook unloads Production during
+Next Batch. Cleanup repeatedly touches the unloaded form and never finishes its
+FAILED observation. Worksheet InventoryPicker return also permits one later read.
+Focused packaged RED123/33 proves four failed returns, four missing outcomes
+(28 dependent journal failures) and the one later read; all70 binding checks pass.
+The diagnostic escapes only the second real cleanup exception into the handler's
+failure assertion. It never replaces owner results; missing-record assertions
+are not evidence of leaked data.
+
+Candidate `deploy/validation-next-closed-01` uses the existing exact loaded-form
+check before Next Batch continuation cleanup/status display and before shared
+ContinueRefresh accepts an absent continuation. GREEN156/156 has identical ordered
+checks, retains all123 prior GREENs and uses no diagnostic escape. At both owner
+returns and both inventory-read returns, native dismissal completes with zero later
+reads/reinitializations, preserved partial owner state/saved bytes/custom columns,
+and exact FAILED records without Inventory sources. D18 behavior is unchanged.
+
+- RED controller `production-run-local-controller/e0ba308d55644916a84cac9fae72541d`,
+  worker `slice4be-production-next-closed/3e34545009954cb7ac4a6566aa49188d/red.json`;
+  18:23:58.160--18:29:40.376 UTC.
+- GREEN controller `production-run-local-controller/f26b51de740f4b189670a05dd9a6819c`,
+  worker `slice4be-production-next-closed/5efc2cd212994a2d960170a119e13484/green.json`;
+  18:31:04.014--18:36:54.325 UTC.
+
+Both close unassisted, restore settings, preserve packages and pass delayed zero
+Excel-error audits. Four native receipts prove visible-before/dismissed-after;
+dismissed controls are never queried. Current/changed-target captures are reviewed
+and readable. No error5 occurred. Reproduce with `Test-Slice4beProductionRunLocal.ps1
+-CompleteBaselineOnly -NextBaselineOnly -NextYieldOnly -NextClosedOnly`, appropriate
+DeployRoot/Phase and `-NextClosedEscapeForTest` only for the diagnostic RED.
+
+`next-closed-build-01/` passes cold startup/five compiles,18:29:48.493--18:30:29.411
+UTC. Compiled comparison preserves301/303 components and every form; only
+modProductionNextActions/modProductionRunClearActions change. Static
+`next-closed-static-01/` passes419 parses, three schemas and28 unchanged caps:
+310 components/6300 procedures/137873 lines,9 literal/45 unresolved dynamic calls
+and190 duplicate groups. Reuse activity04's unchanged layout18/native-window and
+guide86/94 evidence. Smoke86/86 and affected302/302 and231/231 regressions pass
+on this candidate, retaining every prior ordered check. Both regression runs pass
+five instrumented compiles, unassisted closure, settings/package preservation and
+delayed zero Excel-error audits. The two terminal-failure and four interruption
+captures are reviewed and readable. No error5 occurred.
+
+- Smoke controller `next-closed01-regression/smoke-4710688c3e1d483888ffa8cd22bfa87c`,
+  18:37:07.464--18:37:43.291 UTC; both exits and tracked-report restoration pass.
+- Activity302 controller `production-run-local-controller/d0d50dba0c24490fa149e1970e679faf`,
+  worker `slice4be-production-next-activity/9102981a71114bddae8eb450326521da/green.json`;
+  18:38:06.914--18:54:26.314 UTC.
+- Interruption231 controller `production-run-local-controller/b574cd35a8f14916a29e3fcf170b9e9e`,
+  worker `slice4be-production-next-yield/17f583ab99094c1ab52f0e714980674e/green.json`;
+  18:57:46.015--19:05:56.042 UTC.
+
+Each regression's `candidate-regression-audit.json` verifies the exact prior
+ordered checks and the same five package hashes as focused GREEN156.
+Recording-policy changes, incomplete-guide proof and broader A1/A2/full-chain
+acceptance remain open. Candidate is not promoted.
+
 ## Mid-action context/permission evidence, 2026-10-05
 
 Unchanged `deploy/validation-complete-activity-04` passes231/231, retaining all70

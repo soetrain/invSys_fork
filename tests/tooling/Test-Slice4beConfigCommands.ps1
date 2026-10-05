@@ -49,6 +49,8 @@ param(
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
     [switch]$RunNextYieldOnly,
+    [switch]$RunNextClosedOnly,
+    [switch]$RunNextClosedEscapeForTest,
     [switch]$RunNextPathsOnly,
     [ValidateSet('Reusable','Worksheet')][string]$RunNextPathMode='Reusable',
     [switch]$RunCheckInBaselineOnly,
@@ -200,6 +202,8 @@ if($RunCompleteStatusOnly -and (-not $RunCompleteActivityOnly -or $RunCompleteSu
 if($RunCompletePathsOnly -and (-not $RunCompleteBaselineOnly -or $RunCompleteActivityOnly -or $RunCompletePreparationDiagnostic -or $RunNextBaselineOnly)){throw 'Complete paths require their isolated baseline fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($RunNextYieldOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly -or $RunNextPathsOnly)){throw 'Next Batch interruptions require the isolated Next baseline fixture.'}
+if($RunNextClosedOnly -and -not $RunNextYieldOnly){throw 'Next Batch native closure requires its isolated interruption fixture.'}
+if($RunNextClosedEscapeForTest -and -not $RunNextClosedOnly){throw 'Next Batch diagnostic escape requires native closure testing.'}
 if($RunNextPathsOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly)){throw 'Next Batch paths require the isolated Next baseline fixture.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
@@ -564,6 +568,7 @@ if($CheckProductionDesignerActivity){
     if($RunCompletePathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-paths-'+$RunCompletePathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextYieldOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-yield/'+[guid]::NewGuid().ToString('N'))}
+    if($RunNextClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-paths-'+$RunNextPathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-closed/'+[guid]::NewGuid().ToString('N'))}
@@ -1415,6 +1420,10 @@ End Function
                             if($RunNextYieldOnly){
                                 . (Join-Path $PSScriptRoot 'Slice4beProductionNextYield.ps1')
                                 Install-ProductionNextYieldProbe
+                                if($RunNextClosedOnly){
+                                    . (Join-Path $PSScriptRoot 'Slice4beProductionNextClosed.ps1')
+                                    Install-ProductionNextClosedProbe
+                                }
                             }
                         }
                     }
