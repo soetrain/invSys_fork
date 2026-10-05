@@ -229,8 +229,10 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
     throw 'Viewer startup calibration requires explicit startup tracing.'
 }
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
-    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $GuideDraftOnly -or -not $CheckGuideExpectation -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest){
-        throw 'Package-state comparison requires startup tracing; saved copies also support the compiled guide-expectation gate.'
+    $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
+    $savedComplete=$RunCompleteBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $RunNextBaselineOnly -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete)){
+        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion gate.'
     }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
@@ -993,7 +995,10 @@ function CredentialHash([string]$Secret) {
 function SelectTarget($Fixture,[string]$User='config-admin') {
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($Fixture.Root))
     $selected = [string](Run 'invSys.Core.xlam' 'modNasConnection.SelectWarehouseTargetForAutomation' @($Fixture.Root,$Fixture.Root,'S1',$false))
-    if(-not $selected.StartsWith('OK|')){throw 'Fixture target selection failed.'}
+    if(-not $selected.StartsWith('OK|')){
+        $code=if($selected -match '^FAIL\|([0-9]+|ERROR)(?:\||$)'){$Matches[1]}else{'UNAVAILABLE'}
+        throw ('Fixture target selection failed; status code='+$code+'.')
+    }
     [void](Run 'invSys.Core.xlam' 'modNasConnection.SetCurrentTargetPathsForTest' @('\\fixture-host\config-command',$Fixture.Root))
     $signed = [string](Run 'invSys.Core.xlam' 'modAuth.SignInCurrentTargetForAutomation' @($User,$Fixture.Secret,''))
     if(-not $signed.StartsWith('OK|')){
@@ -1292,24 +1297,8 @@ End Function
             Compile-Slice4beEvaluationProbes
         }
         if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
-            foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')){
-                $book=$packages[$name]
-                if($null -eq $book -or $book.ReadOnly -isnot [bool] -or $book.ReadOnly -or
-                    -not [string]::Equals($book.FullName,(Join-Path $probeDeploy $name),[StringComparison]::OrdinalIgnoreCase)){
-                    throw 'Only the writable disposable probe package may be saved.'
-                }
-                if($ViewerStartupPackageStateForTest -eq 'SavedCopies'){
-                    $book.Save()
-                    if($book.Saved -isnot [bool] -or -not $book.Saved){throw 'Disposable probe package save is not verified.'}
-                }
-            }
-            if($ViewerStartupPackageStateForTest -eq 'SavedCopies'){
-                Check 'Harness.DisposableStartupProbesSaved' $true
-            } else {
-                $unsaved=$packages['invSys.Operations.xlam'].Saved
-                if($unsaved -isnot [bool] -or $unsaved){throw 'Writable Operations probes must remain unsaved for this comparison.'}
-                Check 'Harness.DisposableStartupProbesUnsaved' $true
-            }
+            . (Join-Path $PSScriptRoot 'Slice4beProbePackages.ps1')
+            Save-DisposableStartupProbes $packages $probeDeploy $ViewerStartupPackageStateForTest
         }
         $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
@@ -1531,6 +1520,13 @@ End Function
         }
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
+    }
+    if($RunCompleteBaselineOnly -and $ViewerStartupPackageStateForTest -eq 'SavedCopies'){
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.ProductionProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Completion probes must precede forms; not product RED.'}
+        . (Join-Path $PSScriptRoot 'Slice4beProbePackages.ps1')
+        Save-DisposableStartupProbes $packages $probeDeploy $ViewerStartupPackageStateForTest
     }
     if($CheckSettingsEditorActivity){
         . (Join-Path $PSScriptRoot 'Slice4beViewerPublishedRead.ps1')

@@ -1,5 +1,100 @@
 # Slice 4be Production Complete Run
 
+## Post-consume continuation, 2026-10-05 UTC — under validation
+
+Existing D18 captured-context/permission continuation applies after consumption
+as well as before it. An applied consume remains applied; interruption must stop
+the later completion submission. This changes no authority, permission, rollback
+or observation contract. Complete Run recording remains a separate open A1 task.
+
+The actual packaged handler on frozen `validation-user-policy-02` records four
+behavioral REDs: after real consume processing, sign-out and permission loss each
+allow another queue attempt and miss the specific interruption feedback. Exact
+input consumption, absent completed output, partial owner/projection state and
+custom/unrelated workbook preservation pass. Core still refuses the later write;
+this evidence does not show unauthorized inventory creation.
+
+Controller `production-run-local-controller/39262e7eb4c9499eb33841f156beee60` runs
+04:31:19.341--04:42:30.601 UTC; worker
+`slice4be-production-complete-baseline/5ff823b4004348dbae03595f6a1fda52/red.json`
+records245 PASS/7 FAIL. Besides the four behavioral failures, two new audit checks
+incorrectly assumed quantity1; the corrected test reads the exact staged entity/
+quantity before invoking the handler. A later existing closure case cannot select
+its fixture target, leaving prior checks unreached; its cause remains unproved.
+The shared harness now reports only the sanitized numeric/ERROR selection code.
+Excel exits without intervention after a delay; settings/packages are preserved.
+No desktop error5 is observed. An attempted shutdown inspection fails before
+producing usable resource counts and proves no resource diagnosis.
+
+Two earlier setup attempts (`5715f26ad28f4cda8943b8e178e11b90` and
+`734baf15d430481fa7d0c1e045dc0a00`) each stop1/1 before behavior. The second proves
+one case-insensitive match for the stock fixture's unchanged statement. Its probe
+now tolerates VBA identifier recasing while retaining the exact numeric literal.
+These are harness failures, not product RED.
+
+Candidate `validation-complete-submission-01` adds the existing continuation guard
+after recording the consume processor return and before completion submission.
+The unchanged event-list append helper moves to the typed action module: owner
+size2707->2703 lines. Cold Operations startup/five compiles pass, settings and the
+previous candidate are preserved, and source comparison retains300/302 components
+with only the two intended Operations modules changed. Build receipts:
+`complete-submission-build-01/`. Static `complete-submission-static-01/` retains
+all28 oversized caps,9 literal/45 unresolved calls and190 duplicate groups:
+309 components,6296 procedures,137769 lines (+2), three schemas/405 script parses.
+
+First candidate run: controller `9d2e9ff6a2a94c62ae5c2be7c229a17b`, worker
+`8a9b761c951041a49fde5d1539c8dbe1/green.json`,04:45:06.235--04:56:42.594 UTC,
+251 PASS/1 harness FAIL. All23 new post-consume checks pass;228 of258 prior checks
+are reached. Target selection returns status7 (Auth unavailable) before the other30.
+Read-only native counts show GDI peak10001 against quota10000. This establishes
+resource exhaustion, not its cause. Excel exits unassisted; preservation passes.
+Both new refusal captures were reviewed: existing reopen/context or permission
+guidance is visible. Long field clipping remains outside this scoped proof.
+
+A saved-disposable-package comparison, controller
+`8eb2b298f3e140c1844116ea33ee5db0`, worker `129110dbb4534cf1a6a023acc460a1db`,
+reaches282 PASS/1 metadata-read FAIL across283 checks. It also reaches GDI peak10001
+and displays Excel's insufficient-memory dialog. The dialog is inspected and
+dismissed at05:11:39 UTC; residual test Excel/worker cleanup is assisted. Thus
+saved probes do not fix resource exhaustion and this is not clean GREEN acceptance.
+Interventions and resource samples remain in that controller directory. Exact
+closure-stage resource tracing is added to locate the trigger before another fix.
+The controller closes at05:15:57.264 UTC with settings/packages restored. Its
+exit code is-1 after assistance, not a successful gate. All407 repository PowerShell
+scripts subsequently parse without errors; the runtime static ratchets are unchanged.
+
+Independent metadata tooling reproducer `package-identity-sharing/`:
+`6cf2923498474787bc282cb578f3e238/red.json` is3/1; default ZIP sharing conflicts
+with a writable-open package. Read-only FileStream with ReadWrite sharing retains
+the same metadata validation and passes4/4 in `0e1aad5293344795afaaa672e36f1705`.
+Source/copy bytes remain exact. An intermediate2/2 run (`eb6d68f7a21045be893cef2233a8890a`)
+exposed a missing Compression assembly load, corrected before that GREEN.
+Full unassisted regression, broader gates and Complete Run observations remain open.
+
+Closure trace comparison: controller `f6383263c4044de4b74ba81ad04f2e84`, worker
+`57af4823ac8b408495308235bb68369a`, reaches283/0 but requires dismissal of the
+same memory dialog at05:26:12 UTC. All258 prior checks remain in order. At the
+CompletePending case, GDI grows4685->7845 during preparation and stays8019 across
+SafeClose. The next preparation starts8414 and reaches10001. Thus cleanup alone
+is not the measured growth interval. Read-only samples and fixed-stage JSONL
+retain the diagnosis; no native root-cause repair or clean acceptance is claimed.
+Controller `10595d3f340c41928ee5d32d74b55e62`, worker
+`48f98426d81c4be9a66cfd30d876d890`, tests explicit client garbage collection
+between cases. It leaves GDI4286 and8015 unchanged, reaches10001 again and requires
+dialog dismissal at05:40:30 UTC. Final assertions are253/1 with target-selection
+status7;23 new checks pass,228 prior checks are reached and30 remain unreached.
+The ineffective collection change is removed. Do not repeat these full runs or
+increase quotas as a proposed fix: isolate real case preparation (fixture staging,
+Check In and balance reads) with native counts and retain the ordinary handlers.
+Clean GREEN, shutdown, affected guide/package regressions and broader acceptance
+remain open. No new architecture or permission approval is required for this
+existing-contract correction; future conflicting behavior still needs approval.
+Last verified05:45 UTC: all three diagnostic controllers finish with original
+settings/package hashes restored and Excel closed; the two later controllers end
+05:30:57.181 and05:45:08.111 UTC with exit-1 after assisted cleanup. The last also
+uses managed collection in its owned controller to aid shutdown; this is not
+runtime acceptance. No desktop error5 was observed. No candidate is promoted.
+
 ## D18 completion entry guard correction
 
 `modProductionCompleteActions.Execute` now wraps the actual form handler with

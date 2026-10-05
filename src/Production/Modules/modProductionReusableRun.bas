@@ -1004,7 +1004,7 @@ Public Function CompleteReusableRun(ByVal runLocation As String, _
                 report = "Production consume event was not queued: " & queueError
                 Exit Function
             End If
-            AppendEventId eventIds, eventId
+            modProductionCompleteActions.AppendEventId eventIds, eventId
             processedNow = modProcessor.RunBatch(Trim$(modConfig.GetWarehouseId()), 0, processorReport)
             If processedNow < 1 Then
                 report = "Production consume event " & eventId & " was not applied. " & processorReport
@@ -1025,7 +1025,7 @@ Public Function CompleteReusableRun(ByVal runLocation As String, _
             report = "Production complete event was not queued: " & queueError
             Exit Function
         End If
-        AppendEventId eventIds, eventId
+        modProductionCompleteActions.AppendEventId eventIds, eventId
         processedNow = modProcessor.RunBatch(Trim$(modConfig.GetWarehouseId()), 0, processorReport)
         If processedNow < 1 Then
             report = "Production complete event " & eventId & " was not applied. " & processorReport
@@ -1097,7 +1097,7 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
             report = "Production consume event was not queued: " & queueError
             Exit Function
         End If
-        AppendEventId mEventIds, eventId
+        modProductionCompleteActions.AppendEventId mEventIds, eventId
         processedNow = modProcessor.RunBatch(Trim$(modConfig.GetWarehouseId()), 0, processorReport)
         If processedNow < 1 Then
             report = "Production consume event " & eventId & " was not applied. " & processorReport
@@ -1105,6 +1105,7 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
         End If
         mAppliedCount = mAppliedCount + processedNow
         AppendProcessorReport mProcessorReports, processorReport
+        If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     End If
 
     Set items = BuildNodeCompleteItems(node, runLocation, mRunId)
@@ -1119,7 +1120,7 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
         report = "Production complete event was not queued: " & queueError
         Exit Function
     End If
-    AppendEventId mEventIds, eventId
+    modProductionCompleteActions.AppendEventId mEventIds, eventId
     processedNow = modProcessor.RunBatch(Trim$(modConfig.GetWarehouseId()), 0, processorReport)
     If processedNow < 1 Then
         report = "Production complete event " & eventId & " was not applied. " & processorReport
@@ -2694,11 +2695,6 @@ Private Function RunItemNote(ByVal runId As String, ByVal node As Object, _
                              ByVal lineId As String) As String
     RunItemNote = RunEventNote(runId, node, "LINE") & "|Line=" & lineId
 End Function
-
-Private Sub AppendEventId(ByRef eventIds As String, ByVal eventId As String)
-    If eventIds <> "" Then eventIds = eventIds & ","
-    eventIds = eventIds & eventId
-End Sub
 
 Private Sub AppendProcessorReport(ByRef reports As String, ByVal report As String)
     If Trim$(report) = "" Then Exit Sub

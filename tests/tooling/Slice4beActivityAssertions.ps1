@@ -2,11 +2,12 @@
 # Emit check names and booleans only; activity payloads and fixture credentials
 # must never enter console output or the persisted results report.
 function Test-Slice4bePackageIdentity([string]$Deploy) {
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    Add-Type -AssemblyName System.IO.Compression
     foreach ($name in @('Core','Inventory.Domain','Designs.Domain','Operations','Admin')) {
-        $archive = $null
+        $archive = $null; $stream = $null
         try {
-            $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $Deploy ('invSys.'+$name+'.xlam')))
+            $stream = [IO.FileStream]::new((Join-Path $Deploy ('invSys.'+$name+'.xlam')), [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+            $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read, $true)
             $entry = $archive.GetEntry('docProps/custom.xml')
             if ($null -eq $entry) { return $false }
             $reader = [IO.StreamReader]::new($entry.Open())
@@ -16,7 +17,10 @@ function Test-Slice4bePackageIdentity([string]$Deploy) {
             if ($version.Count -ne 1 -or $identity.Count -ne 1) { return $false }
             if ($version[0].InnerText -ne 'R1-5' -or $identity[0].InnerText -notmatch '^[0-9a-f]{32}$') { return $false }
         } catch { return $false }
-        finally { if ($null -ne $archive) { $archive.Dispose() } }
+        finally {
+            if ($null -ne $archive) { $archive.Dispose() }
+            if ($null -ne $stream) { $stream.Dispose() }
+        }
     }
     return $true
 }

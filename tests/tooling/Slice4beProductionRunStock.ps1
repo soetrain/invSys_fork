@@ -68,7 +68,9 @@ End Function
     $form=$project.VBComponents.Item('frmProduction').CodeModule
     $form.InsertLines(1,'Private mRunStockQtyForTest As Double')
     $start=$form.ProcStartLine('DesignerReleasedProcessForTest',0);$end=$start+$form.ProcCountLines('DesignerReleasedProcessForTest',0)
-    $matches=@(for($line=$start;$line -lt $end;$line++){if($form.Lines($line,1).Trim() -ceq 'mLstProcessRequirements.List(0, 2) = "2"'){$line}})
+    # VBA may recase identifiers when other packaged modules are loaded.
+    # Keep the complete statement and numeric string literal exact in meaning.
+    $matches=@(for($line=$start;$line -lt $end;$line++){if($form.Lines($line,1).Trim() -ieq 'mLstProcessRequirements.List(0, 2) = "2"'){$line}})
     if($matches.Count -ne 1){throw 'Stock requirement fixture anchor changed; not product RED.'}
     $form.ReplaceLine($matches[0],'    mLstProcessRequirements.List(0, 2) = CStr(2# * mRunStockQtyForTest + 2#)')
     $form.AddFromString(@'

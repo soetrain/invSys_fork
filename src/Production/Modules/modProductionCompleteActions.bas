@@ -23,3 +23,9 @@ Failed:
     helpFile = Err.HelpFile: helpContext = Err.HelpContext
     Resume Done
 End Sub
+
+' Completion owners retain only event identities acknowledged by their writer.
+Public Sub AppendEventId(ByRef eventIds As String, ByVal eventId As String)
+    If eventIds <> "" Then eventIds = eventIds & ","
+    eventIds = eventIds & eventId
+End Sub

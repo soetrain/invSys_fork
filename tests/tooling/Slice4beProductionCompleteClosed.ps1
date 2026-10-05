@@ -9,20 +9,47 @@ function Install-ProductionCompleteClosedProbe {
 
 function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary){
     # Probe, Owner and Hash are supplied by the completion baseline scope.
+    # Read-only counters locate native resource exhaustion without querying forms.
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class CompleteClosureResources {
+    [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint access, bool inherit, int process);
+    [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
+    [DllImport("user32.dll")] public static extern uint GetGuiResources(IntPtr process, uint flags);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+}
+'@
+    [uint32]$processId=0
+    [void][CompleteClosureResources]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$processId)
+    function MarkClosure([string]$Stage){
+        $handle=[CompleteClosureResources]::OpenProcess(1024,$false,[int]$processId)
+        if($handle -eq [IntPtr]::Zero){throw 'Closure resource process unavailable.'}
+        try{
+            [pscustomobject]@{Utc=[DateTime]::UtcNow.ToString('o');Boundary=$boundary;Stage=$Stage;Gdi=[CompleteClosureResources]::GetGuiResources($handle,0);GdiPeak=[CompleteClosureResources]::GetGuiResources($handle,2);User=[CompleteClosureResources]::GetGuiResources($handle,1)}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'complete-closure-resources.jsonl')
+        }finally{[void][CompleteClosureResources]::CloseHandle($handle)}
+    }
     $book=$null
     try{
         foreach($boundary in @('Entry','CompletePending','AvailableQuantity','EntityKind')){
+            MarkClosure 'BeforeReset'
             [void](Probe 'CheckYieldReset')
+            MarkClosure 'BeforeSelectTarget'
             SelectTarget $Fixture 'config-producer'
+            MarkClosure 'TargetSelected'
             $casePath=Join-Path (Split-Path $Path) ('complete-closed-'+$boundary.ToLowerInvariant()+'.xlsb')
             if(Test-Path -LiteralPath $casePath){throw 'Preserve existing closure fixture.'}
             Copy-Item -LiteralPath $Path -Destination $casePath
             $book=$excel.Workbooks.Open($casePath,0,$false)
+            MarkClosure 'WorkbookOpened'
             [void](Probe 'RunLocalReopen' @($book.Name))
+            MarkClosure 'FormCreated'
             if(-not [bool](Probe 'CompleteBaselinePrepare' @($true))){throw 'Real selected Check In prerequisite unavailable; not product RED.'}
+            MarkClosure 'Prepared'
             $book.Save();$saved=Hash $casePath
             Initialize-SettingsCapture
             $page=[int](Probe 'RunLocalShowAndCapture' @($book.Name,'CHECK_IN'))
+            MarkClosure 'Shown'
             $visibleBefore=([InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
             if(-not $visibleBefore -or $page -ne 3){throw 'Native completion surface unavailable; not product RED.'}
             $Decoy.Activate()
@@ -42,7 +69,9 @@ function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[str
                 if($invoked){$returned=[bool](Probe 'CompleteEntryAct' @(''))}
                 $ownerSame=([string](Probe 'RunLocalOwnerState') -ceq $ownerBefore)
             }else{
+                MarkClosure 'BeforeHandler'
                 $returned=[bool](Probe 'CompleteEntryAct' @(''))
+                MarkClosure 'HandlerReturned'
                 $evidence=([string](Probe 'CheckYieldEvidence')).Split('|')
                 $native=([string](Probe 'CheckClosedYieldReceipt')).Split('|')
                 if($evidence.Count -ne 4 -or $evidence[0] -cne 'True' -or $evidence[1] -cne 'True' -or $evidence[3] -cne 'True' -or $native.Count -ne 7 -or $native[0] -cne 'True' -or $native[1] -cne 'True' -or $native[4] -cne 'True' -or $native[5] -cne 'True'){
@@ -82,7 +111,11 @@ function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[str
             Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
             Check ($label+'.NoActivityOrRedirectedRecords') ((@(Get-Slice4beActivityFiles $Fixture) -join '|') -ceq ($before -join '|') -and (@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
             [pscustomobject]@{Boundary=$boundary;StartUTC=$started;EndUTC=[DateTimeOffset]::UtcNow.ToString('o');VisibleBefore=$visibleBefore;VisibleAfter=$visibleAfter;HandlerInvoked=$invoked;HandlerEntries=$entries;HandlerReturned=$returned;WorkbooksBefore=$countsBefore;WorkbooksAfter=$excel.Workbooks.Count;CapturedStillOpen=$false;DecoyStillOpen=$true;LaterReadAttempts=$later;FormInitializationsAfterArm=[int]$native[6];DismissedFormControlsQueried=$false;SurvivingControlAssertionsConditional=$true}|ConvertTo-Json|Set-Content (Join-Path $reportRoot ('complete-closed-'+$boundary.ToLowerInvariant()+'.json'))
-            [void](Probe 'CheckYieldReset');[void](Probe 'RunLocalSafeClose')
+            MarkClosure 'AssertionsComplete'
+            [void](Probe 'CheckYieldReset')
+            MarkClosure 'BeforeSafeClose'
+            [void](Probe 'RunLocalSafeClose')
+            MarkClosure 'SafeCloseReturned'
         }
     }finally{
         [void](Probe 'CheckYieldReset');[void](Probe 'RunLocalSafeClose')
