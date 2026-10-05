@@ -3,6 +3,12 @@
 function Install-ReceivingReplayProbe {
     . (Join-Path $PSScriptRoot 'Slice4beExecutionDiagnostics.ps1')
     Install-ExecutionSetupDiagnostics
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRunGuardProbe.ps1')
+    Install-ReceivingRunGuardProbe
+    if($TraceReceivingRunCloseForTest){
+        . (Join-Path $PSScriptRoot 'Slice4beReceivingRunEventTrace.ps1')
+        Install-ReceivingRunEventTrace
+    }
     $project=$packages['invSys.Operations.xlam'].VBProject
     # Deliver the existing input handlers, never set the provenance token or
     # manufacture an activity. Native input behavior has its own packaged gate.

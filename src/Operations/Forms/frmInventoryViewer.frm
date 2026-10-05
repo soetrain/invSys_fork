@@ -470,7 +470,7 @@ Private Sub mBtnActionPaths_Click()
 End Sub
 
 Private Sub ClosePathLibrary()
-    If Not mPathLibrary Is Nothing Then Unload mPathLibrary
+    If modOperationsFormLifetime.IsLoaded(mPathLibrary) Then Unload mPathLibrary
     Set mPathLibrary = Nothing
 End Sub
 

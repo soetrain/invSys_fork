@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-warehouse-purpose-02',[ValidateSet('RED','GREEN')][string]$Phase='RED')
+param([string]$DeployRoot='deploy/validation-warehouse-purpose-02',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$TraceReceivingRunCloseForTest)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Receiving replay validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -14,14 +14,15 @@ Write-Output ('Receiving replay controller: '+$root)
 try {
     # Reuse the accepted guide fixture's compiled, saved disposable package copies.
     $ErrorActionPreference='Continue'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckReceivingReplay -GuideDraftOnly -CheckGuideExpectation -CheckViewerPublishedRead -ViewerStartupPackageStateForTest SavedCopies -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 *> (Join-Path $root 'worker.log')
+    $extra=@();if($TraceReceivingRunCloseForTest){$extra+='-TraceReceivingRunCloseForTest'}
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckReceivingReplay -GuideDraftOnly -CheckGuideExpectation -CheckViewerPublishedRead -ViewerStartupPackageStateForTest SavedCopies -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
     $ErrorActionPreference='Stop'
 } finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $same=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);B0Accepted=$false;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{Phase=$Phase;CloseDiagnostic=[bool]$TraceReceivingRunCloseForTest;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);B0Accepted=$false;ReleaseAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'Replay test preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 10

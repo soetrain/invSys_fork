@@ -201,10 +201,12 @@ End Sub
 Public Sub CloseRunner()
     Dim closing As frmActionPathRun
     If mRunner Is Nothing Then Exit Sub
-    If Not mRunner.ReleaseRunner() Then Exit Sub
+    If modOperationsFormLifetime.IsLoaded(mRunner) Then
+        If Not mRunner.ReleaseRunner() Then Exit Sub
+    End If
     Set closing = mRunner: Set mRunner = Nothing
     mRunnerContext = "": mRunnerGuide = ""
-    Unload closing
+    If modOperationsFormLifetime.IsLoaded(closing) Then Unload closing
 End Sub
 
 Private Sub mRunHowTo_Click()
@@ -227,7 +229,7 @@ End Sub
 Public Sub CloseExecution()
     Dim closing As frmActionPathExecution
     Set closing = mExecution: Set mExecution = Nothing
-    If Not closing Is Nothing Then
+    If modOperationsFormLifetime.IsLoaded(closing) Then
         closing.ReleaseDraft
         Unload closing
     End If

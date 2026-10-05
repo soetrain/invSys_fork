@@ -221,3 +221,85 @@ Application audit23:54:23.853--00:27:03.641 UTC finds zero new Excel native fail
 These checks do not close the earlier full-chain native failure. Next, add focused
 permission/policy/nested-entry and exact-workbook replacement tests against this
 frozen candidate before further runtime changes; then run affected owner regressions.
+
+## Guard checks and shutdown investigation (2026-10-04 PDT)
+
+Unchanged candidate03 baseline: eleven added checks pass for creation-purpose
+refusals, Receiving-only guide use without author/Admin rights, nested Start/setup/
+Next rejection, lost permission, stopped recording and disabled capture. They retain
+the original72 passes. The recording-stop fixture must reopen the ordinary Viewer
+to refresh its controls; its earlier disabled-button failure was a harness error.
+
+Cleanup intermittently raises VBA error **-2147418105**, distinct from desktop
+Win32 error5. A disposable static-callback trace reaches83 passes, completes policy
+restoration, then catches the error while closing the captured workbook: Excel
+starts unloading forms, and `frmActionPaths.UserForm_QueryClose` does not return.
+That trace does not yet identify the stale reference. Ending the stalled VBA event permits
+cleanup but invalidates subsequent replacement assertions; **83/2 is diagnostic,
+not behavioral RED or acceptance**. Settings/package hashes are preserved and Excel
+closes. This diagnostic precedes the runtime correction below.
+
+The replacement check now retains a disposable host, following the existing
+Receiving lifecycle fixture. Controller`c18bf0a683154e2387fcd7ea6fffa195` repeats
+the same close-time VBA error after83 passes without callback tracing. The host
+does **not** prevent the failure: last-workbook closure is not its proven cause.
+Its assisted replacement assertions are invalidated too. Optional callback tracing
+must diagnose this same fixture; the exact-object guard remains unproved.
+
+Local receipts under `reports/runtime/receiving-replay-controller/`:
+
+- `39aded8b5cb540739f37719222edb725`:81/1, stale Stop-control fixture.
+- `21a54560cd3d467e960c864bab53a097`:83/1, cleanup modal; Debug inspection followed
+  by VBE7.DLL/c0000005 at00:49:23.854 UTC. Do not repeat Debug inspection; root
+  cause remains unproved. Recovery closes zero recovered workbooks without save.
+- `3dd944a327a74f4e9a2c963b5aa59ad7`:83/1, assisted End, then hash sharing error
+  before replacement dispatch. The fixture now uses its existing shared-read hash.
+- `717480285b1f469f8b8aa1228c556837`:83/2 diagnostic above,01:04:12.267--01:11:38.394
+  UTC; `assisted-dialog-facts.json`, `closure.json`, `native-audit.json`.
+  Worker:`slice4be-receiving-replay/e10f3da8085b42dfb20a7151c8dfec31/`; static
+  callback logs contain no user values. Audit after00:49:24 through01:12:56 UTC
+  finds no additional native Excel failures. Desktop cursor probe01:09:58.998 UTC
+  (18:09 PDT) succeeds; no desktop error5 was observed in these attempts.
+
+The finer trace (`b0ad236652004cbb8ec361fc614c7d26`, worker
+`d90b39b1d686429a9b47712851368453`) identifies the stale call: Excel unloads the
+published-guide child with CloseMode5; `frmActionPaths.ClosePublishedGuides` then
+invokes its disconnected `ReleaseReader`. No callback-entry marker is reached.
+This diagnosis is independent of the earlier Debug-associated native crash.
+
+Candidate04 checks exact loaded instances before child cleanup. Five cold compiles
+and static ratchets pass;296/299 existing components are unchanged, three intended
+Operations forms change and one helper is added. The packaged test now closes and
+reopens the workbook **without intervention**: **83 PASS/2 FAIL**, meaningful RED
+for run termination. Its runner disappears with partial steps preserved and no
+business change/owner dispatch, but the saved run remains nonterminal. Controller
+`167d3804ec87430980465b53068b0948`; worker
+`6c3aeece9028450da863a414c3ac21c6/{red.json,replacement-facts.json}`. Settings/package
+hashes are preserved and Excel closes normally. Static:`receiving-run-static-04/`;
+source/compile:`receiving-run-build-04/`. No prior GREEN check regresses.
+
+Candidate05 now routes the runner's non-button QueryClose through its existing
+stop/release boundary, deferring closure while an owner returns. Its packaged
+suite is **85 PASS/0 FAIL**, retaining all72 prior GREEN identities without
+duplicate check names. Captured-workbook closure leaves a terminal run, preserves
+partial steps and business bytes, and prevents later owner dispatch. No intervention
+is needed. Controller:`e75986fda6e44c0b8b9c4c432dbda1c6`; worker:
+`6e675d9269c44cc09a93ac12c4bfe8ab/{green.json,replacement-facts.json}`;
+`receiving-run-guards-verification.json` records preservation.
+
+Five cold compiles pass;295/299 existing compiled components are preserved, four
+intended Operations forms change and one helper is added. Static05 is307 components/
+6279 procedures/137389 lines (+1/+1/+29); dynamic calls9/45, duplicate groups190,
+all28 capped modules and all three schemas pass. Receipts:`receiving-run-build-05/`
+and `receiving-run-static-05/`.
+
+Candidate05's affected published-guide regression is **58 PASS/0 FAIL**:
+`execution-profile-guide-regression/b7f9db2c3b974135b4338dc1abd5148d/closure.json`,
+worker:`slice4be-viewer-published-read/144efa59e51d4bb0b7da32cf88aff6e1/green.json`.
+Both final controllers preserve settings/package hashes and close Excel normally;
+there is no assisted recovery. All396 repository PowerShell scripts parse.
+Native audit01:28:36--01:53:39 UTC finds zero new Excel failures; desktop cursor
+probe01:53:39.565 UTC (18:53 PDT) succeeds. The older full-chain native failure
+remains unresolved. Next protect active-owner closure and run affected Receiving/
+native regressions. Observations, visible proof and broader gates remain open;
+no B0/A/B/R1 acceptance or deployment.

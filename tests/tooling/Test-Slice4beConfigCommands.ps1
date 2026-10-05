@@ -149,6 +149,7 @@ param(
     [switch]$OwnerCommandCompletionOnly,
     [switch]$TraceBootstrapForTest,
     [switch]$TraceSettingsOpenForTest,
+    [switch]$TraceReceivingRunCloseForTest,
     [switch]$ShippingBeforeSharedFormsForTest,
     [switch]$PrepareShippingFixturesBeforeProbesForTest,
     [switch]$ShippingSubmissionOnly,
@@ -337,6 +338,9 @@ if($CompileEvaluationProbesForTest -and -not ($CheckAuthReadOnly -or $RecordingE
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
     throw 'Settings constructor tracing requires RED and the Settings checks; it is not acceptance GREEN.'
+}
+if($TraceReceivingRunCloseForTest -and ($Phase -ne 'RED' -or -not $CheckReceivingReplay)) {
+    throw 'Receiving close tracing requires RED and the replay checks; it is not acceptance GREEN.'
 }
 if($AdminSettingsCloseOnly) { $CheckAdminSettingsClose = $true }
 if($ViewerPublicationOnly) {
@@ -2003,6 +2007,7 @@ finally {
         }
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if($TraceReceivingRunCloseForTest){$reportName='diagnostic-receiving-close-'+$reportName}
     if($SettingsSafetyOnly){$reportName='diagnostic-settings-safety-'+$reportName}
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}
     if($CheckBoxingActivity){$reportName='boxing-activity-'+$reportName}

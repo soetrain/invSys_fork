@@ -93,5 +93,7 @@ function Test-ReceivingRun($Guide,$Original,$Staging,[string]$InventoryPath,$Fix
     Check 'ReceivingRun.DummyInputsRemainOutsideActivity' ((ConvertTo-Json -InputObject @($replayActions) -Depth 15 -Compress) -notmatch 'B0-REPLAY-REFERENCE|B0-REPLAY-LOCATION|B0-REPLAY-LOT')
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRunControls.ps1')
     Test-ReceivingRunControls
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRunGuards.ps1')
+    Test-ReceivingRunGuards
     $Scope.Value=[pscustomobject]@{ReplayExecuted=$dispatched;FreshReplayProof=$proof;B0Accepted=$false}
 }

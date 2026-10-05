@@ -280,8 +280,11 @@ End Sub
 
 Public Sub CloseGuideActionPicker()
     If mGuideActionPicker Is Nothing Then Exit Sub
-    mGuideActionPicker.ReleaseSelection
-    Unload mGuideActionPicker: Set mGuideActionPicker = Nothing
+    If modOperationsFormLifetime.IsLoaded(mGuideActionPicker) Then
+        mGuideActionPicker.ReleaseSelection
+        Unload mGuideActionPicker
+    End If
+    Set mGuideActionPicker = Nothing
 End Sub
 
 Private Sub mPublishedGuides_Click()
@@ -315,8 +318,11 @@ End Function
 
 Public Sub ClosePublishedGuides()
     If mGuideLibrary Is Nothing Then Exit Sub
-    mGuideLibrary.ReleaseReader
-    Unload mGuideLibrary: Set mGuideLibrary = Nothing
+    If modOperationsFormLifetime.IsLoaded(mGuideLibrary) Then
+        mGuideLibrary.ReleaseReader
+        Unload mGuideLibrary
+    End If
+    Set mGuideLibrary = Nothing
 End Sub
 
 Private Sub mViewActionPath_Click()
@@ -347,8 +353,11 @@ End Function
 
 Public Sub CloseActionPathView()
     If mView Is Nothing Then Exit Sub
-    mView.ReleaseView
-    Unload mView: Set mView = Nothing
+    If modOperationsFormLifetime.IsLoaded(mView) Then
+        mView.ReleaseView
+        Unload mView
+    End If
+    Set mView = Nothing
 End Sub
 
 Private Sub UserForm_Activate()

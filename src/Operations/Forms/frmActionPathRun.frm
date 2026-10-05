@@ -184,6 +184,9 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
         Cancel = True
         If Not mOwner Is Nothing Then mOwner.CloseRunner
     Else
+        If Not mClosing Then
+            If Not ReleaseRunner() Then Cancel = True: Exit Sub
+        End If
         Set mOwner = Nothing
     End If
 End Sub
