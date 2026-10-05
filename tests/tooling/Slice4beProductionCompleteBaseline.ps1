@@ -244,7 +244,7 @@ End Function
     Install-ProductionCompleteSubmissionProbe
 }
 
-function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost) {
+function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost,[switch]$Activity) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Owner([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('modProductionReusableRun.'+$Method) $Values}
@@ -275,6 +275,14 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
         if(-not [bool](Probe 'ReadPrepare' @($canary))){throw 'Real released definitions unavailable; not product RED.'}
         [void](Probe 'RunLocalRememberFixture')
         Check 'CompleteBaseline.RealSeedAndReleasedDefinitions' $true
+        if($Activity){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteActivity.ps1')
+            Test-ProductionCompleteActivity $Fixture $Other $book $decoy $canary
+            [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
+            Check 'CompleteActivity.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
+            Check 'CompleteActivity.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
+            return
+        }
         if($PreparationDiagnostic -and $PreparationPrelude -notin @('Initial','PriorSequence')){
             if($PreparationPrelude -eq 'Submission'){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary}
             if($PreparationPrelude -eq 'OutputReturn'){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary -AfterOutput}
