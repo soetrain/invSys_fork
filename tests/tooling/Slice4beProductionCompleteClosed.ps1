@@ -7,7 +7,7 @@ function Install-ProductionCompleteClosedProbe {
     Install-ProductionCheckInClosedYieldProbe
 }
 
-function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary,[switch]$ResourceDiagnostic,[switch]$VisibleHost){
+function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary,[switch]$ResourceDiagnostic,[switch]$VisibleHost,[ValidateSet('All','CompletePending')][string]$BoundaryFilter='All'){
     # Probe, Owner and Hash are supplied by the completion baseline scope.
     # Read-only counters locate native resource exhaustion without querying forms.
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
@@ -54,7 +54,13 @@ public static class CompleteClosureResources {
     }
     $book=$null
     try{
-        foreach($boundary in @('Entry','CompletePending','AvailableQuantity','EntityKind')){
+        # Retain the legacy no-observation closure contract with collection off.
+        # Enabled recording is protected by the separate CompleteActivity gate.
+        SelectTarget $Fixture
+        if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($false))){throw 'Disabled closure recording policy unavailable; not product RED.'}
+        $boundaries=@('Entry','CompletePending','AvailableQuantity','EntityKind')
+        if($BoundaryFilter -ne 'All'){$boundaries=@($BoundaryFilter)}
+        foreach($boundary in $boundaries){
             if($VisibleHost){
                 $Decoy.Activate();$excel.Visible=$true
                 Check ('CompleteDiagnostic.VisibleHost.'+$boundary) ([bool]$excel.Visible)

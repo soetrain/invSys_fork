@@ -19,13 +19,14 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
     End If
     Set owner.RunActionContinuation = action
     owner.CompleteProductionRun action
-    report = owner.RunAllocationStatus()
+    ' Native workbook closure may already have unloaded this exact form.
+    If modOperationsFormLifetime.IsLoaded(owner) Then report = owner.RunAllocationStatus()
 Done:
-    Set owner.RunActionContinuation = Nothing
+    If modOperationsFormLifetime.IsLoaded(owner) Then Set owner.RunActionContinuation = Nothing
     loading = priorLoading
     If Not action Is Nothing Then action.Finish report
     busy = priorBusy
-    If report <> "" Then owner.ShowStatus report
+    If report <> "" And modOperationsFormLifetime.IsLoaded(owner) Then owner.ShowStatus report
     If number <> 0 Then
         On Error GoTo 0
         Err.Raise number, source, description, helpFile, helpContext

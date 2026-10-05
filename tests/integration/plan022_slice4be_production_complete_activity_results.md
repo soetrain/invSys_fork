@@ -5,10 +5,10 @@
 Architecture v4.11 D18's Complete Run discovered-control refinement defines
 catalog28 `PRODUCTION_RUN_COMPLETE`, preserving catalogs1-27 and existing owner
 behavior. CONFIRMED acknowledges this selected command; exact Inventory source
-application remains an independent evaluator requirement. Plan022 and Controls1.461
+application remains an independent evaluator requirement. Plan022 and Controls1.462
 carry the same acceptance scope. No new architecture decision is implied.
 
-Current candidate `validation-complete-activity-01`: **RED120/60 -> GREEN180/180**.
+Observation implementation `validation-complete-activity-01`: **RED120/60 -> GREEN180/180**.
 All prior ordered checks remain. Both actual handler branches, exact attempted/
 acknowledged source rules, catalog1-27 preservation, denial/refusal, suppression,
 disabled recording and custom-column preservation pass. The worksheet completion
@@ -101,11 +101,76 @@ That initial RED left runtime source/packages unchanged. Retain completion318/sm
 `complete-output-return-static-02/` from the completion integration record.
 The four changed/new test scripts parse; generated runtime evidence stays local.
 
+## Native closure correction, 2026-10-05
+
+The earlier CompletePending stall is diagnosed: native workbook closure unloads
+the captured form; the new wrapper then reads its status and repeatedly fails
+while detaching its continuation in cleanup. Fixed-label instrumentation proves
+the repeated Failed -> Done -> disconnected-form access. The frozen output-return
+package passes the same narrowed native case59/59 (controller
+`production-run-local-controller/2ee98e3f6ef945e9a9f0d2c8bb1282a2`, worker
+`slice4be-production-complete-preparation/5c0148e1a7ef4d088e47c065cbb38ad6`).
+
+A disposable diagnostic escapes only the second cleanup exception into the real
+handler's failure assertion; it does not replace owner results. On unchanged
+activity01, focused **RED58/1** identifies NativeActionOpportunityProtected,
+with all other ordered checks passing. Controller
+`production-run-local-controller/9782b37af9564b24b97e1db731e5f7fa`, worker
+`slice4be-production-complete-preparation/2592e37d536945498f1264b1f80dd26f/diagnostic-preparation-red.json`,
+11:09:33.697--11:11:54.017 UTC. The legacy no-observation fixture now explicitly
+disables collection; its former implicit expectation predates approved catalog28.
+The separate enabled-recording gate remains required and unchanged.
+
+`validation-complete-activity-02` changes only modProductionCompleteActions:
+use the existing exact loaded-form check before status read, continuation detach
+and final status display. Finish the observation and restore guards as before.
+No new contract, permission, retry, rollback or form creation is introduced.
+Focused **GREEN59/59**, same ordered assertions: controller
+`production-run-local-controller/9d84ababed8b47798671b9b3ae993444`, worker
+`slice4be-production-complete-preparation/79a0b7110d424c0e93061c0261c4be6c/diagnostic-preparation-green.json`,
+11:13:03.404--11:15:27.252 UTC. Both focused runs preserve settings/packages,
+close normally and pass delayed zero Excel application-error audit. Native close
+returns without further reads, reinitialization or business/workbook changes.
+
+Cold startup/five compiles pass: `complete-activity-build-02/`,
+11:12:12.801--11:12:53.690 UTC. Of303 packaged components,302 are unchanged;
+all forms are identical, retaining applicable layout/guide evidence.
+Static `complete-activity-static-02/` passes three schemas,410 script parses and
+28 non-growing oversized caps:310 components/6300 procedures/137880 lines,
+9 literal/45 unresolved dynamic calls and190 duplicate groups. The correction
+adds one comment line; no new components/procedures or ratchet exceptions.
+
+Earlier trace attempts remain local: controller7cd42e05fe5e44809edae9cefa6479f4
+required an assisted stop after proving the loop; controllerd7cf316efc844c5ca315bbe5e8e42fae
+returned57/2 before the obsolete recording-policy expectation was corrected.
+Neither is the final focused gate. No error5 occurred; user changes are preserved.
+Observation regression on activity02 is **180/180**, retaining every prior check
+in order: controller `production-run-local-controller/3993adb8a14f413faefe375ebed606d0`,
+worker `slice4be-production-complete-activity/1ceb602bbcc74a2e96808f5b15d19268/green.json`,
+11:15:38.165--11:19:28.063 UTC. Five compiles, normal closure, preservation and
+delayed zero Excel errors pass. Both fresh completion captures are reviewed;
+long text still clips. These ordinary completion captures do not establish the
+separate A2 Viewer/guidance acceptance.
+
+Full completion is **318/318** on activity02, retaining every prior ordered check:
+controller `production-run-local-controller/b3e36050842941759bc2ffe90012e490`, worker
+`slice4be-production-complete-baseline/8d1b49d0ccb141aead0ae2da99d86ff0/green.json`,
+11:20:01.699--11:36:52.751 UTC. No diagnostic loop escape is installed in this
+full gate. All four native closures pass; the visible-host setup transition again
+recovers unassisted. Settings/packages and saved workbook bytes are preserved.
+This supersedes the incomplete activity01 regression for the corrected candidate,
+without discarding that failure evidence or claiming broader release acceptance.
+The ordered audit confirms zero delayed Excel application errors. Smoke **86/86**
+also retains every prior ordered check and both unassisted exits:
+`complete-activity02-regression/smoke-32ec5ce4a4c94fa0b809792a57c32720`,
+11:36:59.934--11:37:24.104 UTC. Settings, packages and tracked smoke reports are
+preserved; delayed Excel-error audit is zero. No candidate promotion or A1/A/R1
+acceptance is claimed. Guide58/layout evidence is reused because their packaged
+components and all forms are unchanged; no unrelated broad gate was repeated.
+
 ## Next test-first work
 
-Isolate native CompletePending closure with a trace around the new completion
-wrapper's owner return, status read and cleanup; compare the unchanged frozen
-candidate before correcting runtime behavior. Then expand actual partial-submission, optional
+Retain the native closure correction and full completion regression. Expand actual partial-submission, optional
 store/policy fault and publication/guide-view cases. Include the worksheet's
 PROD_POST refusal when the form's ADMIN_MAINT gate passes; preserve the distinct
 existing checks and verify outcome classification before any correction. The older live-role

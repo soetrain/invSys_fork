@@ -38,6 +38,7 @@ param(
     [switch]$RunCompleteActivityOnly,
     [switch]$RunCompleteBaselineOnly,
     [switch]$RunCompletePreparationDiagnostic,
+    [ValidateSet('All','CompletePending')][string]$RunCompleteClosedBoundary='All',
     [switch]$RunCompleteVisibleHostForTest,
     [switch]$RunCompleteSavedDecoyForTest,
     [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
@@ -182,6 +183,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
 if($RunCompletePreparationDiagnostic -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
+if($RunCompleteClosedBoundary -ne 'All' -and -not $RunCompletePreparationDiagnostic){throw 'A narrowed closure boundary requires explicit diagnostic mode.'}
 if($RunCompletePreparationPrelude -ne 'None' -and -not $RunCompletePreparationDiagnostic){throw 'Preparation prelude requires explicit diagnostic mode.'}
 if($RunCompleteVisibleHostForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Visible-host comparison requires the isolated Complete Run fixture.'}
 if($RunCompleteSavedDecoyForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
@@ -1338,6 +1340,10 @@ End Function
                 if($RunCompleteBaselineOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteBaseline.ps1')
                     Install-ProductionCompleteBaselineProbe
+                    if($RunCompleteClosedBoundary -ne 'All'){
+                        . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteClosureTrace.ps1')
+                        Install-ProductionCompleteClosureTrace
+                    }
                     if($RunCompleteActivityOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheet.ps1')
                         Install-ProductionCompleteWorksheetProbe
@@ -1859,7 +1865,7 @@ End Function
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
-            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly}
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -ClosedBoundary $RunCompleteClosedBoundary}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}

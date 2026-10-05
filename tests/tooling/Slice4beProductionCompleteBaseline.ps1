@@ -244,7 +244,7 @@ End Function
     Install-ProductionCompleteSubmissionProbe
 }
 
-function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost,[switch]$Activity) {
+function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy,[switch]$VisibleHost,[switch]$Activity,[string]$ClosedBoundary='All') {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Owner([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('modProductionReusableRun.'+$Method) $Values}
@@ -290,7 +290,7 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
             if($PreparationPrelude -eq 'Interruptions'){Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary}
             [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
             Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
-            Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic -VisibleHost:$VisibleHost
+            Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic -VisibleHost:$VisibleHost -BoundaryFilter $ClosedBoundary
             Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
             return
         }
@@ -359,7 +359,7 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
         }
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
-        Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic:$PreparationDiagnostic -VisibleHost:$VisibleHost
+        Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic:$PreparationDiagnostic -VisibleHost:$VisibleHost -BoundaryFilter $ClosedBoundary
         Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
     }finally{
         [void](Probe 'CloseDesigner')
