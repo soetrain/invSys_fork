@@ -36,6 +36,9 @@ param(
     [switch]$RunLocalClosedDiagnostic,
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteBaselineOnly,
+    [switch]$RunCompletePreparationDiagnostic,
+    [switch]$RunCompleteSavedDecoyForTest,
+    [ValidateSet('None','Submission','Entry','Interruptions','Initial')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
     [switch]$RunCheckInBaselineOnly,
@@ -176,6 +179,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
+if($RunCompletePreparationDiagnostic -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
+if($RunCompletePreparationPrelude -ne 'None' -and -not $RunCompletePreparationDiagnostic){throw 'Preparation prelude requires explicit diagnostic mode.'}
+if($RunCompleteSavedDecoyForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($TraceGuideResourcesForTest){
     if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
@@ -533,6 +539,7 @@ if($CheckProductionDesignerActivity){
     if($CheckProductionRunLocal){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local/'+[guid]::NewGuid().ToString('N'))}
     if($RunLocalClosedDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-run-local-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompleteBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-baseline/'+[guid]::NewGuid().ToString('N'))}
+    if($RunCompletePreparationDiagnostic){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-preparation/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextBaselineOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-baseline/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
     if($RunCheckInActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-check-in-activity/'+[guid]::NewGuid().ToString('N'))}
@@ -1326,6 +1333,10 @@ End Function
                 if($RunCompleteBaselineOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteBaseline.ps1')
                     Install-ProductionCompleteBaselineProbe
+                    if($RunCompletePreparationDiagnostic){
+                        . (Join-Path $PSScriptRoot 'Slice4beProductionCompletePreparation.ps1')
+                        Install-ProductionCompletePreparationTrace
+                    }
                     if($RunNextBaselineOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionNextBaseline.ps1')
                         Install-ProductionNextBaselineProbe
@@ -1839,7 +1850,7 @@ End Function
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
-            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b}
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}
@@ -2010,6 +2021,7 @@ finally {
         }
     }
     $reportName=$Phase.ToLowerInvariant()+'.json'
+    if($RunCompletePreparationDiagnostic){$reportName='diagnostic-preparation-'+$reportName}
     if($TraceReceivingRunCloseForTest){$reportName='diagnostic-receiving-close-'+$reportName}
     if($SettingsSafetyOnly){$reportName='diagnostic-settings-safety-'+$reportName}
     if($CheckShippingRecording){$reportName='shipping-recording-'+$reportName}

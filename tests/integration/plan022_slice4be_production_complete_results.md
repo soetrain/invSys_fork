@@ -1,5 +1,80 @@
 # Slice 4be Production Complete Run
 
+## Audit inspection correction, 2026-10-05 UTC
+
+The new audit inspector unconditionally reopened/closed an authority workbook
+already owned by Core. Focused tooling RED is52/2: the workbook-lifetime assertion
+fails and the harness deliberately stops; byte preservation passes. This is a
+test defect, not another runtime D13 RED. The inspector now borrows an existing
+workbook and closes only its own transient read-only open. Both interruption
+cases preserve workbook lifetime and bytes; all122 previous diagnostic checks
+remain in order in126/0 GREEN. Runtime packages are unchanged.
+
+| Diagnostic / controller | Worker under `slice4be-production-complete-preparation/` | Result / GDI peak |
+|---|---|---|
+| Cold closure: `a33fade33b90436e9a3def0220fc44be` | `f902b0cdd4e0445588a6e5dae214afc0` | 99/0;842 |
+| After submission: `ca67a1e680b14e4d83489d191906c08f` | `4d22256e8773401286211168e1fdd885` | 122/0;901 |
+| Inspection RED: `84412b0b0820450fb9a5269c59b11c4e` | `9b56975b48a6468ca46423d07945956c` | 52/2;stopped before closure |
+| Corrected inspection: `6d871876499f48a68698e9d4318939b1` | `e35c0c26b5dd464690078cb741398c99` | 126/0;935 |
+| Entry guards: `83fb61c085f54a0e9a7b5e72768d0a78` | `35ba899c1fc04ac1bee165ef697759f1` | 155/0;852 |
+| Read/yield interruptions: `be84c558c2bd4d77b037c9e064279936` | `ebff4992600b4ecabefd917a4cdc338d` | 160/0;941 |
+| Initial completion/context: `0e10b6ef1cdf4c84b1820b37e557b6f9` | `3565b9789af54753965fa80648697f15` | 143/0;1036 |
+
+All seven controllers preserve settings/packages and close without intervention.
+The diagnostic-only route skips unrelated completion scenarios and cannot accept
+the full gate. Its initial inner markers were incorrectly ordered; that trace is
+excluded from phase attribution. Statement-bracket replacement/readback corrects
+later traces. Outer native counts remain valid. Cold, submission, entry and
+read/yield-interruption routes do not reproduce the full-workload exhaustion;
+its cause is not yet proved. The corrected full gate still fails: controller
+`bfe9cca945f44dfeab13f638bd7d6d61`, worker
+`slice4be-production-complete-baseline/8e37abb77edc41f28c2fd9bd275b77c6/green.json`,
+06:04:20.394--06:17:34.399 UTC, 257 PASS/1 harness FAIL. All27 post-consume/audit
+checks pass; 30 prior checks remain unreached. GDI rises from723 before the first
+closure case to peak10001. Final target selection reports status7. Excel exits
+naturally; the completed worker requires termination before settings/package
+restoration. No memory-dialog click is posted. This assisted closure is not
+acceptance, and the inspector fix does not resolve native resource exhaustion.
+One unchanged template is copied/hash-verified from user-policy02 into candidate01
+while Excel is closed; receipt: `complete-submission-build-01/template-copy.json`.
+
+The initial completion/multi-Process/context group also passes in isolation,
+retaining nine/ten native Excel windows during closure. Its read-only trace adds
+native XLMAIN and saved/visible workbook counts without logging names or
+contents. Diagnostic-only resource bounds stop at3000 GDI objects or80 XLMAIN
+windows and retain failure/cleanup; those bounds do not accept any product gate.
+Prior Excel-only saved-workbook controls are in
+`plan022_slice4be_gui_resource_results.md`; similarity is a hypothesis to test,
+not proof of this failure's cause. The full comparison now offers an explicit
+saved/reopened decoy fixture with its byte-preservation check; every existing
+handler/assertion remains, and the unsaved-decoy failures are retained.
+All408 PowerShell scripts parse.
+
+Saved-decoy full comparison: controller `98320a80e75a4282b8e841178d412b90`, worker
+`slice4be-production-complete-baseline/c8d531d3a07749b48dd50afd2614c4f4/green.json`,
+06:35:09.891--06:48:22.033 UTC:259 PASS/1 harness FAIL, GDI peak10001. The two
+saved-decoy checks pass, but the same30 prior checks remain unreached. XLMAIN
+stays between nine and eleven during closure; at least one saved visible workbook remains.
+This control does not prevent growth and does not match the older retained-window
+pattern. Excel exits naturally; the completed worker needs termination. No memory
+dialog click or later controller-collection command runs. Settings/packages restore;
+exit-1 and assisted cleanup do not accept the gate.
+
+Bulk Value2 reads also fail to prevent growth. Controller
+`fc7be40567ba4735848fee291c9aaafb`, worker `55f084bddf944c7d846eea88557c4071`,
+uses the original unsaved decoy. Its partial log records257 PASS/1 harness FAIL;
+GDI peaks at10001 with bounded XLMAIN counts. The exact audit assertions pass.
+Excel exits naturally, but the worker stalls before final JSON and is terminated
+at07:00:53.595 UTC. The controller retains the source/pins and explicitly incomplete
+partial-log receipt; no synthetic green.json is created. This speculative reader
+change is reverted. The parent closes at07:02:14.263 UTC with exit-1 and verified
+settings/package restoration. No runtime, workbook authority, quota or contract
+changes. The07:02:29.916 UTC desktop probe succeeds; no error5 is observed.
+
+Next: run the prior combined completion sequence without the newly added
+post-consume cases, using the bounded diagnostic trace. The passing isolated
+groups do not establish that combined sequence or accept the current full gate.
+
 ## Post-consume continuation, 2026-10-05 UTC — under validation
 
 Existing D18 captured-context/permission continuation applies after consumption

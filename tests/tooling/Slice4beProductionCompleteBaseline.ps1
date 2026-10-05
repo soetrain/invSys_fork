@@ -244,12 +244,12 @@ End Function
     Install-ProductionCompleteSubmissionProbe
 }
 
-function Test-ProductionCompleteBaseline($Fixture,$Other) {
+function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDiagnostic,[string]$PreparationPrelude='None',[switch]$SavedDecoy) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Owner([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('modProductionReusableRun.'+$Method) $Values}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
-    $canary='COMPLETE'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null
+    $canary='COMPLETE'+[guid]::NewGuid().ToString('N');$book=$null;$decoy=$null;$decoyPin=''
     SelectTarget $Fixture
     $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($Fixture.Warehouse,'S1','config-admin'))
     if(-not $seed.StartsWith('OK|')){throw 'Admin seed prerequisite unavailable; not product RED.'}
@@ -261,11 +261,30 @@ function Test-ProductionCompleteBaseline($Fixture,$Other) {
         $path=Join-Path $runRoot 'complete-baseline.xlsb';$book.SaveAs($path,50);$book.Close($false)
         $bookPin=Hash $path;$book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();$decoySheet=$decoy.Worksheets.Item(1)
-        $decoySheet.Cells.Item(1,1).Value2=$canary;$decoy.Activate()
+        $decoySheet.Cells.Item(1,1).Value2=$canary
+        if($SavedDecoy){
+            $decoyPath=Join-Path $runRoot 'complete-decoy.xlsb'
+            if(Test-Path -LiteralPath $decoyPath){throw 'Preserve existing decoy fixture.'}
+            $decoy.SaveAs($decoyPath,50);$decoy.Close($false)
+            $decoyPin=Hash $decoyPath;$decoy=$excel.Workbooks.Open($decoyPath,0,$false)
+            $decoySheet=$decoy.Worksheets.Item(1)
+            Check 'CompleteBaseline.SavedDecoyReopened' ($decoy.Saved -and $decoy.FullName -ieq $decoyPath -and $decoySheet.Cells.Item(1,1).Value2 -ceq $canary)
+        }
+        $decoy.Activate()
         [void](Probe 'OpenDesigner' @($book.Name))
         if(-not [bool](Probe 'ReadPrepare' @($canary))){throw 'Real released definitions unavailable; not product RED.'}
         [void](Probe 'RunLocalRememberFixture')
         Check 'CompleteBaseline.RealSeedAndReleasedDefinitions' $true
+        if($PreparationDiagnostic -and $PreparationPrelude -ne 'Initial'){
+            if($PreparationPrelude -eq 'Submission'){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary}
+            if($PreparationPrelude -eq 'Entry'){Test-ProductionCompleteEntry $Fixture $book $decoy $canary}
+            if($PreparationPrelude -eq 'Interruptions'){Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary}
+            [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
+            Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
+            Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic
+            Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
+            return
+        }
         foreach($selected in @($true,$false)){
             if(-not [bool](Probe 'CompleteBaselinePrepare' @($selected))){throw 'Actual Check In prerequisite unavailable; not product RED.'}
             $label='CompleteBaseline.'+$(if($selected){'Selected'}else{'NoProcess'})
@@ -321,16 +340,19 @@ function Test-ProductionCompleteBaseline($Fixture,$Other) {
             Check ($label+'.CapturedBookCustomValueAndFormula') ($sheet.Cells.Item(2,1).Value2 -ceq $canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
             Check ($label+'.DecoyPreserved') ($decoySheet.Cells.Item(1,1).Value2 -ceq $canary -and $decoy.Worksheets.Count -eq 1)
         }
-        Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary
-        Test-ProductionCompleteEntry $Fixture $book $decoy $canary
-        Test-ProductionCompleteSubmission $Fixture $book $decoy $canary
+        if(-not $PreparationDiagnostic){
+            Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary
+            Test-ProductionCompleteEntry $Fixture $book $decoy $canary
+            Test-ProductionCompleteSubmission $Fixture $book $decoy $canary
+        }
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)
-        Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary
+        Test-ProductionCompleteClosed $Fixture $Other $path $decoy $canary -ResourceDiagnostic:$PreparationDiagnostic
         Check 'CompleteBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
     }finally{
         [void](Probe 'CloseDesigner')
         if($null -ne $book){$book.Close($false)}
         if($null -ne $decoy){$decoy.Close($false)}
+        if($decoyPin -ne ''){Check 'CompleteBaseline.SavedDecoyBytesPreserved' ((Hash $decoyPath) -ceq $decoyPin)}
     }
 }

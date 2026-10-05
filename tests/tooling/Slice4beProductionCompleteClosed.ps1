@@ -7,9 +7,10 @@ function Install-ProductionCompleteClosedProbe {
     Install-ProductionCheckInClosedYieldProbe
 }
 
-function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary){
+function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary,[switch]$ResourceDiagnostic){
     # Probe, Owner and Hash are supplied by the completion baseline scope.
     # Read-only counters locate native resource exhaustion without querying forms.
+    . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -26,7 +27,29 @@ public static class CompleteClosureResources {
         $handle=[CompleteClosureResources]::OpenProcess(1024,$false,[int]$processId)
         if($handle -eq [IntPtr]::Zero){throw 'Closure resource process unavailable.'}
         try{
-            [pscustomobject]@{Utc=[DateTime]::UtcNow.ToString('o');Boundary=$boundary;Stage=$Stage;Gdi=[CompleteClosureResources]::GetGuiResources($handle,0);GdiPeak=[CompleteClosureResources]::GetGuiResources($handle,2);User=[CompleteClosureResources]::GetGuiResources($handle,1)}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'complete-closure-resources.jsonl')
+            $savedHosts=0;$visibleSavedHosts=0
+            foreach($openBook in $excel.Workbooks){
+                if(-not $openBook.IsAddin -and $openBook.Path -ne ''){
+                    $savedHosts++
+                    if(@($openBook.Windows|Where-Object Visible).Count){$visibleSavedHosts++}
+                }
+            }
+            $sample=[pscustomobject]@{
+                Utc=[DateTime]::UtcNow.ToString('o');Boundary=$boundary;Stage=$Stage
+                Gdi=[CompleteClosureResources]::GetGuiResources($handle,0)
+                GdiPeak=[CompleteClosureResources]::GetGuiResources($handle,2)
+                User=[CompleteClosureResources]::GetGuiResources($handle,1)
+                XLMAIN=[InvSysGuideResources]::ExcelWindowCount($processId)
+                SavedHosts=$savedHosts;VisibleSavedHosts=$visibleSavedHosts
+                Visible=$excel.Visible;ScreenUpdating=$excel.ScreenUpdating
+                EnableEvents=$excel.EnableEvents;DisplayAlerts=$excel.DisplayAlerts
+                Calculation=$excel.Calculation;CutCopyMode=$excel.CutCopyMode
+            }
+            $sample|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'complete-closure-resources.jsonl')
+            # Diagnostic bound only; retain the failed trace and ordinary cleanup.
+            if($ResourceDiagnostic -and ($sample.Gdi -ge 3000 -or $sample.XLMAIN -ge 80)){
+                throw 'Diagnostic resource bound reached; not product acceptance.'
+            }
         }finally{[void][CompleteClosureResources]::CloseHandle($handle)}
     }
     $book=$null

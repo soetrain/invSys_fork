@@ -95,13 +95,23 @@ function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary
             }
             Check ($label+'.ExactInputsRemainConsumedOnce') ([bool](Owner 'CompleteBaselineBalancesForTest' @($true)))
             Check ($label+'.NoCompletedOutputOrSuccessState') ([bool](Owner 'CompleteSubmissionOutputsAbsentForTest'))
-            $authority=$excel.Workbooks.Open((Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')),0,$true)
+            $authorityPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
+            $beforeOpen=@($excel.Workbooks|Where-Object {[string]::Equals($_.FullName,$authorityPath,[StringComparison]::OrdinalIgnoreCase)})
+            if($beforeOpen.Count -gt 1){throw 'Duplicate authority workbook during inspection.'}
+            $authorityHash=Hash $authorityPath
+            $openedForAudit=($beforeOpen.Count -eq 0)
+            if($openedForAudit){$authority=$excel.Workbooks.Open($authorityPath,0,$true)}else{$authority=$beforeOpen[0]}
             try {
                 $applied=Table $authority 'tblAppliedEvents';$audit=Table $authority 'tblInventoryLog'
                 $appliedCount=@($applied.ListRows|Where-Object {$_.Range.Cells.Item(1,$applied.ListColumns.Item('EventID').Index).Value2 -ceq $eventId}).Count
                 $auditCount=@($audit.ListRows|Where-Object {$_.Range.Cells.Item(1,$audit.ListColumns.Item('EventID').Index).Value2 -ceq $eventId -and $_.Range.Cells.Item(1,$audit.ListColumns.Item('System_Key').Index).Value2 -ceq $sourceSelection[0] -and $_.Range.Cells.Item(1,$audit.ListColumns.Item('QtyDelta').Index).Value2 -eq (-[double]$sourceSelection[1])}).Count
                 Check ($label+'.ExactConsumeAppliedAndAudited') ($appliedCount -eq 1 -and $auditCount -eq 1)
-            } finally {$authority.Close($false)}
+            } finally {if($openedForAudit){$authority.Close($false)}}
+            $afterOpen=@($excel.Workbooks|Where-Object {[string]::Equals($_.FullName,$authorityPath,[StringComparison]::OrdinalIgnoreCase)})
+            $lifetime=($beforeOpen.Count -eq $afterOpen.Count)
+            Check ($label+'.AuditWorkbookLifetimePreserved') $lifetime
+            Check ($label+'.AuditWorkbookBytesPreserved') ((Hash $authorityPath) -ceq $authorityHash)
+            if(-not $lifetime){throw 'Audit inspection changed the authority workbook lifetime; harness failure, not product RED.'}
             Check ($label+'.CustomValueAndFormulaPreserved') ($Book.Worksheets.Item(1).Cells.Item(2,1).Value2 -ceq $Canary -and $Book.Worksheets.Item(1).Cells.Item(2,2).Formula -ceq '=1+2')
             Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
         }
