@@ -1,5 +1,6 @@
 # Actual Print Recall handler; missing output naturally refuses before print preview.
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintRebuild.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintInventory.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $module=$project.VBComponents.Item('mProduction').CodeModule
@@ -11,6 +12,7 @@ function Install-ProductionPrintBaselineProbe {
     if($anchor.Count -ne 1){throw 'Print report read anchor changed; not product RED.'}
     $module.InsertLines($anchor[0],'    TestProductionDesigner.PrintSheetHit wsProd')
     Install-ProductionPrintRebuildProbe $module
+    Install-ProductionPrintInventoryProbe $module
     $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
 Public Function PrintActForTest() As Boolean
     On Error GoTo Failed
@@ -111,6 +113,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
         }
         Test-ProductionPrintRefusalPreservation $Fixture $book $sheet
         Test-ProductionPrintRebuild $Fixture $book $sheet
+        Test-ProductionPrintInventory $Fixture $book $sheet $decoy
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

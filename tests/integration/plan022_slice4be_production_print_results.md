@@ -1,5 +1,65 @@
 # Slice 4be-A: Production Print Recall
 
+## Captured inventory-location lookup, 2026-10-05
+
+The legacy inventory-sheet resolver could read another open workbook when the
+captured workbook lacked InventoryManagement, even if its supported Inventory
+Management alias existed. Actual Print Recall RED211/6 proves foreign reads and
+foreign locations at both preview and diagnostic boundaries in those two cases.
+Captured-table and missing-table cases pass. All183 prior checks remain ordered.
+The report builder now calls GetInvSysTableFromWorkbook(wsProd.Parent), applying
+existing D18 binding. Missing local lookup retains the existing blank location.
+This changes one typed call; it does not change report schema or permissions.
+
+Run tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly with
+Phase RED / deploy/validation-print-rebuild-02, then Phase GREEN /
+deploy/validation-print-inventory-01. The fixture uses an Admin Seed-created exact
+System_Key in workbook-local projections. It compares source rows, both projections,
+warehouse-file hashes and saved operator bytes; no new canonical inventory is
+invented. The native-preview seam remains explicit and does not prove printing.
+
+Ignored receipts below are relative to reports/runtime/:
+
+- RED: production-run-local-controller/b22c6ae1a2e54817a17d2b33e38e58f3;
+  slice4be-production-print-baseline/f52dc1ecb22b46b8b6f346ebc7681810/red.json.
+  21:08:04-21:11:17 UTC:211 PASS/6 FAIL, five instrumented compiles, restoration,
+  package preservation, normal closure and delayed zero Excel errors.
+- Build: print-inventory-build-01/verification.json,21:11:51-21:12:30 UTC.
+  Five cold compiles,304 components/303 unchanged; only mProduction changes.
+  Prior package hashes/settings are preserved; delayed zero Excel errors.
+- GREEN: production-run-local-controller/d8aac0c32e5646caa1dce55744b7f3cb;
+  slice4be-production-print-baseline/1f34752c523d49b88a678477657b3f3a/green.json.
+  21:13:07-21:16:16 UTC:217/217, exact RED check order and all183 prior checks,
+  five instrumented compiles, normal closure/restoration and delayed zero Excel
+  errors. Reviewed alias/missing-sheet form captures retain the existing status;
+  they are not native preview or printing evidence.
+- Static: print-inventory-static-01/ratchet-verification.json: unchanged311
+  components/6304 procedures/137970 lines,9 literal/45 unresolved dynamic calls,
+  190 duplicate candidates;28 non-growing oversized caps,3 schemas and422
+  PowerShell parses pass. No runtime code growth. Forms are identical, so the
+  prior binding01 layout18/five native checks remain applicable.
+- Smoke: print-inventory01-regression/smoke-220f73a30f624ecfb266d1602eb860ee/
+  verification.json,21:16:50-21:17:17 UTC:86 exact prior checks, both unassisted
+  shutdown stages, restoration and delayed zero Excel errors.
+- Full chain: print-inventory01-regression/chain-4ecad966e0494d3492dc82d1aa2cc7bb/
+  verification.json,21:17:40-21:23:37 UTC:chain32/live-role48/warehouse15 pass in
+  exact prior order. Normal cleanup, settings/package/tracked-report preservation
+  and delayed zero Excel errors pass. Candidate remains unpromoted; no error5.
+
+Print Recall report identity, exact lookup/header edge cases, native preview,
+permission/yield/closure guards, truthful outcomes and observations remain open.
+This binding correction does not accept Print Recall or comprehensive A1/A2.
+
+Two earlier setup trials ended before the new assertions: controllers
+af2507f62b72462b9b17423b590b2afc / da04a4b42a2f4bc08fc23ab82dd4066c,
+workers2d2ff997ddd641768cacf56e9b8198a2 /6c8a9ce003b94deca17f059218e0fb56.
+Each had178 passes and one fixture file-sharing exception, not behavioral RED.
+The first attempted correction did not change the shared fingerprint helper's
+direct hash operation. The corrected scoped reader excludes Excel lock files,
+opens other files with read sharing, and closes only authority workbooks it opened.
+Both trial-audit.json records confirm restored settings/packages, closure and
+delayed zero Excel errors. No implementation changed before the governing RED.
+
 ## Successful rebuild preservation, 2026-10-05
 
 Under existing D14, the report now reuses its named table and writes managed

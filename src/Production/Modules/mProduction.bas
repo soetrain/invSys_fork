@@ -9553,7 +9553,7 @@ Private Function BuildRecallCodesReportFromCurrentWorkbook(ByRef wsReportOut As 
         Exit Function
     End If
 
-    Set invLo = GetInvSysTable()
+    Set invLo = GetInvSysTableFromWorkbook(wsProd.Parent)
     rowCountOut = RenderRecallCodesReport(wsProd, loOut, invLo, wsReportOut, detailOut)
     If rowCountOut <= 0 Then
         If detailOut = "" Then detailOut = "No recall-coded ProductionOutput rows found. Generate recall codes from checked output rows before printing."
