@@ -4357,19 +4357,18 @@ Private Function OutputUomIsCatalogValue(ByVal uomName As String) As Boolean
     Next idx
 End Function
 
-Public Sub CompleteProductionRun()
-    Dim outputIndex As Long
-    Dim outputRowNumber As Long
-    Dim outputRowVal As String
-    Dim outputProcess As String, outputName As String
-    Dim processName As String
+Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAction = Nothing)
+    Dim outputIndex As Long, outputRowNumber As Long
+    Dim outputRowVal As String, outputProcess As String, outputName As String
+    Dim processName As String, enteredRealOutput As String
     Dim prepared As Variant
-    Dim completionReport As String, completionResult As String
-    Dim reportSeparator As Long
-    Dim enteredRealOutput As String
+    Dim completionReport As String, reusableReport As String, completionSucceeded As Boolean
     Dim lo As ListObject
-    Dim reusableReport As String, action As New cProductionWorksheetAction
-    If Not action.BeginOwner(mActivityContext, mOperatorWorkbook, reusableReport) Then ShowStatus reusableReport: Exit Sub
+    If action Is Nothing Then
+        Set action = New cProductionWorksheetAction
+        If Not action.BeginOwner(mActivityContext, mOperatorWorkbook, reusableReport) Then ShowStatus reusableReport: Exit Sub
+    End If
+    action.OutcomeCode = "REJECTED"
     If modProductionReusableRun.ReusableRunIsLoaded() Then
         If ActiveRunProcess() = "" Then
             ShowStatus "Choose one Process before Complete Run."
@@ -4380,12 +4379,15 @@ Public Sub CompleteProductionRun()
             Exit Sub
         End If
         If Not StageSelectedReusableActualOutput(True) Then Exit Sub
+        action.OutcomeCode = "FAILED"
         ShowPersistencePending "Saving the reusable Process run to the warehouse server..."
         If Not action.CanContinue(reusableReport) Then ShowStatus reusableReport: Exit Sub
         If modProductionReusableRun.CompleteReusableProcess(ActiveRunProcess(), _
                 ActiveRunLocation(), reusableReport, action) Then
             ResetInventoryCache
-            RefreshReusableRunControls True
+            RefreshReusableRunControls True, action
+            If Not action.CanContinue(reusableReport) Then ShowStatus reusableReport: Exit Sub
+            action.OutcomeCode = "CONFIRMED"
         End If
         ShowStatus reusableReport
         Exit Sub
@@ -4446,18 +4448,13 @@ Public Sub CompleteProductionRun()
     outputName = NzStr(mLstManagerOutput.List(outputIndex, 1))
 
     ApplySelectedProductionOutput
+    action.OutcomeCode = "FAILED"
     BindOperatorWorkbookForRun
     ShowPersistencePending "Saving the completed production run to the warehouse server..."
     If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
-    completionResult = CStr(mProduction.CompleteProductionRunAfterCheckInForOutputResult(outputRowNumber))
-    reportSeparator = InStr(1, completionResult, vbTab, vbBinaryCompare)
-    If reportSeparator > 0 Then
-        completionReport = Mid$(completionResult, reportSeparator + 1)
-        completionResult = Left$(completionResult, reportSeparator - 1)
-    Else
-        completionReport = completionResult
-    End If
-    If StrComp(completionResult, "OK", vbTextCompare) <> 0 Then
+    completionSucceeded = mProduction.CompleteProductionRunAfterCheckInForOutput(outputRowNumber, completionReport, action)
+    If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
+    If Not completionSucceeded Then
         If Trim$(completionReport) = "" Then completionReport = "Complete Run failed."
         ShowStatus completionReport
         MsgBox completionReport, vbExclamation, "Production Complete Run"
@@ -4466,11 +4463,14 @@ Public Sub CompleteProductionRun()
     ResetInventoryCache
     RefreshLoaderState
     RefreshManagerState
+    If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
     Set lo = ProductionTable(TABLE_MANAGER_OUTPUT)
     outputRowNumber = FindProductionOutputTableRow(lo, outputRowVal, outputProcess, outputName, outputRowNumber)
     ClearProductionOutputEntry outputRowNumber
     mTxtOutputReal.Text = ""
     RefreshManagerState
+    If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
+    action.OutcomeCode = "CONFIRMED"
     ShowStatus "Production run completed. Checked-in inventory was consumed, Actual Output was added to inventory, and the batch was logged." & IIf(Trim$(completionReport) <> "", " " & completionReport, "")
 End Sub
 
@@ -11369,7 +11369,7 @@ Private Sub mBtnManagerCheckIn_Click()
 End Sub
 
 Private Sub mBtnManagerApplyOutput_Click()
-    modProductionCompleteActions.Execute Me, mLoading, mDesignerActionInProgress
+    modProductionCompleteActions.Execute Me, mActivityContext, mOperatorWorkbook, mLoading, mDesignerActionInProgress
 End Sub
 
 Private Sub mCmbRunProcess_Change()

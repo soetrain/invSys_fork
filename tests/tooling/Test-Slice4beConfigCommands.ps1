@@ -1338,6 +1338,10 @@ End Function
                 if($RunCompleteBaselineOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteBaseline.ps1')
                     Install-ProductionCompleteBaselineProbe
+                    if($RunCompleteActivityOnly){
+                        . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheet.ps1')
+                        Install-ProductionCompleteWorksheetProbe
+                    }
                     if($RunCompletePreparationDiagnostic){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionCompletePreparation.ps1')
                         Install-ProductionCompletePreparationTrace

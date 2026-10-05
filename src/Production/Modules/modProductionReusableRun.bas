@@ -1061,13 +1061,11 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
                                         Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     On Error GoTo Failed
 
-    Dim node As Object
-    Dim nodeId As String, recheckReport As String
-    Dim items As Collection
+    Dim node As Object, items As Collection, nodeId As String, recheckReport As String
     Dim eventId As String, queueError As String, processorReport As String
     Dim processedNow As Long
-
     If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    If Not action Is Nothing Then action.OutcomeCode = "REJECTED"
     Set node = FindNodeByProcessName(processName)
     If node Is Nothing Then
         report = "Choose one Process before Complete Run."
@@ -1085,15 +1083,16 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
     End If
     If Not ValidateReusableActualOutputsForNode(nodeId, report) Then Exit Function
     If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
     AssignFreshOutputKeysForNode nodeId
     If mRunId = "" Then _
         mRunId = "PROD-RUN-" & Replace$(modRoleEventWriter.CreateSystemKey(), "-", "")
 
     Set items = BuildNodeConsumeItems(node, runLocation, mRunId)
     If items.Count > 0 Then
-        If Not modRoleEventWriter.QueuePayloadEventCurrent(EVENT_TYPE_PROD_CONSUME, "", _
+        If Not modProductionCompleteActions.QueueInventory(EVENT_TYPE_PROD_CONSUME, _
                 modProductionJson.BuildJsonArray(items), RunEventNote(mRunId, node, "CONSUME"), _
-                eventId, queueError) Then
+                eventId, queueError, action) Then
             report = "Production consume event was not queued: " & queueError
             Exit Function
         End If
@@ -1114,9 +1113,9 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
         Exit Function
     End If
     eventId = ""
-    If Not modRoleEventWriter.QueuePayloadEventCurrent(EVENT_TYPE_PROD_COMPLETE, "", _
+    If Not modProductionCompleteActions.QueueInventory(EVENT_TYPE_PROD_COMPLETE, _
             modProductionJson.BuildJsonArray(items), RunEventNote(mRunId, node, "COMPLETE"), _
-            eventId, queueError) Then
+            eventId, queueError, action) Then
         report = "Production complete event was not queued: " & queueError
         Exit Function
     End If
@@ -1154,6 +1153,7 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
 
 Failed:
     report = "Reusable Process completion failed: " & Err.Description
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
 End Function
 
 Public Function BeginNextReusableBatch(Optional ByRef report As String = "") As Boolean

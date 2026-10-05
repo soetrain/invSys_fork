@@ -2,10 +2,17 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 27
+Public Const CATALOG_VERSION As Long = 28
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 28 Then
+        ids = ControlIds(27)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 1)
+        ids(UBound(ids)) = "PRODUCTION_RUN_COMPLETE"
+        ControlIds = ids
+        Exit Function
+    End If
     If version = 27 Then
         ids = ControlIds(26)
         ReDim Preserve ids(LBound(ids) To UBound(ids) + 2)
@@ -192,6 +199,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 28 Then
+        Set record = modProductionCompleteCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version < 27 And (controlId = "ADMIN_TRACKING_SELECT_USER" Or controlId = "ADMIN_TRACKING_USER_RECORD") Then Exit Function
     If version >= 24 Then
         Set record = modProductionRunCodes.Control(controlId, version)
@@ -353,6 +364,10 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("OwnerId") = "PRODUCTION_RUN_COMPLETION" Then
+        Set Outcome = modProductionCompleteCodes.Outcome(controlId, outcomeCode)
+        Exit Function
+    End If
     If definition("OwnerId") = "PRODUCTION_RUN_LOCAL" Then
         Set Outcome = modProductionRunCodes.Outcome(controlId, outcomeCode)
         Exit Function

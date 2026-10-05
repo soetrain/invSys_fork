@@ -28,6 +28,11 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
     sourceKind = "Inventory"
     sourceControl = (controlId = "RECEIVING_CONFIRM_WRITES" Or controlId = "DISPOSITION_CONFIRM" Or _
                      controlId = "RECEIVING_WORKSHEET_CONFIRM")
+    If controlId = "PRODUCTION_RUN_COMPLETE" Then
+        Set outcome = modProductionCompleteCodes.Outcome(controlId, outcomeCode)
+        If outcome Is Nothing Then Exit Function
+        sourceControl = True
+    End If
     Set shipping = modShippingActivityCodes.Control(controlId)
     If Not shipping Is Nothing Then
         Set outcome = modShippingActivityCodes.Outcome(controlId, outcomeCode)

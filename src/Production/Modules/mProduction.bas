@@ -2796,11 +2796,10 @@ ErrHandler:
     report = "CompleteProductionRunAfterCheckIn failed: " & Err.Description
 End Function
 
-Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber As Long, Optional ByRef report As String = "") As Boolean
+Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber As Long, Optional ByRef report As String = "", Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     Dim completionStep As String
     Dim quietStarted As Boolean
-    Dim failureNumber As Long
-    Dim failureDescription As String
+    Dim failureNumber As Long, failureDescription As String
 
     On Error GoTo ErrHandler
 
@@ -2863,10 +2862,10 @@ Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber
     modOperationsPrimitiveBridge.BeginQuietUiForWorkbook wsProd.Parent.Name
     quietStarted = True
     Set completionResult = modProductionCompletionService.ExecuteProductionSession( _
-        wsProd.Parent, productionSession, errNotes)
+        wsProd.Parent, productionSession, errNotes, action)
     modUiQuiet.EndQuietUi
     quietStarted = False
-
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     completionStep = "restoring completed output values after inventory refresh"
     RestoreProductionOutputCompletionValues loOut, pendingOutputValues
     If completionResult Is Nothing Then
@@ -2889,7 +2888,7 @@ Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber
 
     completionStep = "clearing completed Production Run staging"
     If Not loCheck Is Nothing Then
-        If Not loCheck.DataBodyRange Is Nothing Then loCheck.DataBodyRange.ClearContents
+        If Not modProductionCheckInActions.ClearManagedCheckRows(loCheck) Then Err.Raise vbObjectError + 2102, , "Production check headers are unavailable."
     End If
 
     CompleteProductionRunAfterCheckInForOutput = True
@@ -2907,6 +2906,7 @@ ErrHandler:
     On Error GoTo 0
     report = "CompleteProductionRunAfterCheckInForOutput failed while " & completionStep & _
         ": " & CStr(failureNumber) & " - " & failureDescription
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
 End Function
 
 Public Function CompleteProductionRunAfterCheckInForOutputResult(ByVal outputRowNumber As Long) As String

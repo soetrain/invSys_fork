@@ -108,7 +108,7 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     Select Case CStr(record("ControlId"))
         Case "PRODUCTION_PROCESS_WORKSHEET_SEND", "PRODUCTION_PROCESS_WORKSHEET_ADD_ITEM"
             CommandCompleted = (code = "STAGED")
-        Case "PRODUCTION_PROCESS_WORKSHEET_RETRIEVE": CommandCompleted = (code = "CONFIRMED")
+        Case "PRODUCTION_PROCESS_WORKSHEET_RETRIEVE", "PRODUCTION_RUN_COMPLETE": CommandCompleted = (code = "CONFIRMED")
         Case "PRODUCTION_PROCESS_REFRESH", "PRODUCTION_RECIPE_REFRESH": CommandCompleted = (code = "REFRESHED")
         Case "PRODUCTION_PROCESS_LOAD", "PRODUCTION_RECIPE_LOAD": CommandCompleted = (code = "PRESENTED")
         Case "PRODUCTION_PROCESS_REUSE": CommandCompleted = (code = "STAGED")

@@ -9,7 +9,7 @@ function Install-ProductionCompleteSubmissionProbe {
     for($line=$start;$line -lt $end;$line++){
         $text=$owner.Lines($line,1).Trim()
         if($text -imatch '^(modProductionCompleteActions\.)?AppendProcessorReport mProcessorReports, processorReport$'){$returns+=$line+1}
-        if($text.StartsWith('If Not modRoleEventWriter.QueuePayloadEventCurrent(',[StringComparison]::OrdinalIgnoreCase)){$queues+=$line}
+        if($text.StartsWith('If Not modRoleEventWriter.QueuePayloadEventCurrent(',[StringComparison]::OrdinalIgnoreCase) -or $text.StartsWith('If Not modProductionCompleteActions.QueueInventory(',[StringComparison]::OrdinalIgnoreCase)){$queues+=$line}
         if($text.StartsWith('processedNow = modProcessor.RunBatch(',[StringComparison]::OrdinalIgnoreCase)){$processors+=$line+1}
     }
     if($returns.Count -ne 2 -or $queues.Count -ne 2 -or $processors.Count -ne 2){throw 'Complete submission anchors changed; not product RED.'}

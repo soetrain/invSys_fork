@@ -89,6 +89,24 @@ Unavailable:
     mInvalidReferences = True
 End Sub
 
+' Writer facts only: allocated but unattempted identities are never retained.
+Public Sub ObserveInventorySubmission(ByVal eventId As String, ByVal submitted As Boolean, ByVal attempted As Boolean)
+    Dim wire As String, state As String
+    OutcomeCode = "FAILED"
+    If submitted Then OutcomeCode = "PENDING"
+    On Error GoTo Unavailable
+    If mActivityId = "" Or eventId = "" Then Exit Sub
+    If Not submitted And Not attempted Then Exit Sub
+    state = "Unknown": If submitted Then state = "Submitted"
+    wire = modActivity.InventorySourceReferences(mActivityId, eventId, state)
+    If Len(wire) <= 2 Then mInvalidReferences = True: Exit Sub
+    If mReferences <> "" Then mReferences = mReferences & ","
+    mReferences = mReferences & Mid$(wire, 2, Len(wire) - 2)
+    Exit Sub
+Unavailable:
+    mInvalidReferences = True
+End Sub
+
 Public Sub Finish(ByRef report As String)
     Dim references As String
     On Error GoTo Unavailable

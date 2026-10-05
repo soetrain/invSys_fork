@@ -143,7 +143,8 @@ End Function
 
 Public Function ExecuteProductionSession(ByVal wb As Workbook, _
                                          ByVal session As cProductionRunSession, _
-                                         Optional ByRef report As String = "") As cProductionCompletionResult
+                                         Optional ByRef report As String = "", _
+                                         Optional ByVal action As cProductionWorksheetAction = Nothing) As cProductionCompletionResult
     Dim queueReport As String
     Dim runtimeReport As String
     Dim persistenceReport As String
@@ -155,7 +156,7 @@ Public Function ExecuteProductionSession(ByVal wb As Workbook, _
         report = "Operator workbook and Production session are required."
         Exit Function
     End If
-    If Not QueueProductionSessionEvents(session, queueReport) Then
+    If Not QueueProductionSessionEvents(session, queueReport, action) Then
         report = queueReport
         SaveProductionSessionToWorkbook wb, session, persistenceReport
         Set ExecuteProductionSession = CreateProductionCompletionResult(session, report)
@@ -163,8 +164,10 @@ Public Function ExecuteProductionSession(ByVal wb As Workbook, _
     End If
     SaveProductionSessionToWorkbook wb, session, persistenceReport
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     runtimeSucceeded = modOperationsPrimitiveBridge.RunBatchAndRefreshOperatorWorkbook( _
         wb.Name, "", "LOCAL", runtimeReport, True, queuedWorkHandled)
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If runtimeSucceeded And queuedWorkHandled Then
         session.RecordProcessorResult True, True, True
         session.RecordRefreshResult True
@@ -187,6 +190,7 @@ Public Function ExecuteProductionSession(ByVal wb As Workbook, _
     Exit Function
 
 FailExecute:
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
     report = "ExecuteProductionSession failed: " & Err.Description
     If Not session Is Nothing Then
         session.RecordFailure "EXECUTION_EXCEPTION", report
@@ -236,7 +240,8 @@ Public Function BuildProductionCompletePayload(ByVal session As cProductionRunSe
 End Function
 
 Public Function QueueProductionSessionEvents(ByVal session As cProductionRunSession, _
-                                             Optional ByRef report As String = "") As Boolean
+                                             Optional ByRef report As String = "", _
+                                             Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
     Dim consumeEventId As String
     Dim completeEventId As String
     Dim errNotes As String
@@ -245,10 +250,11 @@ Public Function QueueProductionSessionEvents(ByVal session As cProductionRunSess
     RequireSessionPrepared session, "QueueProductionSessionEvents"
     session.EnsureEventIdentities
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     consumeEventId = session.ConsumeEventId
-    If Not modRoleEventWriter.QueuePayloadEventCurrent( _
-            EVENT_TYPE_PROD_CONSUME, "", BuildProductionConsumePayload(session), _
-            "PRODUCTION_SESSION_CONSUME:" & session.SessionId, consumeEventId, errNotes) Then
+    If Not modProductionCompleteActions.QueueInventory( _
+            EVENT_TYPE_PROD_CONSUME, BuildProductionConsumePayload(session), _
+            "PRODUCTION_SESSION_CONSUME:" & session.SessionId, consumeEventId, errNotes, action) Then
         If errNotes = "" Then errNotes = "Unable to queue the Production consume event."
         session.RecordFailure "CONSUME_QUEUE_FAILED", errNotes
         report = errNotes
@@ -259,11 +265,12 @@ Public Function QueueProductionSessionEvents(ByVal session As cProductionRunSess
                   "The queued consume event did not preserve its allocated identity."
     session.MarkConsumeQueued
 
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     completeEventId = session.CompleteEventId
     errNotes = ""
-    If Not modRoleEventWriter.QueuePayloadEventCurrent( _
-            EVENT_TYPE_PROD_COMPLETE, "", BuildProductionCompletePayload(session), _
-            "PRODUCTION_SESSION_COMPLETE:" & session.SessionId, completeEventId, errNotes) Then
+    If Not modProductionCompleteActions.QueueInventory( _
+            EVENT_TYPE_PROD_COMPLETE, BuildProductionCompletePayload(session), _
+            "PRODUCTION_SESSION_COMPLETE:" & session.SessionId, completeEventId, errNotes, action) Then
         If errNotes = "" Then errNotes = "Unable to queue the Production completion event."
         session.RecordFailure "COMPLETE_QUEUE_FAILED", errNotes
         report = errNotes
@@ -281,6 +288,7 @@ Public Function QueueProductionSessionEvents(ByVal session As cProductionRunSess
     Exit Function
 
 FailQueue:
+    If Not action Is Nothing Then action.OutcomeCode = "FAILED"
     report = "QueueProductionSessionEvents failed: " & Err.Description
     If Not session Is Nothing Then session.RecordFailure "QUEUE_EXCEPTION", report
 End Function
