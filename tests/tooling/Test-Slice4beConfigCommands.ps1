@@ -79,6 +79,7 @@ param(
     [switch]$CheckAdminUomExpectationChoice,
     [switch]$CheckTrackingSettings,
     [switch]$CheckTrackingPolicy,
+    [switch]$CheckUserTrackingPolicy,
     [switch]$CheckDetailProfile,
     [switch]$CheckDetailColumns,
     [switch]$CheckActionPathPreference,
@@ -463,6 +464,7 @@ if ($CheckTrackingSettings) {
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-tracking-settings/'+[guid]::NewGuid().ToString('N'))
 }
 if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
+if ($CheckUserTrackingPolicy -and (-not $CheckTrackingSettings -or -not $CompileEvaluationProbesForTest)) { throw 'User policy checks require the compiled Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingSettings) { throw 'Detail profile checks require the Settings route.' }
 if ($CheckDetailProfile -and -not $CheckTrackingPolicy) { throw 'Detail profile checks retain the tracking policy baseline and cancellation observer.' }
 if ($CheckDetailColumns) {
@@ -1167,9 +1169,13 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
 End Function
 '@)
     if ($CheckTrackingSettings) { Install-Slice4beTrackingSettingsProbe $testModule }
-    if ($CheckTrackingPolicy -or $CheckGuidePresentationAvailability) {
+    if ($CheckTrackingPolicy -or $CheckUserTrackingPolicy -or $CheckGuidePresentationAvailability) {
         . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
         Install-Slice4beTrackingPolicyProbe $testModule $formCode
+    }
+    if ($CheckUserTrackingPolicy) {
+        . (Join-Path $PSScriptRoot 'Slice4beUserTrackingPolicy.ps1')
+        Install-UserTrackingPolicyProbe $testModule
     }
     if ($CheckDetailProfile) {
         . (Join-Path $PSScriptRoot 'Slice4beDetailProfile.ps1')
@@ -1682,6 +1688,7 @@ End Function
         $step='packaged Settings tracking surface'
         Test-Slice4beTrackingSettingsSurface $a
         if ($CheckTrackingPolicy) { Test-Slice4beTrackingPolicy $a $b }
+        if ($CheckUserTrackingPolicy) { Test-UserTrackingPolicy $a $b }
         if ($CheckDetailProfile) { Test-Slice4beDetailProfile $a $b }
         if ($CheckDetailColumns) { Test-DetailColumns $a }
         if ($CheckActionPathPreference) { Test-Slice4beActionPathPreference $a $b }
