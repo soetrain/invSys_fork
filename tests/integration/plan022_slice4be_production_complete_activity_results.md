@@ -5,7 +5,7 @@
 Architecture v4.11 D18's Complete Run discovered-control refinement defines
 catalog28 `PRODUCTION_RUN_COMPLETE`, preserving catalogs1-27 and existing owner
 behavior. CONFIRMED acknowledges this selected command; exact Inventory source
-application remains an independent evaluator requirement. Plan022 and Controls1.463
+application remains an independent evaluator requirement. Plan022 and Controls1.464
 carry the same acceptance scope. No new architecture decision is implied.
 
 Observation implementation `validation-complete-activity-01`: **RED120/60 -> GREEN180/180**.
@@ -199,14 +199,48 @@ Smoke86 retains all prior checks and both unassisted exits, with preservation an
 delayed zero Excel errors: `complete-activity03-regression/smoke-b38426fae197414c91a8dcd5917c4e63`,
 11:57:14.044--11:57:38.603 UTC. No promotion or broader acceptance; no error5.
 
-## Next test-first work
+## Exact worksheet output projection, 2026-10-05
 
-First protect the worksheet output identity display: the reviewed refusal capture
-shows ITEM_CODE under the System_Key heading. Existing frmProduction.RefreshProductionOutputList
-explicitly prefers ITEM_CODE for identityVal and displays it in column8. This
-predates activity03; stored keys are not changed by this finding. Test exact
-System_Key display and selection with shared SKU/custom columns before correcting
-the projection under Architecture's existing identity rule.
+Under existing D14, activity04 displays the stored System_Key without SKU
+substitution. A nonempty key resolves only one exact match; missing key/header or
+duplicate matches cannot fall back to names or position. Unkeyed creation drafts
+keep their existing staging behavior. No stored key, inventory owner or history
+aggregation rule changes. Only RefreshProductionOutputList and
+FindProductionOutputTableRow change; the rest of frmProduction and302/303 packaged
+components are identical. Retain the unchanged reusable/native closure318 evidence.
+
+Actual Refresh/selection handlers produce **RED211/8 -> GREEN219/219**, retaining
+all198 prior checks in order. Two owner-created keys sharing SKU/process/output
+prove display, selection before/after actual sorting, cached selection, missing/
+ambiguous-key refusal, history and custom-column preservation. One key comes from
+Admin seed and one from the actual worksheet completion; the extra projection row
+is a disposable fixture, not a second Production creation. Inventory quantities,
+output, log and original projection remain intact. Blank drafts expose no invented key.
+
+RED controller `production-run-local-controller/a80795aeae2440d5a5e96510f1ab9a2d`,
+worker `slice4be-production-complete-activity/edfdf8eb31f64fa880b49498e77fa07f/red.json`,
+12:05:30.985--12:10:24.106 UTC. GREEN controller
+`production-run-local-controller/d8deacf3ec234be5808333d97a0d5619`, worker
+`slice4be-production-complete-activity/00626880913241438ef6cb22609d957b/green.json`,
+12:12:08.267--12:17:05.402 UTC. Both close normally and preserve settings/packages.
+Reviewed captures `complete-activity-worksheet-confirmed.png` and
+`complete-worksheet-exact-output-identities.png` show actual keys. The two-row
+viewport requires scrolling; these captures do not accept general Run sizing or A2.
+
+`validation-complete-activity-04` cold startup/five compiles pass in
+`complete-activity-build-04/`, 12:10:54.761--12:11:33.950 UTC. Static04 passes three
+schemas/412 script parses and28 non-growing oversized caps:310 components,
+6300 procedures,137871 lines (nine fewer),9 literal/45 unresolved dynamic calls
+and190 duplicate groups. Layout18 page/size checks plus five native window checks
+pass with zero bounds/overlap failures: `complete-activity04-regression/layout-95403b18fce74b719284be85b7c7147c`,
+12:17:17.143--12:17:34.359 UTC. Existing minimum-size clamping is retained.
+Smoke86 retains all prior checks and both unassisted exits:
+`complete-activity04-regression/smoke-5e1290e169ec4a04a2801ac1a1b1c873`,
+12:18:29.827--12:18:56.328 UTC. GREEN/layout/smoke delayed Excel-error audits are
+zero; settings/packages and tracked reports are preserved. No error5, deployment
+or broader A1/A/R1 acceptance. The remaining Complete Run gates are below.
+
+## Next test-first work
 
 Retain native closure/permission proofs, then expand actual partial-submission,
 optional store/policy fault and publication/guide-view cases. The older live-role

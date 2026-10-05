@@ -3256,14 +3256,11 @@ Private Sub RefreshProductionOutputList(ByVal lst As MSForms.ListBox)
     Dim cUom As Long
     Dim cRecall As Long
     Dim cRow As Long
-    Dim cItemCode As Long
     Dim procVal As String
     Dim outputVal As String
     Dim uomVal As String
     Dim recallVal As String
     Dim rowVal As String
-    Dim itemCodeVal As String
-    Dim identityVal As String
     Dim lastQty As Double
     Dim totalQty As Double
     Dim maxBatch As Long
@@ -3280,7 +3277,6 @@ Private Sub RefreshProductionOutputList(ByVal lst As MSForms.ListBox)
     cUom = ProductionColumnIndex(lo, "UOM")
     cRecall = ProductionColumnIndex(lo, "RECALL CODE")
     cRow = ProductionColumnIndex(lo, "System_Key")
-    cItemCode = ProductionColumnIndex(lo, "ITEM_CODE")
     If cProc = 0 Or cOutput = 0 Then Exit Sub
 
     arr = lo.DataBodyRange.Value
@@ -3291,14 +3287,7 @@ Private Sub RefreshProductionOutputList(ByVal lst As MSForms.ListBox)
         If cUom > 0 Then uomVal = NzStr(arr(r, cUom)) Else uomVal = ""
         If cRecall > 0 Then recallVal = NzStr(arr(r, cRecall)) Else recallVal = ""
         If cRow > 0 Then rowVal = NzStr(arr(r, cRow)) Else rowVal = ""
-        If cItemCode > 0 Then itemCodeVal = NzStr(arr(r, cItemCode)) Else itemCodeVal = ""
-        If Trim$(itemCodeVal) <> "" Then
-            identityVal = itemCodeVal
-        Else
-            identityVal = rowVal
-        End If
-
-        LoggedOutputStats identityVal, procVal, outputVal, lastQty, totalQty, maxBatch, loggedCount
+        LoggedOutputStats rowVal, procVal, outputVal, lastQty, totalQty, maxBatch, loggedCount
         lst.AddItem procVal
         listRow = lst.ListCount - 1
         lst.List(listRow, 1) = outputVal
@@ -3311,7 +3300,7 @@ Private Sub RefreshProductionOutputList(ByVal lst As MSForms.ListBox)
         lst.List(listRow, 5) = ""
         lst.List(listRow, 6) = IIf(loggedCount > 0, FormatRunNumber(totalQty), "0")
         lst.List(listRow, 7) = recallVal
-        lst.List(listRow, 8) = identityVal
+        lst.List(listRow, 8) = rowVal
 NextRow:
     Next r
 End Sub
@@ -4094,15 +4083,17 @@ Private Function FindProductionOutputTableRow(ByVal lo As ListObject, _
     cRow = ProductionColumnIndex(lo, "System_Key")
     cProc = ProductionColumnIndex(lo, "PROCESS")
     cOutput = ProductionColumnIndex(lo, "OUTPUT")
-    wantedRow = NormalizeRunSystemKey(rowVal)
+    wantedRow = rowVal
 
-    If wantedRow <> "" And cRow > 0 Then
+    If wantedRow <> "" Then
+        If cRow = 0 Then Exit Function
         For r = 1 To lo.ListRows.Count
-            If NormalizeRunSystemKey(NzStr(lo.DataBodyRange.Cells(r, cRow).Value)) = wantedRow Then
+            If StrComp(NzStr(lo.DataBodyRange.Cells(r, cRow).Value2), wantedRow, vbBinaryCompare) = 0 Then
+                If FindProductionOutputTableRow <> 0 Then FindProductionOutputTableRow = 0: Exit Function
                 FindProductionOutputTableRow = r
-                Exit Function
             End If
         Next r
+        Exit Function
     End If
 
     If cProc > 0 And cOutput > 0 Then

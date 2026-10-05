@@ -1,6 +1,8 @@
 # Disposable worksheet staging backed by Admin-seeded exact inventory entities.
 . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheetPermission.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionOutputIdentity.ps1')
 function Install-ProductionCompleteWorksheetProbe {
+    Install-ProductionOutputIdentityProbe
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmProduction').CodeModule
     $form.InsertLines(1,'Private mCompleteWorksheetPhase As String, mCompleteWorksheetError As Long, mCompleteWorksheetInputBefore As Double')
@@ -168,6 +170,7 @@ function Test-ProductionCompleteWorksheet($Fixture,$Book,$Decoy,[string]$Canary)
         throw 'Actual worksheet Check In/output prerequisite unavailable; not product RED.'
     }
     [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
+    Check 'CompleteActivity.Worksheet.Identity.BlankDraftHasNoInventedKey' ([bool](Probe 'OutputIdentity' @('Blank',$Canary)))
     Test-ProductionCompleteWorksheetPermission $Fixture $Book $Decoy $Canary
     $before=@(Get-Slice4beActivityFiles $Fixture);$label='CompleteActivity.Worksheet.Normal'
     Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CompleteEntryAct' @('')))
@@ -180,4 +183,5 @@ function Test-ProductionCompleteWorksheet($Fixture,$Book,$Decoy,[string]$Canary)
     Pair $before 'CONFIRMED' $label $ids
     CaptureOwnedFormByCaptionEvidence 'Production' 'complete-activity-worksheet-confirmed.png'
     Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
+    Test-ProductionOutputIdentity $Book $Decoy $Canary
 }
