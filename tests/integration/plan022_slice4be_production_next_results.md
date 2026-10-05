@@ -1,5 +1,41 @@
 # Slice 4be-A: Production Next Batch binding and recording
 
+## Optional recording policy/store evidence, 2026-10-05
+
+The unchanged `deploy/validation-complete-activity-04` candidate passes302/302,
+retaining all167 prior observation checks in exact order with no duplicate checks.
+The actual packaged Next Batch handler is exercised in both reusable and worksheet
+branches with recording Off, an independently valid older catalog25 policy, an
+invalid policy, an unavailable activity directory and a failed terminal append.
+Local owner preparation succeeds with canonical bytes, exact identities, custom
+values/formulas, unrelated workbooks and prior recording history preserved.
+Initial recording faults create no fallback records; terminal failure leaves exactly
+one REQUESTED record, never a terminal result or Inventory source reference.
+The existing fixed tracking warning is verified and four fault captures are reviewed.
+
+This extends verification of existing D18 behavior; no runtime change or new product
+RED is claimed. The historical binding/observation RED/GREEN remains below.
+Five instrumented package compiles pass. Static `next-policy-static-04/` passes417
+PowerShell parses, three schemas and28 unchanged non-growing caps. Runtime metrics
+remain310 components/6300 procedures/137871 lines,9 literal/45 unresolved dynamic
+calls and190 duplicate groups. No package rebuild or deployment was performed.
+
+Controller `production-run-local-controller/4fedaa7f1f8f4013a908c8a5a3181568`;
+worker `slice4be-production-next-activity/a568cfed9d424697aa8290d7da4df5f1/green.json`.
+Interval17:50:24.917--18:07:10.360 UTC. After the worker reported302 passing checks
+at18:00:54.734, its windowless Excel process took about6m16s to exit unassisted.
+The controller retained restoration state throughout; no extra Quit, input or
+termination was used. Final settings restoration, package pins, all167 ordered
+prior checks and delayed zero Excel Application failures pass in `ordered-audit.json`.
+Desktop cursor/input-desktop access passed at18:05:01.828 UTC with no error5.
+The delayed exit is recorded; its cause is not established.
+
+Reproduce using `Test-Slice4beProductionRunLocal.ps1 -DeployRoot
+deploy/validation-complete-activity-04 -Phase GREEN -CompleteBaselineOnly
+-NextBaselineOnly -NextActivityOnly`. New tests are in `Slice4beProductionNextPolicy.ps1`;
+fault probes modify only unsaved disposable projects. Mid-action context/policy
+loss, native closure, remaining controls and comprehensive A1/A2 acceptance stay open.
+
 ## Recording-to-guide evidence, 2026-10-05
 
 The unchanged `deploy/validation-complete-activity-04` candidate records the actual

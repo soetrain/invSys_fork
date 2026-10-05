@@ -94,6 +94,7 @@ End Function
 }
 
 function Test-ProductionNextActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary) {
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.NextPolicyCatalogVersion')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function CanonicalPins {
@@ -118,7 +119,7 @@ function Test-ProductionNextActivity($Fixture,$Other,$Book,$Decoy,[string]$Canar
         $pair=$records.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
         $context=$pair;$safe=$pair;$integrity=$pair;$linked=$false;$facts=$false;$terminal=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_NEXT_BATCH' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 26
+            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_NEXT_BATCH' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq $catalogVersion
             $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){
@@ -219,6 +220,7 @@ function Test-ProductionNextActivity($Fixture,$Other,$Book,$Decoy,[string]$Canar
     Check 'NextActivity.Disabled.HandlerReturned' ([bool](Probe 'NextActivityAct' @('')))
     Check 'NextActivity.Disabled.OwnerSucceeded' ([bool](Probe 'NextBaselineReady'))
     Check 'NextActivity.Disabled.NoRecords' (@(Files|Where-Object{$_ -cnotin $before}).Count -eq 0)
+    Test-ProductionNextPolicy $Fixture $Other $Book $Decoy $Canary
 }
 
 function Test-ProductionNextCatalog {

@@ -1405,6 +1405,10 @@ End Function
                         if($RunNextActivityOnly -or $RunNextPathsOnly){
                             . (Join-Path $PSScriptRoot 'Slice4beProductionNextActivity.ps1')
                             Install-ProductionNextActivityProbe
+                            if($RunNextActivityOnly){
+                                . (Join-Path $PSScriptRoot 'Slice4beProductionNextPolicy.ps1')
+                                Install-ProductionNextPolicyProbe
+                            }
                         }
                     }
                 }
