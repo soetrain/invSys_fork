@@ -11,7 +11,7 @@ Public Function ReadPreference(ByVal context As String, ByRef choice As String, 
                                Optional ByRef policyVersion As Long = 0, Optional ByRef policyRequest As String = "", _
                                Optional ByRef savedCatalogVersion As Long = 0) As Boolean
     Dim target As WarehouseTarget, key As String, saved As String, model As Object
-    Dim version As Long, collect As Boolean, visible As Boolean, notice As String
+    Dim version As Long, collect As Boolean, visible As Boolean, notice As String, ownUsers As New Collection, userRow As Variant
     On Error GoTo Failed
     choice = "": effective = "Unavailable": evidence = "Diagnostic evidence unavailable."
     policyVersion = 0: policyRequest = "": savedCatalogVersion = 0
@@ -29,7 +29,9 @@ Public Function ReadPreference(ByVal context As String, ByRef choice As String, 
         If choice = DEFAULT_CHOICE Then effective = CStr(model("DefaultView"))
         effective = effective & IIf(choice = DEFAULT_CHOICE, " (warehouse default)", " (personal choice)") & _
             "; tracking policy version " & CStr(version)
-        If CBool(model("ViewerActionPathCaptureEnabled")) Then
+        If Not modTrackingPolicyUsers.Enabled(model("Users"), modAuth.GetCurrentUserId()) Then
+            evidence = "Diagnostic recording unavailable: recording is disabled for your user."
+        ElseIf CBool(model("ViewerActionPathCaptureEnabled")) Then
             evidence = "Diagnostic evidence depends on recorded controls; a view choice creates no evidence."
         Else
             evidence = "Diagnostic evidence unavailable: recorded-control capture is off."
@@ -37,6 +39,10 @@ Public Function ReadPreference(ByVal context As String, ByRef choice As String, 
         policyVersion = version
         savedCatalogVersion = CLng(model("SavedCatalogVersion"))
         model.Remove "SavedCatalogVersion"
+        For Each userRow In model("Users")
+            If StrComp(userRow("UserId"), modAuth.GetCurrentUserId(), vbTextCompare) = 0 Then ownUsers.Add userRow
+        Next userRow
+        Set model("Users") = ownUsers
         policyRequest = modTrainingJson.EncodeObject(model)
     Else
         report = report & " Tracking policy unavailable; no effective view or tracking permission is inferred."

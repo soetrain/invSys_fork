@@ -10,6 +10,8 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
     Dim version As Long, collect As Boolean, visible As Boolean, notice As String
     Dim headerCount As Long, controlCount As Long, opened As Boolean, changed As Boolean, saved As Boolean
     Dim index As Long
+    Dim users As ListObject, userCount As Long, prior As Object, savedSchema As Long
+    Dim countColumn As ListColumn, addedCountColumn As Boolean
     On Error GoTo Failed
     outcome = "DENIED"
     If Not modTrackingPolicyModel.AuthorizeEditor(context, target, report) Then Exit Function
@@ -29,7 +31,8 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         report = "Configuration is read-only, locked, or has unsaved changes. Close it before saving Tracking Policy."
         GoTo CleanExit
     End If
-    If Not modActivityPolicy.ReadPolicy(target, "ADMIN_SETTINGS_SAVE_VALUE", version, collect, visible, notice) Then
+    Set prior = CreateObject("Scripting.Dictionary")
+    If Not modActivityPolicy.ReadPolicy(target, "ADMIN_SETTINGS_SAVE_VALUE", version, collect, visible, notice, prior) Then
         report = "Tracking policy or required configuration is invalid. No configuration was changed."
         GoTo CleanExit
     End If
@@ -38,8 +41,9 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         GoTo CleanExit
     End If
     If version = 2147483647 Then report = "Tracking policy version limit reached.": GoTo CleanExit
-    Set headers = FindPolicyTable(wb, "tblEventTrackingPolicies")
-    Set controls = FindPolicyTable(wb, "tblEventTrackingControls")
+    Set headers = modTrackingPolicyUsers.FindTable(wb, "tblEventTrackingPolicies")
+    Set controls = modTrackingPolicyUsers.FindTable(wb, "tblEventTrackingControls")
+    Set users = modTrackingPolicyUsers.FindTable(wb, "tblEventTrackingUsers")
     Set created = New Collection
     If headers Is Nothing Then
         If wb.ProtectStructure Then report = "Configuration workbook structure is protected.": GoTo CleanExit
@@ -49,6 +53,20 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         End If
         headerCount = headers.ListRows.Count
         controlCount = controls.ListRows.Count
+        For index = 1 To headerCount
+            If modTrackingPolicyModel.TableValue(headers, index, "PolicyVersion") = version Then
+                savedSchema = CLng(modTrackingPolicyModel.TableValue(headers, index, "SchemaVersion"))
+                Exit For
+            End If
+        Next index
+        Set countColumn = UserCountColumn(headers)
+    End If
+    If Not modTrackingPolicyUsers.ValidateSave(target, model, prior, savedSchema, report) Then GoTo CleanExit
+    If Not users Is Nothing Then
+        If users.Parent.ProtectContents Then report = "User tracking policy worksheet is protected.": GoTo CleanExit
+        userCount = users.ListRows.Count
+    ElseIf CLng(model("SchemaVersion")) = 2 And wb.ProtectStructure Then
+        report = "Configuration workbook structure is protected.": GoTo CleanExit
     End If
     ' Workbook opening/validation may run Excel callbacks. Recheck before mutation.
     outcome = "DENIED"
@@ -63,9 +81,19 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
         Set controls = CreatePolicyTable(wb, "tblEventTrackingControls", _
             Array("PolicyVersion", "ControlId", "Collect", "Visible", "SequenceEligible"), created)
     End If
+    If CLng(model("SchemaVersion")) = 2 Then
+        If countColumn Is Nothing Then
+            Set countColumn = headers.ListColumns.Add
+            addedCountColumn = True
+            countColumn.Name = "UserCount"
+        End If
+        If users Is Nothing Then
+            Set users = CreatePolicyTable(wb, "tblEventTrackingUsers", Array("PolicyVersion", "UserId", "Record"), created)
+        End If
+    End If
     Set headerRow = headers.ListRows.Add
     SetPolicyCell headers, headerRow, "PolicyVersion", version + 1
-    SetPolicyCell headers, headerRow, "SchemaVersion", 1
+    SetPolicyCell headers, headerRow, "SchemaVersion", model("SchemaVersion")
     SetPolicyCell headers, headerRow, "CatalogVersion", model("CatalogVersion")
     SetPolicyCell headers, headerRow, "CreatedAtUTC", modTrainingWire.UtcTimestamp()
     SetPolicyCell headers, headerRow, "CreatedByUserId", modAuth.GetCurrentUserId()
@@ -79,6 +107,15 @@ Public Function Save(ByVal context As String, ByVal expectedVersion As Long, _
             SetPolicyCell controls, controlRow, CStr(field), row(field)
         Next field
     Next row
+    If CLng(model("SchemaVersion")) = 2 Then
+        SetPolicyCell headers, headerRow, "UserCount", model("Users").Count
+        For Each row In model("Users")
+            Set controlRow = users.ListRows.Add
+            SetPolicyCell users, controlRow, "PolicyVersion", version + 1
+            SetPolicyCell users, controlRow, "UserId", row("UserId")
+            SetPolicyCell users, controlRow, "Record", row("Record")
+        Next row
+    End If
     wb.Save
     ' Excel BeforeSave can cancel without raising an error.
     If Not wb.Saved Then Err.Raise 5
@@ -94,6 +131,11 @@ Failed:
     outcome = "FAILED"
     On Error Resume Next
     If changed And Not saved Then
+        If Not users Is Nothing Then
+            For index = users.ListRows.Count To userCount + 1 Step -1
+                users.ListRows(index).Delete
+            Next index
+        End If
         If Not controls Is Nothing Then
             For index = controls.ListRows.Count To controlCount + 1 Step -1
                 controls.ListRows(index).Delete
@@ -104,6 +146,7 @@ Failed:
                 headers.ListRows(index).Delete
             Next index
         End If
+        If addedCountColumn Then countColumn.Delete
         If Not created Is Nothing Then
             Dim alerts As Boolean
             alerts = Application.DisplayAlerts
@@ -119,13 +162,14 @@ Failed:
     Resume CleanExit
 End Function
 
-Private Function FindPolicyTable(ByVal wb As Workbook, ByVal name As String) As ListObject
-    Dim sheet As Worksheet, table As ListObject
-    For Each sheet In wb.Worksheets
-        For Each table In sheet.ListObjects
-            If StrComp(table.Name, name, vbTextCompare) = 0 Then Set FindPolicyTable = table: Exit Function
-        Next table
-    Next sheet
+Private Function UserCountColumn(ByVal table As ListObject) As ListColumn
+    Dim column As ListColumn
+    For Each column In table.ListColumns
+        If StrComp(Trim$(column.Name), "UserCount", vbTextCompare) = 0 Then
+            If Not UserCountColumn Is Nothing Then Err.Raise 5, , "Ambiguous user count header."
+            Set UserCountColumn = column
+        End If
+    Next column
 End Function
 
 Private Function CreatePolicyTable(ByVal wb As Workbook, ByVal name As String, ByVal fields As Variant, _

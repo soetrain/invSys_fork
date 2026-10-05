@@ -12,12 +12,13 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Dim wb As Workbook, candidate As Workbook, headers As ListObject, controls As ListObject
     Dim opened As Boolean, row As Long, selected As Long, number As Long, latest As Long
     Dim seen As Object, rowsSeen As Object, key As String, definition As Object, ids As Variant
-    Dim catalogVersion As Long
+    Dim catalogVersion As Long, schemaVersion As Long, users As Collection
     On Error GoTo Failed
     If requestedVersion < -1 Then Exit Function
     If Not editorProjection Is Nothing Then editorProjection.RemoveAll
     collect = False: visible = False: version = 0
     captureEnabled = False: sequenceEligible = False
+    Set users = New Collection
     notice = "Tracking unavailable: configuration could not be validated."
     If Not modConfig.LoadConfig(target.WarehouseId, target.StationId) Then Exit Function
     For Each candidate In Application.Workbooks
@@ -36,6 +37,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     Set headers = FindTable(wb, "tblEventTrackingPolicies")
     Set controls = FindTable(wb, "tblEventTrackingControls")
     If headers Is Nothing And controls Is Nothing Then
+        If Not modTrackingPolicyUsers.FindTable(wb, "tblEventTrackingUsers") Is Nothing Then GoTo CleanExit
         If requestedVersion > 0 Then GoTo CleanExit
         Set definition = modActivityCatalog.Control(controlId)
         If definition Is Nothing Then GoTo CleanExit
@@ -50,7 +52,7 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
     For row = 1 To headers.ListRows.Count
         number = PositiveInteger(CellValue(headers, row, "PolicyVersion"))
         If number = 0 Or seen.Exists(CStr(number)) Then GoTo CleanExit
-        seen.Add CStr(number), True
+        seen.Add CStr(number), row
         If number > latest Then latest = number: selected = row
     Next row
     If requestedVersion >= 0 Then
@@ -61,7 +63,9 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         latest = requestedVersion
     End If
     If selected = 0 Then GoTo CleanExit
-    If PositiveInteger(CellValue(headers, selected, "SchemaVersion")) <> 1 Then GoTo CleanExit
+    schemaVersion = PositiveInteger(CellValue(headers, selected, "SchemaVersion"))
+    If schemaVersion <> 1 And schemaVersion <> 2 Then GoTo CleanExit
+    If Not modTrackingPolicyUsers.ReadStored(wb, headers, selected, latest, seen, users) Then GoTo CleanExit
     catalogVersion = PositiveInteger(CellValue(headers, selected, "CatalogVersion"))
     If catalogVersion < 1 Or catalogVersion > modActivityCatalog.CATALOG_VERSION Then GoTo CleanExit
     key = CStr(CellValue(headers, selected, "DefaultView"))
@@ -101,11 +105,14 @@ Public Function ReadPolicy(ByVal target As WarehouseTarget, ByVal controlId As S
         GoTo CleanExit
     End If
     version = latest
+    If Not modTrackingPolicyUsers.Enabled(users, modAuth.GetCurrentUserId()) Then
+        collect = False: captureEnabled = False
+    End If
     ReadPolicy = True: notice = ""
 CleanExit:
     If Not editorProjection Is Nothing Then
         If ReadPolicy Then
-            modTrackingPolicyModel.Project headers, controls, selected, latest, editorProjection
+            modTrackingPolicyModel.Project headers, controls, selected, latest, editorProjection, users
         Else
             editorProjection.RemoveAll
         End If

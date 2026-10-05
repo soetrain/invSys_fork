@@ -14,7 +14,6 @@ Public Function UserPolicyControl(ByVal name As String, ByVal command As String,
     Select Case command
         Case "Exists": UserPolicyControl = "PRESENT"
         Case "Select"
-            control.ListIndex = -1
             For index = 0 To control.ListCount - 1
                 If StrComp(CStr(control.List(index, 0)), value, vbTextCompare) = 0 Then
                     control.ListIndex = index: UserPolicyControl = "SELECTED": Exit Function
@@ -40,6 +39,8 @@ Public Function UserPolicyCanRead(ByVal id As String) As Boolean
     UserPolicyCanRead = (Left$(modActivity.ReadActivityRecord(id), 3) = "OK|")
 End Function
 '@)
+    . (Join-Path $PSScriptRoot 'Slice4beUserPolicyAccess.ps1')
+    Install-UserPolicyAccessProbe $TestModule
 }
 
 function UserPolicyControl([string]$Name,[string]$Command,[string]$Value='') {
@@ -99,6 +100,16 @@ function Test-UserTrackingPolicy($Fixture,$Other) {
     Check 'UserPolicy.DisabledFlagReloads' (UserPolicyDisabled $saved 'config-reader')
     [void](UserPolicyControl 'lstTrackingUsers' 'Select' 'config-reader')
     Check 'UserPolicy.SavedFlagRendered' ((UserPolicyControl 'chkUserRecord' 'Read') -ceq 'False')
+    if($CaptureEvidence) {
+        $wasVisible=$excel.Visible
+        try {
+            $excel.Visible=$true
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.ShowSettings')
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('Event Tracking'))
+            CaptureOwnedFormByCaptionEvidence 'invSys Settings' 'user-policy-saved.png'
+            [void](Run 'invSys.Admin.xlam' 'TestD5Commands.TrackingSettingsSelectPage' @('General'))
+        } finally {$excel.Visible=$wasVisible}
+    }
     if($version -eq 1) {
         $legacy=$saved|ConvertFrom-Json;$legacy.SchemaVersion=1;$legacy.PSObject.Properties.Remove('Users')
         $pin=(Get-FileHash -LiteralPath $Fixture.Config).Hash
@@ -116,6 +127,10 @@ function Test-UserTrackingPolicy($Fixture,$Other) {
     Check 'UserPolicy.CloseDiscardsUserEdits' ((UserPolicyDisabled (Get-TrackingPolicyRequest) 'config-reader') -and $pin -ceq (Get-FileHash -LiteralPath $Fixture.Config).Hash)
     Check 'UserPolicy.AuthAndOtherWarehouseUnchanged' ($authBefore -ceq (Get-FileHash -LiteralPath $auth).Hash -and $otherBefore -ceq (Get-FileHash -LiteralPath $Other.Config).Hash)
     Test-UserPolicyRecording $Fixture
+    . (Join-Path $PSScriptRoot 'Slice4beUserPolicyStorage.ps1')
+    Test-UserPolicyStorage $Fixture $Other
+    . (Join-Path $PSScriptRoot 'Slice4beUserPolicyAccess.ps1')
+    Test-UserPolicyAccess $Fixture
 }
 
 function Test-UserPolicyRecording($Fixture) {

@@ -14,7 +14,7 @@ End Function
 Public Function Defaults(Optional ByVal enableDefaults As Boolean = True) As Object
     Dim model As Object, rows As Collection, row As Object, definition As Object, id As Variant
     Set model = CreateObject("Scripting.Dictionary")
-    model.Add "SchemaVersion", 1
+    model.Add "SchemaVersion", 2
     model.Add "CatalogVersion", modActivityCatalog.CATALOG_VERSION
     model.Add "DefaultView", "How-To"
     model.Add "ViewerActionPathCaptureEnabled", False
@@ -30,6 +30,8 @@ Public Function Defaults(Optional ByVal enableDefaults As Boolean = True) As Obj
         rows.Add row
     Next id
     model.Add "Controls", rows
+    Set rows = New Collection
+    model.Add "Users", rows
     Set Defaults = model
 End Function
 
@@ -38,9 +40,19 @@ Public Function Decode(ByVal request As String) As Object
     On Error GoTo Invalid
     If LenB(request) > 1048576 Then Exit Function
     Set model = modTrainingJson.DecodeObject(request)
-    If Not HasFields(model, Array("SchemaVersion", "CatalogVersion", "DefaultView", _
-        "ViewerActionPathCaptureEnabled", "AdminViewerEventLoggingEnabled", "Controls")) Then Exit Function
-    If Not ExactInteger(model("SchemaVersion"), 1) Then Exit Function
+    If model Is Nothing Then Exit Function
+    If Not model.Exists("SchemaVersion") Then Exit Function
+    If ExactInteger(model("SchemaVersion"), 1) Then
+        If Not HasFields(model, Array("SchemaVersion", "CatalogVersion", "DefaultView", _
+            "ViewerActionPathCaptureEnabled", "AdminViewerEventLoggingEnabled", "Controls")) Then Exit Function
+    ElseIf ExactInteger(model("SchemaVersion"), 2) Then
+        If Not HasFields(model, Array("SchemaVersion", "CatalogVersion", "DefaultView", _
+            "ViewerActionPathCaptureEnabled", "AdminViewerEventLoggingEnabled", "Controls", "Users")) Then Exit Function
+        If TypeName(model("Users")) <> "Collection" Then Exit Function
+        If Not modTrackingPolicyUsers.ValidRows(model("Users")) Then Exit Function
+    Else
+        Exit Function
+    End If
     If Not ExactInteger(model("CatalogVersion"), modActivityCatalog.CATALOG_VERSION) Then Exit Function
     If VarType(model("DefaultView")) <> vbString Then Exit Function
     If model("DefaultView") <> "How-To" And model("DefaultView") <> "Diagnostic" And _
@@ -84,9 +96,10 @@ Private Function ExactInteger(ByVal value As Variant, ByVal expected As Long) As
 End Function
 
 Public Sub Project(ByVal headers As ListObject, ByVal controls As ListObject, _
-                   ByVal selected As Long, ByVal version As Long, ByVal output As Object)
+                   ByVal selected As Long, ByVal version As Long, ByVal output As Object, ByVal users As Collection)
     Dim model As Object, row As Variant, index As Long, key As Variant, field As Variant
     Set model = Defaults(headers Is Nothing)
+    Set model("Users") = users
     If Not headers Is Nothing Then
         For Each field In Array("DefaultView", "ViewerActionPathCaptureEnabled", "AdminViewerEventLoggingEnabled")
             model(field) = TableValue(headers, selected, CStr(field))

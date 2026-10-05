@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 26
+Public Const CATALOG_VERSION As Long = 27
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 27 Then
+        ids = ControlIds(26)
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + 2)
+        ids(UBound(ids) - 1) = "ADMIN_TRACKING_SELECT_USER"
+        ids(UBound(ids)) = "ADMIN_TRACKING_USER_RECORD"
+        ControlIds = ids
+        Exit Function
+    End If
     If version >= 24 And version <= 26 Then
         ids = ControlIds(23): added = modProductionRunCodes.ControlIds(version)
         offset = UBound(ids) + 1
@@ -184,6 +192,7 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version < 27 And (controlId = "ADMIN_TRACKING_SELECT_USER" Or controlId = "ADMIN_TRACKING_USER_RECORD") Then Exit Function
     If version >= 24 Then
         Set record = modProductionRunCodes.Control(controlId, version)
         If Not record Is Nothing Then Set Control = record: Exit Function

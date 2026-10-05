@@ -19,6 +19,9 @@ Private WithEvents mSequence As MSForms.CheckBox
 Private WithEvents mSave As MSForms.CommandButton
 Private WithEvents mReset As MSForms.CommandButton
 Private WithEvents mReload As MSForms.CommandButton
+Private WithEvents mUsers As MSForms.ListBox
+Private WithEvents mUserRecord As MSForms.CheckBox
+Private mUserProjection As String
 Private mStatus As MSForms.Label
 Private mContext As String
 Private mRequest As String
@@ -43,21 +46,35 @@ Public Sub Initialize(ByVal page As Object, ByVal context As String)
     Set mCollect = AddControl(page, "CheckBox", "chkControlCollect", "Collect selected control", 12, 258, 200, 22)
     Set mVisible = AddControl(page, "CheckBox", "chkControlVisible", "Visible in Viewer", 224, 258, 170, 22)
     Set mSequence = AddControl(page, "CheckBox", "chkControlSequence", "Eligible for recorded sequence", 408, 258, 270, 22)
-    Set mSave = AddControl(page, "CommandButton", "btnSaveTrackingPolicy", "Save Tracking Policy", 12, 294, 166, 28)
-    Set mReset = AddControl(page, "CommandButton", "btnResetTrackingPolicy", "Reset to Default", 190, 294, 138, 28)
-    Set mReload = AddControl(page, "CommandButton", "btnReloadTrackingPolicy", "Reload", 340, 294, 86, 28)
-    Set mStatus = AddControl(page, "Label", "lblTrackingPolicyStatus", "", 12, 330, 670, 48)
+    AddControl page, "Label", "lblTrackingUsers", "Warehouse user / Record / Availability", 12, 288, 450, 18
+    Set mUsers = AddControl(page, "ListBox", "lstTrackingUsers", "", 12, 308, 450, 96)
+    mUsers.ColumnCount = 3: mUsers.ColumnWidths = "260 pt;65 pt;115 pt"
+    Set mUserRecord = AddControl(page, "CheckBox", "chkUserRecord", "Record user", 478, 308, 195, 22)
+    AddControl page, "Label", "lblUserRecordingScope", "Optional recording only; rights and required audit are unchanged.", 478, 338, 195, 58
+    Set mSave = AddControl(page, "CommandButton", "btnSaveTrackingPolicy", "Save Tracking Policy", 12, 420, 166, 28)
+    Set mReset = AddControl(page, "CommandButton", "btnResetTrackingPolicy", "Reset to Default", 190, 420, 138, 28)
+    Set mReload = AddControl(page, "CommandButton", "btnReloadTrackingPolicy", "Reload", 340, 420, 86, 28)
+    Set mStatus = AddControl(page, "Label", "lblTrackingPolicyStatus", "", 12, 456, 670, 48)
     ReloadPolicy
 End Sub
 
 Public Sub ReloadPolicy(Optional ByRef outcome As String = "")
-    Dim report As String, loaded As Boolean
+    Dim report As String, loaded As Boolean, userReport As String
     loaded = modTrackingPolicySettings.ReadEditor(mContext, mVersion, mRequest, report, mSavedCatalog)
+    If loaded Then
+        loaded = modTrackingUserSettings.ReadUsers(mContext, mRequest, mUserProjection, userReport)
+        If Not loaded Then report = userReport: mRequest = ""
+    End If
     outcome = IIf(loaded, "REFRESHED", "FAILED")
     mSave.Enabled = loaded: mReset.Enabled = loaded
     mRows.Enabled = loaded: mCapture.Enabled = loaded: mAdminVisible.Enabled = loaded: mView.Enabled = loaded
     mCollect.Enabled = loaded: mVisible.Enabled = loaded: mSequence.Enabled = loaded
-    If loaded Then Render Else mRows.Clear
+    mUsers.Enabled = loaded: mUserRecord.Enabled = False
+    If loaded Then
+        Render
+    Else
+        mLoading = True: mRows.Clear: mUsers.Clear: mLoading = False
+    End If
     mStatus.Caption = report
 End Sub
 
@@ -99,8 +116,53 @@ Private Sub Render()
     Next row
     If selected < 0 Or selected >= mRows.ListCount Then selected = 0
     mRows.ListIndex = selected
+    RenderUsers
     mLoading = False
     ShowSelection
+    ShowUser
+End Sub
+
+Private Sub RenderUsers()
+    Dim index As Long, selected As String, id As String
+    If mUsers.ListIndex >= 0 Then selected = CStr(mUsers.List(mUsers.ListIndex, 0))
+    mUsers.Clear
+    For index = 1 To modTrackingUserSettings.UserCount(mUserProjection)
+        id = modTrackingUserSettings.UserField(mUserProjection, index, "UserId")
+        mUsers.AddItem id
+        mUsers.List(mUsers.ListCount - 1, 1) = CStr(modTrackingUserSettings.RecordEnabled(mRequest, id))
+        mUsers.List(mUsers.ListCount - 1, 2) = IIf(modTrackingUserSettings.UserField(mUserProjection, index, "Available") = "True", "Available", "Unavailable")
+        If StrComp(id, selected, vbTextCompare) = 0 Then mUsers.ListIndex = mUsers.ListCount - 1
+    Next index
+    If mUsers.ListIndex < 0 And mUsers.ListCount > 0 Then mUsers.ListIndex = 0
+End Sub
+
+Private Sub ShowUser()
+    mUserRecord.Enabled = False
+    If mUsers.ListIndex < 0 Then Exit Sub
+    mLoading = True
+    mUserRecord.Value = modTrackingUserSettings.RecordEnabled(mRequest, CStr(mUsers.List(mUsers.ListIndex, 0)))
+    mUserRecord.Enabled = (mUsers.List(mUsers.ListIndex, 2) = "Available")
+    mLoading = False
+End Sub
+
+Private Sub StageUser(Optional ByRef outcome As String = "")
+    Dim staged As String
+    outcome = "REJECTED"
+    If mUsers.ListIndex < 0 Or Not mUserRecord.Enabled Then Exit Sub
+    staged = modTrackingUserSettings.StageUser(mRequest, CStr(mUsers.List(mUsers.ListIndex, 0)), CBool(mUserRecord.Value))
+    If staged = "" Then Exit Sub
+    mRequest = staged
+    mUsers.List(mUsers.ListIndex, 1) = CStr(CBool(mUserRecord.Value))
+    mStatus.Caption = "User recording changes staged. Save Tracking Policy to apply."
+    outcome = "STAGED"
+End Sub
+
+Private Sub mUsers_Change()
+    PerformSettings "ADMIN_TRACKING_SELECT_USER"
+End Sub
+
+Private Sub mUserRecord_Click()
+    PerformSettings "ADMIN_TRACKING_USER_RECORD"
 End Sub
 
 Private Sub ShowSelection()
@@ -177,6 +239,10 @@ Private Sub PerformSettings(ByVal controlId As String)
     activityId = modActivity.BeginAction(controlId, mContext, notice)
     outcome = "REJECTED"
     Select Case controlId
+        Case "ADMIN_TRACKING_SELECT_USER"
+            ShowUser
+            If mUsers.ListIndex >= 0 Then outcome = "SELECTED"
+        Case "ADMIN_TRACKING_USER_RECORD": StageUser outcome
         Case "ADMIN_TRACKING_SELECT_CONTROL"
             If mRows.ListIndex >= 0 Then ShowSelection: outcome = "SELECTED"
         Case "ADMIN_TRACKING_CAPTURE": StageTop "ViewerActionPathCaptureEnabled", CStr(CBool(mCapture.Value)), outcome

@@ -20,6 +20,11 @@ Public Function SettingsActivityAction(ByVal action As String, ByVal value As St
         Case "Collect": mCollect.Value = CBool(value)
         Case "Visible": mVisible.Value = CBool(value)
         Case "Sequence": mSequence.Value = CBool(value)
+        Case "SelectUser"
+            For index = 0 To mUsers.ListCount - 1
+                If CStr(mUsers.List(index, 0)) = value Then mUsers.ListIndex = index: Exit For
+            Next index
+        Case "UserRecord": mUserRecord.Value = CBool(value)
     End Select
     mLoading = False
     Select Case action
@@ -30,6 +35,8 @@ Public Function SettingsActivityAction(ByVal action As String, ByVal value As St
         Case "Collect": mCollect_Click
         Case "Visible": mVisible_Click
         Case "Sequence": mSequence_Click
+        Case "SelectUser": mUsers_Change
+        Case "UserRecord": mUserRecord_Click
         Case "Save": mSave_Click
         Case "Reset": mReset_Click
         Case "Reload": mReload_Click

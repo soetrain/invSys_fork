@@ -141,6 +141,8 @@ function Test-SettingsEditorActivity($Fixture,$Other) {
         $closed=@(RecordingJournal $sequence|Where-Object RecordType -CEQ 'Close')
         Check 'SettingsActivity.TwentyFiveActionsCompleteStoppedRun' ($closed.Count -eq 1 -and $closed[0].Lifecycle -ceq 'Stopped' -and $closed[0].ActionCount -eq 25 -and @($closed[0].Observations).Count -eq 50 -and (JournalChain $sequence 52))
         if($null -ne $settingsEvidence){$settingsEvidence.Main=$closed[0]}
+        . (Join-Path $PSScriptRoot 'Slice4beSettingsUserActivity.ps1')
+        Test-SettingsUserActivity $Fixture
         # The policy-save record is tested separately so interrupted evidence
         # cannot accidentally satisfy the preceding complete-run assertion.
         OpenSettingsEditor 'Tracking'

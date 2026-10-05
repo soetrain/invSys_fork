@@ -18,6 +18,8 @@ Public Function Control(ByVal id As String) As Object
     Dim record As Object
     kind = "Command": owner = "ADMIN_SETTINGS_UI": role = "Admin"
     Select Case id
+        Case "ADMIN_TRACKING_SELECT_USER": caption = "Warehouse user": kind = "Navigation"
+        Case "ADMIN_TRACKING_USER_RECORD": caption = "Record user": kind = "Navigation"
         Case "ADMIN_TRACKING_SELECT_CONTROL": caption = "Family / control": kind = "Navigation"
         Case "ADMIN_TRACKING_CAPTURE": caption = "Capture recorded controls": kind = "Navigation"
         Case "ADMIN_TRACKING_ADMIN_VISIBLE": caption = "Show optional Admin events": kind = "Navigation"
@@ -70,9 +72,9 @@ Private Function SuccessCodes(ByVal id As String) As String
         Case "ADMIN_DETAIL_SAVE": SuccessCodes = "|COMPLETED|"
         Case "ADMIN_PATH_PREFERENCE_SAVE", "VIEWER_PATH_PREFERENCE_SAVE": SuccessCodes = "|COMPLETED|UNCHANGED|"
         Case "ADMIN_TRACKING_RELOAD", "ADMIN_DETAIL_RELOAD", "ADMIN_PATH_PREFERENCE_RELOAD", "VIEWER_PATH_PREFERENCE_RELOAD": SuccessCodes = "|REFRESHED|"
-        Case "ADMIN_TRACKING_SELECT_CONTROL", "ADMIN_DETAIL_SELECT_FAMILY", "ADMIN_DETAIL_SELECT_FIELD": SuccessCodes = "|SELECTED|"
+        Case "ADMIN_TRACKING_SELECT_CONTROL", "ADMIN_TRACKING_SELECT_USER", "ADMIN_DETAIL_SELECT_FAMILY", "ADMIN_DETAIL_SELECT_FIELD": SuccessCodes = "|SELECTED|"
         Case "ADMIN_TRACKING_CAPTURE", "ADMIN_TRACKING_ADMIN_VISIBLE", "ADMIN_TRACKING_DEFAULT_VIEW", _
-             "ADMIN_TRACKING_COLLECT", "ADMIN_TRACKING_VISIBLE", "ADMIN_TRACKING_SEQUENCE", "ADMIN_TRACKING_RESET", _
+             "ADMIN_TRACKING_COLLECT", "ADMIN_TRACKING_VISIBLE", "ADMIN_TRACKING_SEQUENCE", "ADMIN_TRACKING_RESET", "ADMIN_TRACKING_USER_RECORD", _
              "ADMIN_DETAIL_SHOW_FIELD", "ADMIN_DETAIL_MOVE_UP", "ADMIN_DETAIL_MOVE_DOWN", "ADMIN_DETAIL_RESET", _
              "ADMIN_PATH_PREFERENCE_SELECT", "ADMIN_PATH_PREFERENCE_RESET", "VIEWER_PATH_PREFERENCE_SELECT", "VIEWER_PATH_PREFERENCE_RESET"
             SuccessCodes = "|STAGED|"
