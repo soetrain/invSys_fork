@@ -5,7 +5,7 @@
 Architecture v4.11 D18's Complete Run discovered-control refinement defines
 catalog28 `PRODUCTION_RUN_COMPLETE`, preserving catalogs1-27 and existing owner
 behavior. CONFIRMED acknowledges this selected command; exact Inventory source
-application remains an independent evaluator requirement. Plan022 and Controls1.462
+application remains an independent evaluator requirement. Plan022 and Controls1.463
 carry the same acceptance scope. No new architecture decision is implied.
 
 Observation implementation `validation-complete-activity-01`: **RED120/60 -> GREEN180/180**.
@@ -168,12 +168,48 @@ preserved; delayed Excel-error audit is zero. No candidate promotion or A1/A/R1
 acceptance is claimed. Guide58/layout evidence is reused because their packaged
 components and all forms are unchanged; no unrelated broad gate was repeated.
 
+## Worksheet permission outcome, 2026-10-05
+
+Activity03 preserves the distinct form ADMIN_MAINT/PROD_POST and worksheet owner
+PROD_POST checks. An Admin-only attempt now records DENIED at the owning refusal
+boundary instead of retaining FAILED. Existing dialogs, staging and rights remain.
+Actual-handler **RED190/8 -> GREEN198/198** retains all180 prior checks in order;
+the eight RED assertions depend on the missing DENIED record. Both native refusal
+dialogs, exact unchanged input, absent submissions, custom columns and normal
+completion after restoring permission pass. Dialog text stays in memory; only
+fixed booleans leave the owned, finite single-OK observer.
+
+RED controller `production-run-local-controller/cbc80142f3a645a6b3b3434378a2bf01`,
+worker `slice4be-production-complete-activity/d3646e2003cc419091c75d321b28c1bc/red.json`,
+11:47:02.342--11:51:07.666 UTC. GREEN controller
+`production-run-local-controller/d37084e6e91446c4861432394c1a97b1`, worker
+`slice4be-production-complete-activity/08c0a474c1974f99b1abeb684603a84f/green.json`,
+11:52:35.196--11:56:47.933 UTC. Normal shutdown and settings/package preservation
+pass; GREEN's delayed Excel-error audit is zero. The captured refusal status is
+reviewed in `complete-activity-worksheet-admin-only.png`; this is scoped visible
+permission evidence, not acceptance of the entire form.
+
+`validation-complete-activity-03` passes cold startup/five compiles in
+`complete-activity-build-03/`, 11:51:30.075--11:52:10.042 UTC. Only mProduction's
+CompleteProductionRunAfterCheckInForOutput changes; the rest of that module and
+302/303 components, including all forms, are identical. Retain activity02's318
+reusable/native-closure evidence for those unchanged paths. Static03 retains all
+runtime metrics and28 oversized caps, passes three schemas and411 script parses.
+Smoke86 retains all prior checks and both unassisted exits, with preservation and
+delayed zero Excel errors: `complete-activity03-regression/smoke-b38426fae197414c91a8dcd5917c4e63`,
+11:57:14.044--11:57:38.603 UTC. No promotion or broader acceptance; no error5.
+
 ## Next test-first work
 
-Retain the native closure correction and full completion regression. Expand actual partial-submission, optional
-store/policy fault and publication/guide-view cases. Include the worksheet's
-PROD_POST refusal when the form's ADMIN_MAINT gate passes; preserve the distinct
-existing checks and verify outcome classification before any correction. The older live-role
+First protect the worksheet output identity display: the reviewed refusal capture
+shows ITEM_CODE under the System_Key heading. Existing frmProduction.RefreshProductionOutputList
+explicitly prefers ITEM_CODE for identityVal and displays it in column8. This
+predates activity03; stored keys are not changed by this finding. Test exact
+System_Key display and selection with shared SKU/custom columns before correcting
+the projection under Architecture's existing identity rule.
+
+Retain native closure/permission proofs, then expand actual partial-submission,
+optional store/policy fault and publication/guide-view cases. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`

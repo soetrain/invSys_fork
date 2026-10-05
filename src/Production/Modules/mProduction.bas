@@ -2797,8 +2797,7 @@ ErrHandler:
 End Function
 
 Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber As Long, Optional ByRef report As String = "", Optional ByVal action As cProductionWorksheetAction = Nothing) As Boolean
-    Dim completionStep As String
-    Dim quietStarted As Boolean
+    Dim completionStep As String, quietStarted As Boolean
     Dim failureNumber As Long, failureDescription As String
 
     On Error GoTo ErrHandler
@@ -2806,6 +2805,7 @@ Public Function CompleteProductionRunAfterCheckInForOutput(ByVal outputRowNumber
     completionStep = "checking PROD_POST capability"
     If Not modRoleUiAccess.RequireCurrentUserCapability("PROD_POST") Then
         report = "Current user lacks PROD_POST capability."
+        If Not action Is Nothing Then action.OutcomeCode = "DENIED"
         Exit Function
     End If
 

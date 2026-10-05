@@ -1,4 +1,5 @@
 # Disposable worksheet staging backed by Admin-seeded exact inventory entities.
+. (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheetPermission.ps1')
 function Install-ProductionCompleteWorksheetProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmProduction').CodeModule
@@ -81,6 +82,12 @@ Public Function CompleteWorksheetFactForTest(ByVal fact As String, ByVal canary 
     Dim lo As ListObject, key As String, row As Long, matches As Long
     Set lo = ProductionTable(TABLE_MANAGER_OUTPUT)
     Select Case fact
+        Case "InputUnchanged"
+            CompleteWorksheetFactForTest = Abs(CompleteWorksheetExactQtyForTest(mRunSheetKey) - mCompleteWorksheetInputBefore) < 0.0000001
+        Case "Unsubmitted"
+            CompleteWorksheetFactForTest = CellByHeader(lo, 1, "System_Key") = "" And HasProductionCheckRows()
+        Case "PermissionMessage"
+            CompleteWorksheetFactForTest = mTxtStatus.Text = "Current user lacks PROD_POST capability."
         Case "ExactInput"
             CompleteWorksheetFactForTest = Abs(CompleteWorksheetExactQtyForTest(mRunSheetKey) - (mCompleteWorksheetInputBefore - 10#)) < 0.0000001
         Case "FreshOutput"
@@ -135,6 +142,10 @@ Public Function CompleteWorksheetInventoryForTest(ByVal workbookName As String) 
     If Not modRoleWorkbookSurfaces.EnsureInventoryManagementSurface(wb, report) Then Exit Function
     CompleteWorksheetInventoryForTest = modOperatorReadModel.RefreshInventoryReadModelForWorkbook(wb, "", "LOCAL", report)
 End Function
+Public Function CompleteWorksheetAdminOnlyForTest() As Boolean
+    CompleteWorksheetAdminOnlyForTest = modRoleUiAccess.CanCurrentUserPerformCapability("ADMIN_MAINT") And _
+        Not modRoleUiAccess.CanCurrentUserPerformCapability("PROD_POST")
+End Function
 '@)
     foreach($point in @(@('session.MarkConsumeQueued','consumeEventId'),@('session.MarkCompleteQueued','completeEventId'))){
         $start=$owner.ProcStartLine('QueueProductionSessionEvents',0);$end=$start+$owner.ProcCountLines('QueueProductionSessionEvents',0)
@@ -157,6 +168,7 @@ function Test-ProductionCompleteWorksheet($Fixture,$Book,$Decoy,[string]$Canary)
         throw 'Actual worksheet Check In/output prerequisite unavailable; not product RED.'
     }
     [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
+    Test-ProductionCompleteWorksheetPermission $Fixture $Book $Decoy $Canary
     $before=@(Get-Slice4beActivityFiles $Fixture);$label='CompleteActivity.Worksheet.Normal'
     Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CompleteEntryAct' @('')))
     Check ($label+'.GuardsRestored') ([bool](Probe 'CompleteEntryFact' @('GuardsRestored')))
