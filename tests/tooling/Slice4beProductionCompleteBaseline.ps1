@@ -277,6 +277,7 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
         Check 'CompleteBaseline.RealSeedAndReleasedDefinitions' $true
         if($PreparationDiagnostic -and $PreparationPrelude -notin @('Initial','PriorSequence')){
             if($PreparationPrelude -eq 'Submission'){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary}
+            if($PreparationPrelude -eq 'OutputReturn'){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary -AfterOutput}
             if($PreparationPrelude -eq 'Entry'){Test-ProductionCompleteEntry $Fixture $book $decoy $canary}
             if($PreparationPrelude -eq 'Interruptions'){Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary}
             [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
@@ -343,7 +344,10 @@ function Test-ProductionCompleteBaseline($Fixture,$Other,[switch]$PreparationDia
         if(-not $PreparationDiagnostic -or $PreparationPrelude -eq 'PriorSequence'){
             Test-ProductionCompleteInterruptions $Fixture $Other $book $decoy $canary
             Test-ProductionCompleteEntry $Fixture $book $decoy $canary
-            if(-not $PreparationDiagnostic){Test-ProductionCompleteSubmission $Fixture $book $decoy $canary}
+            if(-not $PreparationDiagnostic){
+                Test-ProductionCompleteSubmission $Fixture $book $decoy $canary
+                Test-ProductionCompleteSubmission $Fixture $book $decoy $canary -AfterOutput
+            }
         }
         [void](Probe 'CloseDesigner');$book.Close($false);$book=$null
         Check 'CompleteBaseline.OperatorBytesPreserved' ((Hash $path) -ceq $bookPin)

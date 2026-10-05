@@ -39,7 +39,7 @@ param(
     [switch]$RunCompletePreparationDiagnostic,
     [switch]$RunCompleteVisibleHostForTest,
     [switch]$RunCompleteSavedDecoyForTest,
-    [ValidateSet('None','Submission','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
+    [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
     [switch]$RunCheckInBaselineOnly,

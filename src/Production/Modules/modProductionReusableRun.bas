@@ -1011,7 +1011,7 @@ Public Function CompleteReusableRun(ByVal runLocation As String, _
                 Exit Function
             End If
             appliedCount = appliedCount + processedNow
-            AppendProcessorReport processorReports, processorReport
+            modProductionCompleteActions.AppendProcessorReport processorReports, processorReport
         End If
         Set items = BuildNodeCompleteItems(node, runLocation, runId)
         If items.Count = 0 Then
@@ -1032,7 +1032,7 @@ Public Function CompleteReusableRun(ByVal runLocation As String, _
             Exit Function
         End If
         appliedCount = appliedCount + processedNow
-        AppendProcessorReport processorReports, processorReport
+        modProductionCompleteActions.AppendProcessorReport processorReports, processorReport
     Next rawNode
 
     If Not VerifyCompletedOutputBalances(report) Then
@@ -1104,7 +1104,7 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
             Exit Function
         End If
         mAppliedCount = mAppliedCount + processedNow
-        AppendProcessorReport mProcessorReports, processorReport
+        modProductionCompleteActions.AppendProcessorReport mProcessorReports, processorReport
         If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     End If
 
@@ -1127,7 +1127,8 @@ Public Function CompleteReusableProcess(ByVal processName As String, _
         Exit Function
     End If
     mAppliedCount = mAppliedCount + processedNow
-    AppendProcessorReport mProcessorReports, processorReport
+    modProductionCompleteActions.AppendProcessorReport mProcessorReports, processorReport
+    If Not modProductionRunLoadActions.CanContinue(action, report) Then Exit Function
     If Not VerifyNodeOutputBalances(nodeId, False, report) Then Exit Function
 
     mCompletedNodes.Add nodeId, True
@@ -2695,9 +2696,3 @@ Private Function RunItemNote(ByVal runId As String, ByVal node As Object, _
                              ByVal lineId As String) As String
     RunItemNote = RunEventNote(runId, node, "LINE") & "|Line=" & lineId
 End Function
-
-Private Sub AppendProcessorReport(ByRef reports As String, ByVal report As String)
-    If Trim$(report) = "" Then Exit Sub
-    If reports <> "" Then reports = reports & " | "
-    reports = reports & report
-End Sub

@@ -1,6 +1,50 @@
 # Slice 4be Production Complete Run
 
-## Current full gate, 2026-10-05 UTC
+## Output-return continuation, 2026-10-05 UTC
+
+Existing D18/D-NAS continuation rules also apply after real output processing.
+Packaged RED is **122 PASS/8 FAIL**, controller
+`bc7e3c3ecd1e430e9070322c60462433`, diagnostic worker
+`b6cb996d094b44ff9cc238fe8063ae85`, 09:10:48.301--09:15:11.356 UTC.
+Sign-out and permission loss each permit later reads, owner/projection changes
+and incorrect feedback; exact consume/output quantities and audit records pass.
+The ordinary continuation guard now runs after output accounting/reporting.
+The unchanged report helper moves to the existing typed completion module.
+
+Candidate `validation-complete-output-return-02` passes the full **318/318**:
+controller `99d55c14e2924e23ad684edbbd9b7f0a`, worker
+`slice4be-production-complete-baseline/3226b822a623424a8804abbcccd10bbe/green.json`,
+09:17:06.947--09:33:12.438 UTC. Run `Test-Slice4beProductionRunLocal.ps1
+-DeployRoot deploy/validation-complete-output-return-02 -Phase GREEN
+-CompleteBaselineOnly -CompleteVisibleHostForTest`, without a diagnostic switch.
+All289 prior checks retain their order and PASS results,
+including shared42/five instrumented compiles;29 new checks pass. Exact applied
+events remain applied, later work stops and both refusal captures are reviewed.
+Settings/package preservation, unassisted closure and delayed zero Excel errors
+pass. A slow visible-host transition recovers without intervention; observed GDI
+peak963. Desktop probes return0, not Win32 error5.
+
+Build `complete-output-return-build-02/` proves cold startup/five compiles,
+300 unchanged packaged components and only the two intended Production changes.
+Static `complete-output-return-static-02/` passes three schemas/28 non-growing
+oversized caps/407 tooling parses:309 components,6296 procedures,137770 lines
+(+1),9 literal/45 unresolved dynamic calls and190 duplicate candidates.
+Unchanged layout/guide evidence remains reusable; broader gates and Complete Run
+recording remain open. No candidate promotion or Slice4be acceptance is claimed.
+
+New-candidate packaged smoke is86/86 with exact prior order, both unassisted
+exits, preservation and delayed zero Excel errors:
+`complete-output-return02-regression/smoke-9550b296a3e545ea82ac8d0c52ff4f43`,
+09:33:29.338--09:33:53.373 UTC. Generated receipts remain ignored/local.
+
+Harness correction: numeric sort expressions and adjacency readback place the
+disposable interruption hooks correctly. Earlier controllers
+`1b0ba107bc7443f6a36132d35de22086` (228/1) and
+`14aba5925324432ebf190446e8f9b198` (40/1) failed prerequisites, not product RED.
+Build01 failed on a null COM import of an unchanged Operations class; cleanup
+preserved settings/prior packages. Fresh build02 passed. Preserve failed receipts.
+
+## Prior full gate, 2026-10-05 UTC
 
 `validation-complete-submission-01` passes **289/289**, controller
 `30c5740aa1564e69b08508a011b6be3f`, worker

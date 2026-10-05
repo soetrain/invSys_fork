@@ -29,3 +29,9 @@ Public Sub AppendEventId(ByRef eventIds As String, ByVal eventId As String)
     If eventIds <> "" Then eventIds = eventIds & ","
     eventIds = eventIds & eventId
 End Sub
+
+Public Sub AppendProcessorReport(ByRef reports As String, ByVal report As String)
+    If Trim$(report) = "" Then Exit Sub
+    If reports <> "" Then reports = reports & " | "
+    reports = reports & report
+End Sub
