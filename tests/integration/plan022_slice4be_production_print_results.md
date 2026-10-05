@@ -1,5 +1,56 @@
 # Slice 4be-A: Production Print Recall
 
+## Preview-return continuation, 2026-10-05
+
+Print previously displayed normal preview completion after sign-out, target loss,
+permission revocation or closure of its captured workbook. D18's existing
+post-yield rule now explicitly covers this boundary. One typed CanContinue check
+after the owner returns replaces stale completion with the existing refusal;
+prepared report effects remain, without retry or rollback.
+
+Actual-handler RED355/4 becomes GREEN359/359, preserving all309 prior ordered
+checks and exact RED/GREEN identities. Four interruptions occur after report
+preparation at the declared preview seam. Each enters the owner/report/preview
+once, restores guards and preserves source/exact keys, decoy, saved operator
+bytes and warehouse files. The permission fixture restores its original bytes.
+Four captures show context or permission refusal. Actual workbook Close removes
+the captured book; the form survives and refuses. That proves native workbook
+closure with a surviving form, not the separately unproved dismissed-form path
+or real native Print Preview. No dismissed controls were queried.
+
+Run `tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly
+-SavedProbeCopiesForTest` with RED/entry01 then GREEN/yield01. Ignored receipts
+below are relative to `reports/runtime/`:
+
+- RED: `production-run-local-controller/194d19d45fb74654a71ed79a20d404da/verification.json`;
+  worker `slice4be-production-print-baseline/0ee3164c53814a1a97e40902c33237c4`,
+  23:07:51-23:12:12 UTC. Only the four stale-status assertions fail. Five compiles,
+  normal closure, settings/package restoration and delayed zero Excel errors pass.
+- Build: `print-yield-build-01/verification.json`,23:12:50-23:13:45 UTC.
+  Five cold compiles; only modProductionRecallReport changes, with303 other
+  components identical. Entry01 layout18/five native-window checks remain valid
+  for the identical form. Candidate-only compiled-state persistence follows the
+  existing test setup; production build tools remain unchanged.
+- GREEN: `production-run-local-controller/b60a7c6df0654cc19a592e59c0192b00/verification.json`;
+  worker `slice4be-production-print-baseline/2002633ec9fa4870a2ee49053270bdc6`,
+  23:14:01-23:18:37 UTC.359/359, five instrumented compiles, normal closure,
+  settings/package preservation and delayed zero Excel errors.
+- Static: `print-yield-static-01/ratchet-verification.json`:311 components,
+  6306 procedures,138000 lines. One helper line added; nine literal/45 unresolved
+  calls,190 duplicate candidates and28 non-growing oversized caps remain unchanged.
+  Three schemas and426 PowerShell parses pass.
+- Smoke: `print-yield01-regression/smoke-7c5c2b6b123b4148af64ce02c8c7503e/verification.json`,
+  23:18:59-23:19:19 UTC.86 exact prior checks, both unassisted exits, settings/
+  package/tracked-report restoration and delayed zero Excel errors pass.
+- Full chain: `print-yield01-regression/chain-b6c178fe28bc4f70a7d2e188d0371eb4/verification.json`,
+  23:19:45-23:25:10 UTC. Chain32/live48/warehouse15 preserve exact prior check
+  order. Normal unassisted closure, settings/packages/tracked-report restoration
+  and delayed zero Excel errors pass on the same candidate.
+
+Candidate `deploy/validation-print-yield-01` remains unpromoted. Actual native
+preview/dismissed-form coverage, report identity/provenance and Print observation
+acceptance remain open. No error5 occurred.
+
 ## Current permission and action entry, 2026-10-05
 
 Loading/busy callbacks and a nested callback at the declared preview boundary

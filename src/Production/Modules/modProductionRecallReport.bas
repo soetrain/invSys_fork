@@ -15,6 +15,7 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, ByVal 
     If Not action.BeginOwner(context, operatorBook, detail) Then GoTo Done
     If Not modProductionRunBinding.RequireWorksheetContext(owner, context, operatorBook) Then GoTo Done
     mProduction.BtnPrintRecallCodes outcome, detail
+    If Not action.CanContinue(detail) Then GoTo Done
 Done:
     loading = priorLoading: busy = priorBusy
     If detail <> "" And modOperationsFormLifetime.IsLoaded(owner) Then owner.ShowStatus detail
