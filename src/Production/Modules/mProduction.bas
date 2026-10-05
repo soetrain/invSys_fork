@@ -9555,15 +9555,9 @@ Private Function BuildRecallCodesReportFromCurrentWorkbook(ByRef wsReportOut As 
     End If
 
     Set invLo = GetInvSysTable()
-    Set wsReportOut = EnsureRecallCodesReportSheet(wsProd.Parent)
-    If wsReportOut Is Nothing Then
-        detailOut = "Unable to create RecallCodesPrint worksheet."
-        Exit Function
-    End If
-
-    rowCountOut = RenderRecallCodesReport(wsProd, loOut, invLo, wsReportOut)
+    rowCountOut = RenderRecallCodesReport(wsProd, loOut, invLo, wsReportOut, detailOut)
     If rowCountOut <= 0 Then
-        detailOut = "No recall-coded ProductionOutput rows found. Generate recall codes from checked output rows before printing."
+        If detailOut = "" Then detailOut = "No recall-coded ProductionOutput rows found. Generate recall codes from checked output rows before printing."
         Exit Function
     End If
 
@@ -9588,10 +9582,9 @@ Private Function EnsureRecallCodesReportSheet(ByVal wb As Workbook) As Worksheet
     EnsureRecallCodesReportSheet.Cells.Clear
 End Function
 
-Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut As ListObject, ByVal invLo As ListObject, ByVal wsReport As Worksheet) As Long
+Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut As ListObject, ByVal invLo As ListObject, ByRef wsReport As Worksheet, ByRef detailOut As String) As Long
     If wsProd Is Nothing Then Exit Function
     If loOut Is Nothing Then Exit Function
-    If wsReport Is Nothing Then Exit Function
     If loOut.DataBodyRange Is Nothing Then Exit Function
 
     Dim cProc As Long: cProc = ColumnIndex(loOut, "PROCESS")
@@ -9613,6 +9606,12 @@ Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut 
         If Trim$(NzStr(src(r, cRecall))) <> "" Then rowCount = rowCount + 1
     Next r
     If rowCount = 0 Then Exit Function
+
+    Set wsReport = EnsureRecallCodesReportSheet(wsProd.Parent)
+    If wsReport Is Nothing Then
+        detailOut = "Unable to create RecallCodesPrint worksheet."
+        Exit Function
+    End If
 
     Dim reportData() As Variant
     ReDim reportData(1 To rowCount + 1, 1 To 9)

@@ -107,6 +107,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
             CaptureOwnedFormByCaptionEvidence 'Production' ('print-binding-'+$case.ToLowerInvariant()+'.png')
             [void](Probe 'CloseDesigner');$sheet.Name='Production'
         }
+        Test-ProductionPrintRefusalPreservation $Fixture $book $sheet
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
@@ -116,5 +117,67 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
         if($null -ne $book){$book.Close($false)}
         if($null -ne $decoy){$decoy.Close($false)}
         SelectTarget $Fixture 'config-producer'
+    }
+}
+
+function Test-ProductionPrintRefusalPreservation($Fixture,$Book,$Sheet){
+    function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
+    function Fingerprint($Worksheet){
+        $tables=@(foreach($table in $Worksheet.ListObjects){
+            [pscustomobject]@{Name=$table.Name;Address=$table.Range.Address();Formula=@($table.Range.Formula)}
+        })
+        ConvertTo-Json -Depth 12 -Compress -InputObject ([pscustomobject]@{Tables=$tables;Formula=@($Worksheet.UsedRange.Formula)})
+    }
+    SelectTarget $Fixture 'config-producer'
+    $Sheet.Cells.Item(5,1).Value2='PROCESS';$Sheet.Cells.Item(5,2).Value2='OUTPUT'
+    $Sheet.Cells.Item(5,3).Value2='RECALL CODE';$Sheet.Cells.Item(5,4).Value2='LOCAL_NOTE'
+    $Sheet.Cells.Item(6,1).Value2='PRINT-DRAFT';$Sheet.Cells.Item(6,2).Value2='PRINT-OUTPUT'
+    $Sheet.Cells.Item(6,4).Formula='=2+3'
+    $output=$Sheet.ListObjects.Add(1,$Sheet.Range('A5:D6'),$null,1);$output.Name='ProductionOutput'
+    $report=$null
+    foreach($case in @('NoReport','NoRecall','MissingRecallHeader','EmptyOutput')){
+        if($case -cne 'NoReport'){
+            if($null -eq $report){
+                foreach($candidate in $Book.Worksheets){if($candidate.Name -ceq 'RecallCodesPrint'){$report=$candidate}}
+                if($null -eq $report){$report=$Book.Worksheets.Add();$report.Name='RecallCodesPrint'}
+            }
+            # Reset only this owned fixture so RED in one case cannot contaminate another.
+            while($report.ListObjects.Count){$report.ListObjects.Item(1).Delete()};$report.Cells.Clear()
+            $headers=@('LOCAL_NOTE','RECALL CODE','RECIPE','RECIPE_ID','PROCESS','OUTPUT','REAL OUTPUT','UOM','BATCH','LOCATION')
+            for($i=0;$i -lt $headers.Count;$i++){$report.Cells.Item(5,$i+1).Value2=$headers[$i]}
+            $report.Cells.Item(6,1).Formula='=6+7';$report.Cells.Item(6,2).Value2='RETAINED-REPORT'
+            $table=$report.ListObjects.Add(1,$report.Range('A5:J6'),$null,1);$table.Name='RecallCodesReport'
+            $report.Range('N5').Value2='USER_DATA';$report.Range('N6').Value2='RETAINED-TABLE'
+            $other=$report.ListObjects.Add(1,$report.Range('N5:N6'),$null,1);$other.Name='PrintUserTable'
+            $report.Range('Z1').Value2='RETAINED-CELL';$report.Range('Z2').Formula='=8+9'
+            $before=Fingerprint $report
+        }
+        if($case -ceq 'MissingRecallHeader'){$output.ListColumns.Item('RECALL CODE').Name='USER_RECALL'}
+        if($case -ceq 'EmptyOutput'){$output.ListRows.Item(1).Delete()}
+        $source=Fingerprint $Sheet
+        [void](Probe 'OpenDesigner' @($Book.Name));[void](Probe 'RunLocalShowAndCapture' @($Book.Name,'PRINT'))
+        $processes=@(Get-Process EXCEL);if($processes.Count -ne 1){throw 'Isolated Excel required.'}
+        $stop=Join-Path $runRoot ('print-preserve-'+$case)
+        $observer=Start-DialogCaptureAndDismiss -ExcelProcessId $processes[0].Id -TimeoutSeconds 30 -StopPath $stop
+        $label='PrintPreservation.'+$case
+        try{Check ($label+'.ActualHandlerReturned') ([bool](Probe 'PrintAct'))}finally{
+            [IO.File]::WriteAllText($stop,'');Wait-Job $observer -Timeout 35|Out-Null
+            $notice=@(Receive-Job $observer -ErrorAction SilentlyContinue) -join "`n"
+            if($observer.State -ne 'Completed'){Stop-Job $observer;Remove-Job $observer;throw 'Native observer did not close normally.'}
+            Remove-Job $observer
+        }
+        $expected=if($case -ceq 'EmptyOutput'){'ProductionOutput has no rows to print.'}else{'No recall-coded ProductionOutput rows found. Generate recall codes from checked output rows before printing.'}
+        Check ($label+'.ExistingNativeRefusal') ($notice.Contains($expected))
+        Check ($label+'.BothExistingReportReads') ([int](Probe 'PrintReportReads') -eq 2)
+        Check ($label+'.SourcePreserved') ((Fingerprint $Sheet) -ceq $source)
+        if($case -ceq 'NoReport'){
+            Check ($label+'.NoEmptyReportCreated') (@($Book.Worksheets|Where-Object Name -CEQ 'RecallCodesPrint').Count -eq 0)
+        }else{
+            Check ($label+'.WholeReportPreserved') ((Fingerprint $report) -ceq $before)
+            Check ($label+'.UserTablesPreserved') ($report.ListObjects.Count -eq 2)
+            Check ($label+'.UnrelatedCellsPreserved') ($report.Range('Z1').Value2 -ceq 'RETAINED-CELL' -and $report.Range('Z2').Formula -ceq '=8+9')
+        }
+        CaptureOwnedFormByCaptionEvidence 'Production' ('print-preserve-'+$case.ToLowerInvariant()+'.png')
+        [void](Probe 'CloseDesigner')
     }
 }
