@@ -3,8 +3,20 @@
 This repairs validation input routing under Architecture v4.11 D13/D18. It changes
 no Receiving implementation, activity contract, business authority or package.
 The original calibration used `deploy/validation-shipping-prewrite-facts`;
-the latest regression below uses `deploy/validation-receiving-run-05`.
+the latest regression below uses `deploy/validation-user-policy-02`.
 Release1 and comprehensive Slice4be acceptance remain open.
+
+## Per-user policy candidate regression, 2026-10-05 UTC
+
+Candidate02 retains **854/854** exact prior ordered checks, including native input,
+redaction, launcher reuse/denial and preservation. Controller
+`receiving-owner-regression/821e058c51134bd39ec2da9045705bdc` runs
+04:15:00.165--04:25:42.174 UTC; comparison/closure and50 evidence files are retained,
+including `evidence/launcher-denial-green.json`. Settings/packages are preserved,
+Excel closes normally, and fresh Receiving/Returns captures are reviewed. No
+test-helper correction or runtime change was needed. The final native audit has
+zero Excel failures; exact receipts and limits are in
+[A1 policy evidence](plan022_slice4be_user_tracking_policy_results.md).
 
 ## Receiving runner regression, 2026-10-05 UTC
 

@@ -110,6 +110,11 @@ function Test-ReceivingRunGuards {
             [void](RunnerControl 'btnNextRunStep' 'Click')
             $blocked=LatestGuardRun $before
             Check ('ReceivingRun.Guard.'+$case+'StopsLaterDispatch') ($blocked.State -ceq 'Blocked' -and @($blocked.Steps).Count -eq 1 -and (BoundSame $business (BusinessPins)) -and (BoundSame $activity (ActivityPins)))
+            if($case -ceq 'UserDisabled'){
+                CloseGuardRun
+                . (Join-Path $PSScriptRoot 'Slice4beReceivingUserAudit.ps1')
+                Test-ReceivingUserAudit $Fixture
+            }
         } finally {
             Write-Host ($case+'.CloseRun.Before')
             CloseGuardRun

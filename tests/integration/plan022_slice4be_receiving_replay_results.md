@@ -1,24 +1,27 @@
 # Slice 4be-A / early B0: Receiving replay
 
 Last verified: 2026-10-05 UTC. D18-REPLAY-01 is approved. Frozen
-`validation-user-policy-02` passes **94/94** focused checks, retaining all93 prior
-checks and adding per-user capture-loss stopping through real Admin handlers.
+`validation-user-policy-02` passes **101/101** focused checks, retaining all94 prior
+checks. Per-user capture-loss stopping and ordinary Receiving's required audit
+with optional recording disabled pass through real Admin/Receiving handlers.
 Actual Receiving replay and fresh exact business proof pass. B0 and 4be-A acceptance remain
 open for observations, visible evidence and broader gates. Earlier RED receipts
 below record the progression; they are not the current implementation status.
 
 ## Evidence
 
-Latest controller `receiving-replay-controller/9a235a37f49d4745b80176525474d881`,
-03:30:10.465--03:39:27.864 UTC, worker
-`slice4be-receiving-replay/4b2912b5330b40d1b0cabf4292664b88/green.json`.
-All93 prior checks retain exact relative order. The new UserDisabled guard saves
-the running user's recording flag through Admin's actual selection/toggle/Save
-handlers while global capture stays enabled; Next blocks without another owner
-dispatch, preserving the completed step and business/activity bytes. Five compiled
-packages, preserved settings/package hashes and normal Excel closure pass. This is
-supplemental coverage on the per-user policy candidate; no further runtime fix.
-See [A1 policy evidence](plan022_slice4be_user_tracking_policy_results.md).
+Latest controller `receiving-replay-controller/7b97d29b39404453ab103ca3b9da9a43`,
+03:58:29.554--04:07:57.909 UTC, worker
+`slice4be-receiving-replay/e3766508e935446c90c2375707781790/green.json`.
+All94 prior checks retain exact relative order. The UserDisabled guard saves the
+running user's flag through actual Admin selection/toggle/Save while global
+capture stays enabled; Next blocks without another owner dispatch. Ordinary
+Receiving then clears staging without changing business bytes, adds/confirms a
+receipt and proves its exact applied event/audit while optional activity stays
+absent. Custom headers and Auth/Config bytes survive. Five instrumented compiles,
+settings/package preservation and normal Excel closure pass. This is supplemental
+coverage, with no further runtime fix. The earlier staging-fixture failure and
+94-check baseline remain in [A1 policy evidence](plan022_slice4be_user_tracking_policy_results.md).
 
 `Test-Slice4beReceivingReplay.ps1 -Phase RED` against frozen
 `deploy/validation-warehouse-purpose-02` returns **16 PASS / 4 FAIL**, exit1,

@@ -162,3 +162,72 @@ query errors; the earlier PowerShell setup failure remains recorded above. Excel
 is closed. Cursor access succeeds03:41:06.633 UTC (Oct4 20:41 PDT), with error0.
 The four unrelated user-document hashes remain unchanged. No promotion, handoff
 or full-slice acceptance is included in this checkpoint.
+
+## Membership lifecycle coverage, 2026-10-05 UTC
+
+Unchanged candidate02 passes **104/104**, retaining all91 preceding checks in
+exact relative order. Actual Settings handlers retain unchanged removed-user
+flags as unavailable, refuse changes to unavailable users, default a newly
+appearing user to enabled, preserve a numeric-looking text identity exactly,
+restore a returning user's saved flag and stage/reset all overrides only on Save.
+A supplemental direct command rejects a changed unavailable-user override.
+Generated roster membership changes inspect only UserId cells; this fixture does
+not claim coverage of user-management creation/deletion handlers. Policy commands
+preserve Auth bytes, and final cleanup restores both generated fixtures exactly.
+
+Controller `user-tracking-policy-controller/ab9a65de6a9f46b4bd3446fc55d91c66`
+runs03:53:30.728--03:58:15.970 UTC. Worker
+`slice4be-tracking-settings/bd013edf38dc4a369ac60f11e0fbe8e0/green.json` and the
+controller's verification/ordered-comparison receipts record no duplicates,
+preserved settings/packages and normal Excel closure. These are supplemental
+GREEN checks under the existing contract; no runtime fix or new product RED.
+
+The first disabled-user Receiving audit extension stops after84 passes with one
+harness failure: it assumed staging was empty before the ordinary Clear action.
+Controller `receiving-replay-controller/4e344209fea84a1f9c9aa78a13c6f817` runs
+03:45:17.109--03:52:52.985 UTC and preserves settings/packages with Excel closed.
+The initial row's origin is unproved; do not attribute it to Stop. The corrected
+test invokes the existing Clear handler, records only staging counts and verifies
+empty staging plus unchanged business bytes before adding the audit receipt.
+This setup correction is not product RED and changes no runtime behavior.
+
+Corrected audit extension: **101/101**, all94 prior checks in exact relative order,
+no duplicates. Controller `receiving-replay-controller/7b97d29b39404453ab103ca3b9da9a43`
+runs03:58:29.554--04:07:57.909 UTC; worker
+`slice4be-receiving-replay/e3766508e935446c90c2375707781790/green.json`.
+The count-only staging receipt finds one initial row with neither EventId nor
+System_Key; ordinary Clear leaves zero rows and unchanged business bytes. Actual
+Add/Confirm while this actor's recording is disabled creates one exact applied
+event and matching inventory audit entry, retains the custom header, changes no
+Auth/Config bytes and emits no optional activity. The global capture switch stays
+enabled. Settings/packages are preserved and Excel closes normally. No runtime
+change is needed. Cursor probe04:08:03.670 UTC succeeds with error0.
+
+Affected published-guide regression on candidate02 is **58/58**, with exactly the
+prior58 check identities/order. Controller
+`execution-profile-guide-regression/4b7b4eb9bc904cfd91255863290e736b` runs
+04:08:05.577--04:14:49.159 UTC; worker
+`slice4be-viewer-published-read/eccb3a440e04402dbd42a5fb59e542a0/green.json`.
+Five instrumented compiles, immutable versions, draft/cancel/conflict behavior,
+layout, role/policy/context guards and source/business preservation pass.
+Settings/packages are preserved and Excel closes normally. Cursor access succeeds
+04:14:58.218 UTC with error0. This does not close Action Path visible acceptance.
+
+Full Receiving on candidate02 is **854/854**, retaining the exact prior854
+identities/order with no duplicates. Controller
+`receiving-owner-regression/821e058c51134bd39ec2da9045705bdc` runs
+04:15:00.165--04:25:42.174 UTC. Its comparison, closure and50 preserved evidence
+files include `evidence/launcher-denial-green.json`. Native keyboard/mouse,
+observations/redaction, staging/custom columns, required identity, launcher reuse,
+denial and authority/unrelated-workbook preservation pass. Settings/packages are
+preserved and Excel closes normally. Fresh Receiving/Returns captures are directly
+reviewed; their visible-review receipt does not claim long-value/multiline acceptance.
+
+Final native audit03:45:01--04:26:08.599 UTC finds zero Excel1000/1001/1002 events
+and no query errors. Cursor access succeeds04:26:08.874 UTC (Oct4 21:26 PDT), error0;
+Excel is closed. All404 PowerShell scripts parse, runtime source has no diff, and
+the four unrelated user-document hashes remain unchanged. Candidate02's cold
+compile/source/static receipts remain applicable to this test-only increment.
+The lifecycle/audit tests are supplemental GREEN coverage, not a new D13 product
+RED. Comprehensive observations, Action Path visible proof and broader acceptance
+remain open; the older full-chain native failure is not resolved by these results.

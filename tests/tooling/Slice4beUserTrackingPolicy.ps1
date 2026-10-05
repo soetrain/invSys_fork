@@ -21,6 +21,9 @@ Public Function UserPolicyControl(ByVal name As String, ByVal command As String,
             Next index
             UserPolicyControl = "ABSENT"
         Case "Read": UserPolicyControl = CStr(control.Value)
+        Case "Enabled": UserPolicyControl = CStr(control.Enabled)
+        Case "Availability"
+            If control.ListIndex >= 0 Then UserPolicyControl = CStr(control.List(control.ListIndex, 2))
         Case "Write": control.Value = CBool(value): UserPolicyControl = "SET"
         Case "Click": control.Value = True: UserPolicyControl = "CLICKED"
     End Select
@@ -131,6 +134,8 @@ function Test-UserTrackingPolicy($Fixture,$Other) {
     Test-UserPolicyStorage $Fixture $Other
     . (Join-Path $PSScriptRoot 'Slice4beUserPolicyAccess.ps1')
     Test-UserPolicyAccess $Fixture
+    . (Join-Path $PSScriptRoot 'Slice4beUserPolicyLifecycle.ps1')
+    Test-UserPolicyLifecycle $Fixture
 }
 
 function Test-UserPolicyRecording($Fixture) {
