@@ -240,15 +240,63 @@ Smoke86 retains all prior checks and both unassisted exits:
 zero; settings/packages and tracked reports are preserved. No error5, deployment
 or broader A1/A/R1 acceptance. The remaining Complete Run gates are below.
 
+## Partial effects and optional logging faults, 2026-10-05
+
+The unchanged `validation-complete-activity-04` package passes **432/432**, retaining
+all219 prior checks in order. This expands the existing D13 proof; no runtime or
+architectural contract changes and no new product RED are claimed.
+
+Actual reusable completion is interrupted after real consume processing and after
+real output processing. Permission loss records FAILED with the exact submitted
+Inventory references; sign-out retains only REQUESTED. Restoring a session never
+finishes the old attempt. Exact quantities, applied-event/audit rows, partial
+owner state, captured projections, guards and custom columns are verified without
+retry or rollback. Read-only authority inspection preserves workbook bytes/lifetime.
+
+Both reusable and worksheet handlers also complete their real business work with
+recording Off, an independently valid older policy, an invalid policy and an
+unavailable activity store. Fixed notices, distinct writer acknowledgments, absent
+fallback/redirected records, unchanged policy bytes and immutable prior training
+records pass. Faults affect only disposable Config/Training fixtures and are restored.
+
+The initial expansion produced315 PASS/4 FAIL: controller
+`production-run-local-controller/b6231afa2f1d411cbd6c89cd52f2efd8`, worker
+`slice4be-production-complete-activity/2d618b0271514020a1146399bc430d57/green.json`,
+12:25:49.861--12:33:15.855 UTC. All219 prior checks passed. The four new guard checks
+read an entry-wrapper flag without invoking that wrapper. This was a harness defect,
+not product RED; the corrected tests invoke CompleteEntryAct, which calls the same
+actual handler and measures guards before adapter cleanup.
+
+Final GREEN controller `production-run-local-controller/ba6d9ecab33d496dbb872e50c3ab4d38`,
+worker `slice4be-production-complete-activity/0259391a52294f94a09e9f6a45a3d82a/green.json`,
+12:33:31.427--12:48:05.126 UTC. Five instrumented compiles, settings/package pins,
+normal closure and delayed zero Excel application errors pass. Windowless Excel
+cleanup took several minutes and recovered unassisted; no process was terminated.
+Desktop probes remained available. The four unrelated user document hashes and
+existing deletion remain unchanged.
+
+Static evidence `complete-activity-fault-static-04/` passes three schemas,413 script
+parses and28 unchanged size caps. Runtime metrics remain310 components/6300
+procedures/137871 lines,9 literal/45 unresolved dynamic calls and190 duplicate groups.
+Reuse activity04's cold build, smoke86/layout18 and previously documented unchanged
+closure/guide evidence; no packages were rebuilt or promoted for this test expansion.
+
+Reviewed `complete-submission-permission.png`, `complete-output-return-signedout.png`
+and both `complete-policy-store-*.png`. Refusal messages and the reusable tracking
+warning are visible. The worksheet report's initial viewport clips its trailing
+warning; the full text passes, but an operator scrolling capture remains open.
+These captures do not accept general Run sizing or A2 long/multiline rendering.
+
 ## Next test-first work
 
-Retain native closure/permission proofs, then expand actual partial-submission,
-optional store/policy fault and publication/guide-view cases. The older live-role
+Retain native closure, permission, identity, interruption and optional logging
+proofs. Next cover queued/unacknowledged submissions, publication/guide views and
+the worksheet status scrolling capture. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`
 can distinguish attempted uncertain writes from unused allocated event IDs.
 
-Fresh exact source application/evaluation, policy/fault handling, publication and
+Fresh exact source application/evaluation, remaining submission faults, publication and
 How-To/Diagnostic/Compare remain required. Focused observation GREEN is established;
 package promotion, comprehensive A1 and Slice4be-A acceptance are not claimed.

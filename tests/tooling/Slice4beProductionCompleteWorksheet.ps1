@@ -1,8 +1,10 @@
 # Disposable worksheet staging backed by Admin-seeded exact inventory entities.
 . (Join-Path $PSScriptRoot 'Slice4beProductionCompleteWorksheetPermission.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionOutputIdentity.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionCompletePolicy.ps1')
 function Install-ProductionCompleteWorksheetProbe {
     Install-ProductionOutputIdentityProbe
+    Install-ProductionCompletePolicyProbe
     $project=$packages['invSys.Operations.xlam'].VBProject
     $form=$project.VBComponents.Item('frmProduction').CodeModule
     $form.InsertLines(1,'Private mCompleteWorksheetPhase As String, mCompleteWorksheetError As Long, mCompleteWorksheetInputBefore As Double')

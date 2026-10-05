@@ -93,7 +93,7 @@ End Sub
 '@)
 }
 
-function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary,[switch]$AfterOutput) {
+function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary,[switch]$AfterOutput,[switch]$ObserveActivity,$Other) {
     $auth=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
     $authBytes=[IO.File]::ReadAllBytes($auth);$authHash=(Get-FileHash -LiteralPath $auth).Hash
     $group=if($AfterOutput){'CompleteOutputReturn'}else{'CompleteSubmission'}
@@ -109,8 +109,12 @@ function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary
                 $sourceSelection=Owner 'CompleteSubmissionInputForTest'
                 if($sourceSelection -isnot [array] -or $sourceSelection.Count -ne 2 -or [string]$sourceSelection[0] -ceq '' -or [double]$sourceSelection[1] -le 0){throw 'Exact staged consume input unavailable; not product RED.'}
                 [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
+                if($ObserveActivity){
+                    $activityBefore=@(Get-Slice4beActivityFiles $Fixture)
+                    $otherBefore=@(Get-Slice4beActivityFiles $Other)
+                }
                 [void](Probe 'CompleteSubmissionArm' @($interruption,$auth,$boundary))
-                $returned=[bool](Probe 'CompleteBaselineAct')
+                $returned=if($ObserveActivity){[bool](Probe 'CompleteEntryAct' @(''))}else{[bool](Probe 'CompleteBaselineAct')}
                 $facts=([string](Probe 'CheckYieldEvidence')).Split('|')
                 $eventId=[string](Probe 'CompleteSubmissionEvent')
                 if($facts.Count -ne 4 -or $facts[0] -cne 'True' -or $facts[1] -cne 'True' -or $facts[3] -cne 'True' -or $eventId -ceq ''){
@@ -131,6 +135,18 @@ function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary
                 $refused=if($interruption -ceq 'Permission'){[bool](Probe 'CheckBaselinePermissionRefused')}else{[bool](Probe 'CheckBaselineContextRefused')}
                 Check ($label+'.VisibleInterruptionRefusal') $refused
                 CaptureOwnedFormByCaptionEvidence 'Production' ($capturePrefix+'-'+$interruption.ToLowerInvariant()+'.png')
+                if($ObserveActivity){
+                    $activityLabel='CompleteActivity.'+$label
+                    if($interruption -ceq 'SignedOut'){
+                        Pair $activityBefore 'REQUESTED' ($activityLabel+'.IncompleteRequestedOnly')
+                    }else{
+                        $submitted=@($eventId);if($AfterOutput){$submitted+=$outputEventId}
+                        Pair $activityBefore 'FAILED' $activityLabel $submitted
+                    }
+                    $activityAtBoundary=@(Get-Slice4beActivityFiles $Fixture)
+                    Check ($activityLabel+'.NoRedirectOrPriorRecordRemoval') ((@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|') -and @($activityBefore|Where-Object{$_ -cnotin $activityAtBoundary}).Count -eq 0)
+                    Check ($activityLabel+'.GuardsRestored') ([bool](Probe 'CompleteEntryFact' @('GuardsRestored')))
+                }
             } finally {
                 [void](Probe 'CompleteSubmissionReset')
                 [IO.File]::WriteAllBytes($auth,$authBytes)
@@ -163,6 +179,9 @@ function Test-ProductionCompleteSubmission($Fixture,$Book,$Decoy,[string]$Canary
             if(-not $lifetime){throw 'Audit inspection changed the authority workbook lifetime; harness failure, not product RED.'}
             Check ($label+'.CustomValueAndFormulaPreserved') ($Book.Worksheets.Item(1).Cells.Item(2,1).Value2 -ceq $Canary -and $Book.Worksheets.Item(1).Cells.Item(2,2).Formula -ceq '=1+2')
             Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
+            if($ObserveActivity){
+                Check ($activityLabel+'.ReplacementSessionDoesNotFinishOldAttempt') ((@(Get-Slice4beActivityFiles $Fixture) -join '|') -ceq ($activityAtBoundary -join '|'))
+            }
         }
         Check ($group+'.AuthorizationFixtureRestored') ((Get-FileHash -LiteralPath $auth).Hash -ceq $authHash)
     } finally {[void](Probe 'CompleteSubmissionReset')}

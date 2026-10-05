@@ -8,7 +8,8 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
         $records=@($raw|ForEach-Object {$_|ConvertFrom-Json})
         $first=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED')
         $last=@($records|Where-Object OutcomeCode -CEQ $Outcome)
-        $paired=$records.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
+        $incomplete=$Outcome -ceq 'REQUESTED'
+        $paired=$records.Count -eq $(if($incomplete){1}else{2}) -and $first.Count -eq 1 -and $last.Count -eq 1
         $context=$paired;$safe=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false;$sources=$false
         foreach($record in $records){
             $context=$context -and $record.ControlId -ceq 'PRODUCTION_RUN_COMPLETE' -and $record.OwnerId -ceq 'PRODUCTION_RUN_COMPLETION' -and $record.UserId -ceq $Actor -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.CatalogVersion -eq 28
@@ -25,7 +26,7 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
             $integrity=$integrity -and $hash -ceq $match.Groups[1].Value
         }
         if($paired){
-            $linked=$first[0].ActivityId -cne '' -and $first[0].ActivityId -ceq $last[0].ActivityId -and $first[0].RecordId -cne $last[0].RecordId -and $activities.Add([string]$first[0].ActivityId)
+            $linked=$first[0].ActivityId -cne '' -and $first[0].ActivityId -ceq $last[0].ActivityId -and ($incomplete -or $first[0].RecordId -cne $last[0].RecordId) -and $activities.Add([string]$first[0].ActivityId)
             $severity=switch($Outcome){'DENIED'{'Blocked'} 'FAILED'{'Error'} 'PENDING'{'Warning'} 'REJECTED'{'Warning'} default{'Info'}}
             $effect=if($Outcome -cin @('REJECTED','DENIED')){'Unchanged'}else{'Unknown'}
             $facts=$first[0].Severity -ceq 'Info' -and $first[0].DataEffect -ceq 'Unknown' -and $last[0].Severity -ceq $severity -and $last[0].DataEffect -ceq $effect -and $last[0].EventCode -ceq ('PRODUCTION_RUN_COMPLETE_'+$Outcome)
@@ -105,6 +106,11 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
     Check 'CompleteActivity.Disabled.ExactInputsConsumedOnce' ([bool](Owner 'CompleteBaselineBalancesForTest' @($true)))
     Check 'CompleteActivity.Disabled.ExactFreshOutput' ([bool](Owner 'CompleteBaselineOutputForTest'))
     Check 'CompleteActivity.Disabled.NoRecords' (@(Files|Where-Object {$_ -cnotin $before}).Count -eq 0)
+    SelectTarget $Fixture
+    if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Partial-submission recording policy unavailable; not product RED.'}
+    Test-ProductionCompleteSubmission $Fixture $Book $Decoy $Canary -ObserveActivity -Other $Other
+    Test-ProductionCompleteSubmission $Fixture $Book $Decoy $Canary -AfterOutput -ObserveActivity -Other $Other
+    Test-ProductionCompletePolicy $Fixture $Other $Book $Decoy $Canary
 }
 
 function Test-ProductionCompleteCatalog {
