@@ -2,6 +2,11 @@
 function Install-ProductionPrintRebuildProbe($Module){
     $start=$Module.ProcStartLine('BtnPrintRecallCodes',0);$end=$start+$Module.ProcCountLines('BtnPrintRecallCodes',0)
     $lines=@(for($i=$start;$i -lt $end;$i++){if($Module.Lines($i,1).Trim() -ceq 'wsReport.PrintOut Preview:=True'){$i}})
+    if($lines.Count -eq 0){
+        $Module=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modProductionRecallReport').CodeModule
+        $start=$Module.ProcStartLine('Preview',0);$end=$start+$Module.ProcCountLines('Preview',0)
+        $lines=@(for($i=$start;$i -lt $end;$i++){if($Module.Lines($i,1).Trim() -ceq 'wsReport.PrintOut Preview:=True'){$i}})
+    }
     if($lines.Count -ne 1){throw 'Native preview boundary changed; not product RED.'}
     $Module.ReplaceLine($lines[0],'    TestProductionDesigner.PrintPreviewForTest wsReport')
     $adapter=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('TestProductionDesigner').CodeModule

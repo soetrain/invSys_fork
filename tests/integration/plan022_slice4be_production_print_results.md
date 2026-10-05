@@ -1,5 +1,131 @@
 # Slice 4be-A: Production Print Recall
 
+## Truthful owner feedback, 2026-10-05
+
+The form previously inferred success by rebuilding the report after its owner
+returned. It displayed "completed" even after refusal or preview failure. Under
+D18 truthful feedback, the handler now displays the original owner's detail and
+prepares the report once. Normal preview return says "Print preview closed."
+Refusals and errors retain their existing native dialogs and replace prior status.
+No physical-printing or observation acceptance follows from a preview return.
+
+The public compatibility command retains no-argument use and adds optional primitive
+outcome/detail outputs. Typed Operations calls use REJECTED, FAILED or
+PREVIEW_RETURNED. The report helper owns feedback; the report-builder function is
+public for that same-project typed call, not a new cross-XLAM bridge. The diagnostic
+API remains available to explicit callers. Form geometry is unchanged.
+
+Tests deliberately replace five incidental two-build assertions with a single
+owner-build assertion. Four inventory cases now explicitly invoke the diagnostic
+API and still verify both reads' captured binding. This maps all217 preceding
+checks, with31 added checks; it is not an unchanged-check-identity claim.
+New cases cover preview return, preview failure after success, refusal after
+preview and recovery. The native-preview call is still an unsaved test seam;
+actual native printing and interruption acceptance remain open.
+
+Entry: tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly,
+Phase RED / deploy/validation-print-inventory-01 then Phase GREEN /
+deploy/validation-print-outcome-01. Ignored receipts, relative to reports/runtime/:
+
+- RED: production-run-local-controller/3d46e35f5a4b4575b0de3ea14e2dffbb;
+  slice4be-production-print-baseline/80fff3b4ed2d457585b6ae64d598f0fd/red.json,
+  21:28:55-21:32:03 UTC.231 PASS/17 behavioral FAIL:13 duplicate-build checks and
+  four false-status checks. Five instrumented compiles, normal
+  closure/restoration, package preservation and delayed zero Excel errors pass.
+- Build: print-outcome-build-01/verification.json,21:32:46-21:33:25 UTC.
+  Five cold compiles,304 components/301 unchanged; changes are mProduction,
+  modProductionRecallReport and frmProduction. Settings and frozen packages are
+  preserved, with delayed zero Excel errors.
+- GREEN: production-run-local-controller/e2d8c74700154afdbd71cedfe89f2526;
+  slice4be-production-print-baseline/5e29c0efc9ac407489a60429fc1c8887/green.json,
+  21:33:38-21:36:56 UTC.248/248 with exact RED identities and prior217 mapped
+  coverage. Five compiles, preservation/restoration, normal closure and delayed
+  zero Excel errors pass. All four outcome captures are readable and show the
+  original owner result, including failure/refusal after earlier success.
+- Layout: print-outcome01-regression/layout-61e31fc8da1649199cfe23d3e35f77a6/
+  verification.json,21:37:14-21:37:32 UTC.18 size/page and five native-window checks
+  pass, zero bounds/interactive-overlap failures; preservation and delayed zero
+  Excel errors pass.
+- Static: print-outcome-static-01/ratchet-verification.json:311 components,
+  6306 procedures,137979 lines; two helper procedures/nine net lines added.
+  mProduction shrinks15 lines and frmProduction shrinks2. All28 oversized caps
+  pass;9 literal/45 unresolved dynamic calls and190 duplicate candidates are
+  unchanged. Three schemas and423 PowerShell parses pass.
+- Smoke: print-outcome01-regression/smoke-b2126e7bb16b4b98b8b1bc80ce571244/
+  verification.json,21:37:45-21:38:13 UTC.86 exact prior checks, both unassisted
+  exits, settings/package/tracked-report restoration and delayed zero Excel errors.
+- Full-chain attempt: print-outcome01-regression/chain-5c7dcadc00a747569364d7f14184b034,
+  21:38:52-21:54:21 UTC. Chain5 PASS/1 FAIL; live-role35 PASS/1 harness exception;
+  warehouse15 PASS. The exception occurred at ProductionFormTwoBatchActionReportForTest
+  (HRESULT 0x80020009); its cause is unresolved. Ten recovered test workbooks
+  required closure without saving. All twelve original fixture hashes remained
+  unchanged before Quit; controller settings/packages/tracked reports were restored.
+  failed-run-audit.json and assisted-recovery-closure.json retain the failure,
+  assisted cleanup and delayed zero Excel Application errors. No error5 occurred.
+  This run is not accepted.
+- Unchanged-candidate retry: print-outcome01-regression/chain-510622ae02954797a20b4fe5576cab00,
+  21:54:37-21:59:13 UTC. Production two-batch form action passed; Boxing then
+  failed at modBoxingService.RunRelease1BoxingActionForTest (HRESULT 0x800706BE).
+  Chain5 PASS/1 FAIL; live-role36 PASS/1 harness exception; warehouse15 PASS.
+  Application1000 records ntdll.dll/0xc0000028 at21:57:04 UTC, followed by1001.
+  Seventeen recovered test books (ten current, seven earlier recovery copies)
+  closed without saving; all24 original fixture hashes were preserved. Settings,
+  packages and tracked reports were restored. Exact receipts are failed-run-audit.json
+  and assisted-recovery-closure.json. This is a second failed run, not acceptance
+  or an established cause.
+- Preceding-package control: print-outcome-prior-control/chain-63982828f1994d9085507d1b83d3d630/
+  verification.json,21:59:36-22:04:54 UTC, validation-print-inventory-01 unchanged.
+  Exact chain32/live48/warehouse15 pass with unassisted closure, restored settings/
+  packages/tracked reports and delayed zero Excel errors. A read-only checkpoint
+  saw zero recovery books; it is not continuous isolation proof. The comparison
+  does not establish the failure cause or accept the newer package.
+- Third outcome01 attempt: print-outcome01-regression/chain-fd643eff3dee4af1917a583429c0b276,
+  22:05:43-22:09:07 UTC. Chain5 PASS/1 FAIL, live-role32 PASS/1 exception,
+  warehouse15 PASS. Projection rebuilding failed at modProcessor.RunBatchReportForAutomation
+  (HRESULT 0x800706BE), before the preceding failure points. Application1000 records
+  ntdll.dll/0xc0000028 at22:07:19 UTC, followed by1001. Ten test books closed without
+  saving; twelve original fixture hashes were preserved. Settings/packages/reports
+  restored; failed-run-audit.json and assisted-recovery-closure.json retain evidence.
+  No error5. Repeated current-candidate failure prevents full-chain acceptance.
+
+Packaging hypothesis under investigation: build saves source-imported XLAMs;
+the ordinary cold compile test opens read-only and discards compiled state on close.
+A separate validation-print-outcome-02 build persisted compilation and reopened
+all packages for the ordinary cold check. All304 component code/string-literal
+hashes match outcome01; frozen packages/settings are preserved. Build interval
+22:09:40-22:10:33 UTC; print-outcome-build-02/verification.json and
+source-comparison.json retain the proof. The local compile-save diagnostic opens
+candidate packages writable, executes the existing compile check, saves each,
+then runs unmodified Test-PackagedVbaCompile.ps1 from a fresh Excel instance.
+No runtime source or production build-tool change was made. Rebuild and saved
+compilation are both differences, so this does not isolate or prove the cause.
+
+Outcome02 chain passes32/live-role48/warehouse15 in exact prior order:
+print-outcome02-regression/chain-a762d42d779a40219c0f8f50cef57c3b/verification.json,
+22:11:04-22:16:27 UTC. Normal unassisted closure, settings/packages/tracked-report
+restoration and delayed zero Excel Application errors pass. Original outcome01
+remains unaccepted; its three failures are retained above.
+
+The focused rerun on outcome02 did not complete: controller
+production-run-local-controller/48d8c66c58c540368e788cd47f47bbd1, worker
+slice4be-production-print-baseline/c8783c6e3d9e4f7b9b8f718bf8420ef5/green.json,
+22:16:52-22:20:53 UTC,178 PASS/2 harness FAIL. At the Admin Seed fixture boundary,
+first-call-failure.json records HRESULT0x800706BE; Application1000 records
+ntdll.dll/0xc0000028 at22:19:24 UTC, followed by1001. Three recovered test books
+closed without saving, all23 original fixture workbook hashes were preserved,
+and settings/packages were restored. failed-run-audit.json and
+assisted-recovery-closure.json retain the evidence. This is not behavioral RED
+or a focused GREEN on outcome02. Desktop probes remained successful.
+
+Checkpoint remains partial: focused248/layout/smoke evidence is on outcome01;
+full-chain evidence is on source-identical outcome02. No candidate has all gates
+passing together. Persisting compilation did not eliminate native instability;
+do not adopt it as a proven fix or repeat broad gates without a narrower diagnostic.
+Next isolate the post-form Admin Seed boundary with the existing packaged fixture,
+keeping owner calls, saved-byte preservation and normal shutdown observable.
+Source review found MouseScroll's native hook but no EnableMouseScroll caller in
+src; there is no evidence to blame or delete it. No speculative native-code fix.
+
 ## Captured inventory-location lookup, 2026-10-05
 
 The legacy inventory-sheet resolver could read another open workbook when the

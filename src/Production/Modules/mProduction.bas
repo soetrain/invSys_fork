@@ -3558,23 +3558,8 @@ ErrHandler:
     report = "BTN_NEXT_BATCH failed: " & Err.description: MsgBox report, vbCritical
 End Sub
 
-Public Sub BtnPrintRecallCodes()
-    On Error GoTo ErrHandler
-
-    Dim wsReport As Worksheet
-    Dim rowCount As Long
-    Dim detail As String
-
-    If Not BuildRecallCodesReportFromCurrentWorkbook(wsReport, rowCount, detail) Then
-        MsgBox detail, vbInformation
-        Exit Sub
-    End If
-
-    wsReport.Activate
-    wsReport.PrintOut Preview:=True
-    Exit Sub
-ErrHandler:
-    MsgBox "BTN_PRINT_CODES failed: " & Err.Description, vbCritical
+Public Sub BtnPrintRecallCodes(Optional ByRef outcome As String = "", Optional ByRef detail As String = "")
+    modProductionRecallReport.Preview outcome, detail
 End Sub
 
 Public Function GetRecallPrintDiagnostic() As String
@@ -9532,7 +9517,7 @@ Public Function CreateProductionGuid() As String
     On Error GoTo 0
 End Function
 
-Private Function BuildRecallCodesReportFromCurrentWorkbook(ByRef wsReportOut As Worksheet, ByRef rowCountOut As Long, ByRef detailOut As String) As Boolean
+Public Function BuildRecallCodesReportFromCurrentWorkbook(ByRef wsReportOut As Worksheet, ByRef rowCountOut As Long, ByRef detailOut As String) As Boolean
     Dim wsProd As Worksheet
     Dim loOut As ListObject
     Dim invLo As ListObject

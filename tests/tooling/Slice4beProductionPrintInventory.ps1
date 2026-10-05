@@ -85,6 +85,9 @@ function Test-ProductionPrintInventory($Fixture,$Book,$Sheet,$Decoy){
         $available=$case -in @('Captured','AliasCaptured')
         $expected=if($available){'Captured|Captured|'}else{'None|None|'}
         $expectedLocation=if($available){$location}else{''}
+        # The operator's owner runs once; explicitly retain the separate diagnostic API.
+        $diagnostic=[string](Run 'invSys.Operations.xlam' 'mProduction.GetRecallPrintDiagnostic')
+        Check ($label+'.ExplicitDiagnosticAvailable') ($diagnostic.StartsWith('OK; Sheet=RecallCodesPrint; Rows=1'))
         Check ($label+'.BothReadsStayCaptured') ([string](Probe 'PrintInventoryReadsForTest') -ceq $expected)
         Check ($label+'.PreviewBoundaryOnce') ([int](Probe 'PrintPreviewCountForTest') -eq 1)
         Check ($label+'.PreviewLocation') ([string](Probe 'PrintLocationForTest') -ceq $expectedLocation)

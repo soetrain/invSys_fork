@@ -1,6 +1,7 @@
 # Actual Print Recall handler; missing output naturally refuses before print preview.
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintRebuild.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintInventory.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintOutcome.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $module=$project.VBComponents.Item('mProduction').CodeModule
@@ -13,6 +14,7 @@ function Install-ProductionPrintBaselineProbe {
     $module.InsertLines($anchor[0],'    TestProductionDesigner.PrintSheetHit wsProd')
     Install-ProductionPrintRebuildProbe $module
     Install-ProductionPrintInventoryProbe $module
+    Install-ProductionPrintOutcomeProbe
     $project.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
 Public Function PrintActForTest() As Boolean
     On Error GoTo Failed
@@ -96,7 +98,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
             }
             if($case -ceq 'Current'){
                 Check ($label+'.OriginalOwnerEnteredOnce') ([int](Probe 'PrintOwnerEntries') -eq 1)
-                Check ($label+'.BothExistingReportReadsRetained') ([int](Probe 'PrintReportReads') -eq 2)
+                Check ($label+'.SingleOwnerReportRead') ([int](Probe 'PrintReportReads') -eq 1)
                 Check ($label+'.ReadsCapturedBookWithDecoyActive') ([bool](Probe 'PrintReadCapturedBook' @($book.Name)))
                 Check ($label+'.ExistingNativeRefusal') ($notice.Contains('ProductionOutput table not found on Production sheet.'))
             }else{
@@ -114,6 +116,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
         Test-ProductionPrintRefusalPreservation $Fixture $book $sheet
         Test-ProductionPrintRebuild $Fixture $book $sheet
         Test-ProductionPrintInventory $Fixture $book $sheet $decoy
+        Test-ProductionPrintOutcome $Fixture $book $sheet
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
@@ -174,7 +177,7 @@ function Test-ProductionPrintRefusalPreservation($Fixture,$Book,$Sheet){
         }
         $expected=if($case -ceq 'EmptyOutput'){'ProductionOutput has no rows to print.'}else{'No recall-coded ProductionOutput rows found. Generate recall codes from checked output rows before printing.'}
         Check ($label+'.ExistingNativeRefusal') ($notice.Contains($expected))
-        Check ($label+'.BothExistingReportReads') ([int](Probe 'PrintReportReads') -eq 2)
+        Check ($label+'.SingleOwnerReportRead') ([int](Probe 'PrintReportReads') -eq 1)
         Check ($label+'.SourcePreserved') ((Fingerprint $Sheet) -ceq $source)
         if($case -ceq 'NoReport'){
             Check ($label+'.NoEmptyReportCreated') (@($Book.Worksheets|Where-Object Name -CEQ 'RecallCodesPrint').Count -eq 0)

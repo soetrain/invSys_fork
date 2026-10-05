@@ -2,6 +2,32 @@ Attribute VB_Name = "modProductionRecallReport"
 Option Explicit
 Option Private Module
 
+Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, ByVal operatorBook As Workbook)
+    If Not modProductionRunBinding.RequireWorksheetContext(owner, context, operatorBook) Then Exit Sub
+    Dim outcome As String, detail As String
+    mProduction.BtnPrintRecallCodes outcome, detail
+    owner.ShowStatus detail
+End Sub
+
+Public Sub Preview(ByRef outcome As String, ByRef detail As String)
+    On Error GoTo Failed
+    outcome = "FAILED": detail = ""
+    Dim wsReport As Worksheet, rowCount As Long
+    If Not mProduction.BuildRecallCodesReportFromCurrentWorkbook(wsReport, rowCount, detail) Then
+        outcome = "REJECTED"
+        MsgBox detail, vbInformation
+        Exit Sub
+    End If
+    wsReport.Activate
+    wsReport.PrintOut Preview:=True
+    outcome = "PREVIEW_RETURNED"
+    detail = "Print preview closed."
+    Exit Sub
+Failed:
+    detail = "BTN_PRINT_CODES failed: " & Err.Description
+    MsgBox detail, vbCritical
+End Sub
+
 ' D14: mutate only managed fields; workbook-local columns stay in their cells.
 Public Function WriteRows(ByVal sheet As Worksheet, ByRef values As Variant, _
                           ByRef detail As String) As ListObject
