@@ -1,5 +1,103 @@
 # Slice 4be Production Complete Run
 
+## Current full gate, 2026-10-05 UTC
+
+`validation-complete-submission-01` passes **289/289**, controller
+`30c5740aa1564e69b08508a011b6be3f`, worker
+`slice4be-production-complete-baseline/abd75a40c9874c46b988cf0255f018fc/green.json`,
+08:24:05.699--08:37:25.597 UTC. Run `Test-Slice4beProductionRunLocal.ps1` with
+`-DeployRoot deploy/validation-complete-submission-01 -Phase GREEN
+-CompleteBaselineOnly -CompleteVisibleHostForTest` and no diagnostic switch.
+All258 prior checks remain in order;27 post-consume/audit and four host-visibility
+checks pass. Five instrumented compiles,42 shared checks, exact package pins,
+settings restoration, unassisted closure and the delayed zero-error Excel audit
+pass. Peak GDI is869. The visibility transition is slow but recovers without
+intervention. No permissions, runtime package hashes or quotas are changed.
+
+This verifies the existing post-consume continuation correction from its four
+behavioral REDs. Retain same-candidate155/155 for the surviving-form entry click;
+the full visible-host run covers native dismissal instead. Both are required
+evidence, as detailed below. Hidden-host failures remain documented; this does
+not prove a native Excel repair or full Slice4be acceptance. Affected guide58 and
+packaged smoke86 pass below; broader gates, worksheet/later submissions and
+Complete Run recording remain open.
+
+Affected published-guide regression passes58/58 with exact prior ordered checks:
+controller `execution-profile-guide-regression/47d6b481471f4f01bee4087e39f00cf2`,
+worker `slice4be-viewer-published-read/aedfa3ec13464da2afd4ec9e736cbbf6`,
+08:37:53.825--08:44:51.057 UTC. Five instrumented compiles, normal closure,
+settings/package preservation and delayed zero Excel errors pass.
+Packaged smoke passes86/86 with exact prior order, both unassisted Excel exits,
+canonical pins, restored settings/tracked reports and delayed zero Excel errors:
+`complete-submission01-regression/smoke-af8a2382957b45359ac3c94bdd7dfca0`,
+08:45:27.368--08:45:51.112 UTC. All408 repository PowerShell scripts parse.
+Runtime build/static evidence remains `complete-submission-build-01/` and
+`complete-submission-static-01/`; these verification-tool changes do not alter VBA
+sources or package hashes. No candidate is promoted.
+
+## Original loading mode comparison, 2026-10-05 UTC
+
+The corrected full gate also exhausts GDI with `OriginalReadOnly` package loading:
+controller `ba2e35e04142479eb4c3655e0e3b4dfa`, worker
+`slice4be-production-complete-baseline/48262189d8f34ba785bed64e5c4e980b/green.json`,
+07:36:11.596--07:49:39.334 UTC, **255 PASS/1 harness FAIL**. All27 new
+post-consume/audit checks and228 prior checks pass;30 prior checks are unreached.
+The first closure case already grows to peak3977; the third reaches10001 with
+bounded native windows. Read-only loading does not resolve the failure.
+Excel exits naturally; the completed worker requires termination, after which
+the parent restores settings and verifies package hashes. No memory dialog is
+dismissed. This assisted result is not acceptance. Next narrow the existing
+Check In handler using fixed-label native counters in disposable probes only.
+
+The bounded prior-sequence run with Check In phase counters closes normally:
+controller `abc6224316f14b54b55de82d3c9045c3`, worker
+`slice4be-production-complete-preparation/639124ec2f264f40a5ff7bb45a9d0a2d`,
+07:49:51.228--07:59:32.677 UTC,202 PASS/1 diagnostic-bound failure, peak3777.
+Earlier Check In phases remain below750 GDI; the closure-case Check In grows
+934->3754. List fills remain flat; repeated continuation/read phases commonly
+add130, and action begin/finish also grow. This localizes the next investigation
+to authorization/configuration reads, without proving their native cause or
+permitting cached authorization as a workaround. Settings/packages are preserved.
+Next trace Core's Config/Auth resolve/hide/read/close boundaries with fixed labels
+and native counts only. No runtime or acceptance change.
+The first Core-trace setup, controller `b1cc463d73804650b4ec02c2ecb5be0f`, stops1/1:
+the helper was incorrectly sought in Core although it belongs to Admin. It closes
+normally and preserves settings/packages. A dedicated disposable Core module fixes
+the setup; this is not product RED.
+
+Core boundary trace: controller `0cfe67ada8fc4f43b929b91b03682324`, worker
+`slice4be-production-complete-preparation/b5e1b127b4d449ddb58649eb6c8da53f`,
+08:01:09.062--08:10:53.861 UTC,202 PASS/1 diagnostic stop, peak3787 at preparation.
+All202 prior diagnostic passes remain in order; closure/settings/packages pass
+without intervention. In the failing Check In, each Config and Auth read retains
+about65 GDI after closing its transient workbook, accounting for130 per capability
+check. Earlier reads do not show that sustained retention. The native cause is
+unproved. Next compare the same sequence with the isolated Excel host explicitly
+visible before each closure case; retain all handlers, assertions and live rights.
+The isolated option records its mode/visible checks. Subsequent
+native markers include process ID to distinguish any separate Excel instances.
+
+The visible-host diagnostic passes262/262: controller
+`89f0537613234a8188c57b62f9ceb6bc`, worker
+`slice4be-production-complete-preparation/6043eebb7f0e4926b64961e49a797952`,
+08:11:09.501--08:22:39.197 UTC. All258 prior checks remain in order, with four
+explicit host-visibility checks. Peak GDI is873; all four closure cases and normal
+unassisted cleanup pass, preserving settings/packages. Making the isolated Excel
+host visible avoids the resource growth in this sequence; native cause is not
+proved. The visibility transition temporarily stops responding, then recovers
+without intervention. A guarded cleanup attempt rejects the now-advanced state;
+no termination or dialog dismissal occurs. Its scoped blank-window capture is
+reviewed; no operational content is present. All native markers share one process ID.
+
+At closure entry this run dismisses the form, so no click is delivered there.
+Do not call that surviving-form coverage: the same five package hashes separately
+pass155/155 in controller `83fb61c085f54a0e9a7b5e72768d0a78`, worker
+`35ba899c1fc04ac1bee165ef697759f1`, with a surviving form and exactly one actual
+refusal click. Retain both native outcomes. The full completion gate is next with
+`-CompleteVisibleHostForTest`, no preparation diagnostic switch: expected289 checks
+(prior258 +27 post-consume/audit +4 host checks). No runtime package is changed or
+promoted by this fixture comparison; broader acceptance remains open.
+
 ## Audit inspection correction, 2026-10-05 UTC
 
 The new audit inspector unconditionally reopened/closed an authority workbook

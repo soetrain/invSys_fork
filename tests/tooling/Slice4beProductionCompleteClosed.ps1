@@ -7,7 +7,7 @@ function Install-ProductionCompleteClosedProbe {
     Install-ProductionCheckInClosedYieldProbe
 }
 
-function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary,[switch]$ResourceDiagnostic){
+function Test-ProductionCompleteClosed($Fixture,$Other,[string]$Path,$Decoy,[string]$Canary,[switch]$ResourceDiagnostic,[switch]$VisibleHost){
     # Probe, Owner and Hash are supplied by the completion baseline scope.
     # Read-only counters locate native resource exhaustion without querying forms.
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
@@ -55,6 +55,10 @@ public static class CompleteClosureResources {
     $book=$null
     try{
         foreach($boundary in @('Entry','CompletePending','AvailableQuantity','EntityKind')){
+            if($VisibleHost){
+                $Decoy.Activate();$excel.Visible=$true
+                Check ('CompleteDiagnostic.VisibleHost.'+$boundary) ([bool]$excel.Visible)
+            }
             MarkClosure 'BeforeReset'
             [void](Probe 'CheckYieldReset')
             MarkClosure 'BeforeSelectTarget'

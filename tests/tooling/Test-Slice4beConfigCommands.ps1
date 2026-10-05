@@ -37,6 +37,7 @@ param(
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteBaselineOnly,
     [switch]$RunCompletePreparationDiagnostic,
+    [switch]$RunCompleteVisibleHostForTest,
     [switch]$RunCompleteSavedDecoyForTest,
     [ValidateSet('None','Submission','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunNextBaselineOnly,
@@ -181,6 +182,7 @@ $ErrorActionPreference = 'Stop'
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
 if($RunCompletePreparationDiagnostic -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
 if($RunCompletePreparationPrelude -ne 'None' -and -not $RunCompletePreparationDiagnostic){throw 'Preparation prelude requires explicit diagnostic mode.'}
+if($RunCompleteVisibleHostForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Visible-host comparison requires the isolated Complete Run fixture.'}
 if($RunCompleteSavedDecoyForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($TraceGuideResourcesForTest){
@@ -1850,7 +1852,7 @@ End Function
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
-            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest}
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}
