@@ -2,8 +2,49 @@
 
 This repairs validation input routing under Architecture v4.11 D13/D18. It changes
 no Receiving implementation, activity contract, business authority or package.
-The tested package set remains `deploy/validation-shipping-prewrite-facts`.
+The original calibration used `deploy/validation-shipping-prewrite-facts`;
+the latest regression below uses `deploy/validation-receiving-run-05`.
 Release1 and comprehensive Slice4be acceptance remain open.
+
+## Receiving runner regression, 2026-10-05 UTC
+
+Frozen candidate05 passes **854/854**, retaining the exact prior854 identities
+and order with no duplicates. No runtime source or package changed in this
+checkpoint. Initial execution returned796 PASS/58 FAIL:32 supported-read checks
+and26 navigation-caption checks used a stale catalog3--11/6--11 allowlist, while
+Core now emits catalog26. These are harness failures, not product RED.
+
+Both helpers now retain each control's introduction floor and call the real Core
+reader for every emitted record before combining assertion results. Core owns
+supported-version/control validation; the tests no longer impose a stale ceiling.
+Unsupported catalog999 and a control absent from catalog1 remain rejected.
+Actual keyboard/mouse routing, fixed captions, redaction, exact references,
+staging/System_Key/unknown columns, context/rights refusal, launcher reuse and
+authority/unrelated-workbook preservation all pass.
+
+Ignored receipts under `reports/runtime/receiving-owner-regression/`:
+
+- `f59f51ec18344f6e84e5700c0f080bda/`: initial796/58,
+  02:06:10.594--02:16:30.227 UTC; `harness-failure-summary.json` classifies all58.
+- `320fd57912514137be403e585af3e7f6/`: corrected854/0,
+  02:17:24.495--02:28:22.563 UTC; `comparison.json` proves retention.
+- Each controller has `worker.log`, `closure.json`, `evidence-manifest.json` and
+  preserved `evidence/launcher-denial-green.json` plus fresh captures.
+
+Both runs restore settings, preserve all five package hashes and close Excel
+normally. The final controller's native audit finds zero Excel1000/1002 events
+from01:57:51 through02:28:45 UTC, covering the93-check runner-close regression too.
+Desktop cursor probe02:28:45.680 UTC (Oct4 19:28 PDT) succeeds; no desktop error5
+was observed. The earlier full-chain native failure remains unresolved.
+
+Inspected fresh `coverage-lifecycle-open.png` and `coverage-disposition.png` show
+the generated-fixture Receiving/Returns surfaces, buttons and status. This is
+scoped operator evidence, not Action Path long/multiline or human acceptance.
+Static `receiving-run-validation-static-06/` retains all metrics/caps and passes
+three schemas and397 script parses. Candidate05's five cold compiles remain valid.
+The protecting command below uses candidate05 and the full-regression switches
+for this run. Next complete A1 recording policy/observations and A2 visible proof;
+broader live-role/full-chain gates and B0/A/B/R1 acceptance remain open.
 
 ## Protecting evidence
 

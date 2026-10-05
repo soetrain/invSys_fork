@@ -282,9 +282,10 @@ function Test-ReceivingNavigationRecords($Fixture,$Before,$Case,[string]$Label) 
             $outcome[0].EventCode -ceq ($Case[0]+'_SELECTED') -and $outcome[0].Caption -ceq $Case[4]
     }
     foreach($record in $records) {
-        # Catalog7-9 retain the version6 navigation definitions; all remain supported.
-        $truth=$truth -and @($record.SourceEventRefs).Count -eq 0 -and $record.CatalogVersion -in @(6,7,8,9,10,11)
-        $readable=$readable -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
+        # Navigation starts at version6; Core validates support for each emitted record.
+        $truth=$truth -and @($record.SourceEventRefs).Count -eq 0 -and $record.CatalogVersion -ge 6
+        $validated=(Get-ActivityRead $record.RecordId).StartsWith('OK|')
+        $readable=$readable -and $validated
     }
     foreach($raw in $raws) { foreach($forbidden in @('NAVIGATION-PRIVATE','ACTIVITY-PRIVATE',$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'ListIndex','KeyCode','mLst','mTabs')) { if($raw.Contains($forbidden)) { $redacted=$false } } }
     Check ($Label+'.CorrelatedUiOnlyFixedCaption') $truth

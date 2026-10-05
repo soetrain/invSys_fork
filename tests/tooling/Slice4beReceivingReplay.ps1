@@ -5,6 +5,8 @@ function Install-ReceivingReplayProbe {
     Install-ExecutionSetupDiagnostics
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRunGuardProbe.ps1')
     Install-ReceivingRunGuardProbe
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRunClose.ps1')
+    Install-ReceivingRunCloseProbe
     if($TraceReceivingRunCloseForTest){
         . (Join-Path $PSScriptRoot 'Slice4beReceivingRunEventTrace.ps1')
         Install-ReceivingRunEventTrace

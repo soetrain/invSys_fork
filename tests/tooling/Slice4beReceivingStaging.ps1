@@ -32,7 +32,9 @@ function Test-ReceivingControlRecords($Fixture,[string[]]$Before,[string]$Contro
     $readable = $complete
     foreach ($record in $records) {
         $owned = $owned -and $record.OwnerId -ceq $Owner -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq $Actor -and $record.SourceRole -ceq 'Receiving'
-        $readable = $readable -and $record.CatalogVersion -in @(3,4,5,6,7,8,9,10,11) -and $record.CatalogVersion -ge $MinimumCatalog -and (Get-ActivityRead $record.RecordId).StartsWith('OK|')
+        # Core validates supported versions and controls; retain their introduction floor.
+        $validated = (Get-ActivityRead $record.RecordId).StartsWith('OK|')
+        $readable = $readable -and $record.CatalogVersion -ge $MinimumCatalog -and $validated
     }
     foreach ($raw in $payloads) {
         foreach ($value in @($Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'ACTIVITY-PRIVATE','mBtnAdd_Click','mBtnConfirm_Click','Err.Description')) {

@@ -1,9 +1,10 @@
 # Slice 4be-A / early B0: Receiving replay
 
-Last verified: 2026-10-04. D18-REPLAY-01 is approved. Profile authoring is focused
-GREEN on `validation-execution-profile-03`; the expanded B0 gate remains RED:
-**45 PASS / 17 FAIL**, because Run How-To and fresh proof are not implemented.
-All 42 prior passing identities remain passing. No replay is claimed.
+Last verified: 2026-10-05 UTC. D18-REPLAY-01 is approved. Frozen
+`validation-receiving-run-05` passes **93/93** focused checks, including actual
+Receiving replay and fresh exact business proof. B0 and 4be-A acceptance remain
+open for observations, visible evidence and broader gates. Earlier RED receipts
+below record the progression; they are not the current implementation status.
 
 ## Evidence
 
@@ -303,3 +304,37 @@ probe01:53:39.565 UTC (18:53 PDT) succeeds. The older full-chain native failure
 remains unresolved. Next protect active-owner closure and run affected Receiving/
 native regressions. Observations, visible proof and broader gates remain open;
 no B0/A/B/R1 acceptance or deployment.
+
+## Active-owner close regression, 2026-10-05 UTC
+
+Unchanged candidate05 passes **93/93**, retaining all85 previous checks with no
+duplicate identities. A disposable hook requests the ordinary Close button or
+the actual QueryClose handler (mode5) after the real Receiving owner returns but
+before Core finishes its pending step. Both requests defer closure, save Stopped
+with exactly one completed RECEIVING_OPEN step and its fresh correlated activity,
+preserve business bytes, and leave no runner or Next dispatch after the outer
+callback returns. The hook does not construct outcomes or activity records.
+
+Controller `receiving-replay-controller/1410d8451a4d4758b6e6eecfdd184296/closure.json`
+runs 01:57:51.412--02:05:31.034 UTC, exit0, settings/packages preserved and Excel
+closed normally. Worker `slice4be-receiving-replay/75095754c9414044b9cc8f1b948f2cec/red.json`
+and `receiving-run-busy-close-verification.json` retain the checks/comparison.
+The command's RED phase label does not make this a behavioral RED: it is
+supplemental GREEN coverage on unchanged runtime code. No new product fix,
+deployment or acceptance is claimed.
+
+Regenerated static evidence in `receiving-run-validation-static-06/` retains
+307 components,6279 procedures,137389 lines, dynamic calls9/45 and190 duplicate
+groups. All28 size limits, three report schemas and397 script parses pass.
+Candidate05's five cold compiles and58-check guide regression remain applicable;
+this checkpoint changes tests/documentation only.
+
+Affected Receiving/native regression now passes854/854 with exact prior ordered
+checks. The initial796/58 result came solely from stale catalog ceilings in two
+test helpers; actual Core reads replace those ceilings and retain negative
+version/control coverage. See `plan022_slice4be_receiving_native_target_results.md`
+for both preserved receipts, native audit and inspected Receiving captures.
+Next define the per-user policy wire under the approved D18 boundaries, then
+protect actual Admin selection/save and affected recording behavior before
+implementation. Comprehensive observations, Action Path visible proof and broader
+acceptance gates remain open; no package promotion or B0/A acceptance.

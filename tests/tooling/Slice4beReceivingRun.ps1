@@ -95,5 +95,7 @@ function Test-ReceivingRun($Guide,$Original,$Staging,[string]$InventoryPath,$Fix
     Test-ReceivingRunControls
     . (Join-Path $PSScriptRoot 'Slice4beReceivingRunGuards.ps1')
     Test-ReceivingRunGuards
+    . (Join-Path $PSScriptRoot 'Slice4beReceivingRunClose.ps1')
+    Test-ReceivingRunBusyClose
     $Scope.Value=[pscustomobject]@{ReplayExecuted=$dispatched;FreshReplayProof=$proof;B0Accepted=$false}
 }
