@@ -47,6 +47,7 @@ param(
     [switch]$RunCompleteSavedDecoyForTest,
     [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunPrintBaselineOnly,
+    [ValidateSet('None','BareSeed','FreshSeed','SeedOnly')][string]$PrintSeedBoundaryForTest='None',
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
     [switch]$RunNextTerminalOnly,
@@ -193,6 +194,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if($RunPrintBaselineOnly -and (-not $CheckProductionRunLocal -or $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Print baseline requires its isolated Run fixture.'}
+if($PrintSeedBoundaryForTest -ne 'None' -and -not $RunPrintBaselineOnly){throw 'Seed boundary diagnosis requires the Print fixture.'}
 if($RunNextBaselineOnly -and -not $RunCompleteBaselineOnly){throw 'Next Batch baseline requires Complete baseline fixture setup.'}
 if($RunCompletePreparationDiagnostic -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
 if($RunCompleteClosedBoundary -ne 'All' -and -not $RunCompletePreparationDiagnostic){throw 'A narrowed closure boundary requires explicit diagnostic mode.'}
@@ -262,9 +264,10 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
 }
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
     $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
+    $savedPrint=$RunPrintBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and $PrintSeedBoundaryForTest -cne 'BareSeed'
     $savedComplete=$RunCompleteBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $RunNextBaselineOnly -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
-    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete)){
-        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion gate.'
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint)){
+        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion/Print gate.'
     }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
@@ -1371,7 +1374,7 @@ End Function
         Check 'Harness.RecordingProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'A form was already loaded during initial probe setup; not product RED.'}
     }
-    if($CheckProductionDesignerActivity){
+    if($CheckProductionDesignerActivity -and $PrintSeedBoundaryForTest -cne 'BareSeed'){
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-ProductionDesignerProbe
@@ -1628,10 +1631,10 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
     }
-    if($RunCompleteBaselineOnly -and $ViewerStartupPackageStateForTest -eq 'SavedCopies'){
+    if(($RunCompleteBaselineOnly -or $RunPrintBaselineOnly) -and $ViewerStartupPackageStateForTest -eq 'SavedCopies'){
         $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
         Check 'Harness.ProductionProbesInstalledBeforeForms' $noForms
-        if(-not $noForms){throw 'Completion probes must precede forms; not product RED.'}
+        if(-not $noForms){throw 'Production probes must precede forms; not product RED.'}
         . (Join-Path $PSScriptRoot 'Slice4beProbePackages.ps1')
         Save-DisposableStartupProbes $packages $probeDeploy $ViewerStartupPackageStateForTest
     }
@@ -1678,7 +1681,16 @@ End Function
         Initialize-Slice4beViewerStartupWorkbook
     }
     $step='Admin-generated fixtures'; Write-Output $step
-    $a=NewFixture 'a'; $b=NewFixture 'b'
+    if($PrintSeedBoundaryForTest -ne 'None'){'BeforeFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
+    $a=NewFixture 'a'
+    if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
+    $b=NewFixture 'b'
+    if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureB'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
+    if($PrintSeedBoundaryForTest -in @('FreshSeed','BareSeed')){
+        $step='Admin Seed before shared Config and UOM form exercises'
+        if($PrintSeedBoundaryForTest -ceq 'BareSeed'){. (Join-Path $PSScriptRoot 'Slice4beProductionPrintBaseline.ps1')}
+        Test-ProductionPrintBaseline $a $b $PrintSeedBoundaryForTest
+    }
     if($PrepareShippingFixturesBeforeProbesForTest){
         $step='Admin-generated Shipping fixtures before Shipping probes'
         $templateRoot=Join-Path $repo 'deploy/current/templates'
@@ -1775,7 +1787,7 @@ End Function
         }
         }
     }
-    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead) {
+    if(-not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead -and $PrintSeedBoundaryForTest -notin @('FreshSeed','BareSeed')) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
@@ -1941,7 +1953,7 @@ End Function
             if($CheckInventoryQueryReadOnly){try{Test-InventoryQueryReadOnly $b}finally{SelectTarget $a}}
         }
         elseif($CheckProductionRunLocal){
-            if($RunPrintBaselineOnly){Test-ProductionPrintBaseline $a $b}
+            if($RunPrintBaselineOnly){Test-ProductionPrintBaseline $a $b $PrintSeedBoundaryForTest}
             elseif($RunCheckInPathsOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beProductionInstructionPaths.ps1')
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode

@@ -2,6 +2,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintRebuild.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintInventory.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintOutcome.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintSeedBoundary.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
     $module=$project.VBComponents.Item('mProduction').CodeModule
@@ -53,10 +54,16 @@ End Function
 Public Function PrintStatus() As String
     PrintStatus = mForm.PrintStatusForTest()
 End Function
+Public Function PrintLoadedFormCountForTest() As Long
+    Dim form As Object
+    For Each form In VBA.UserForms
+        If TypeName(form) = "frmProduction" Then PrintLoadedFormCountForTest = PrintLoadedFormCountForTest + 1
+    Next form
+End Function
 '@)
 }
 
-function Test-ProductionPrintBaseline($Fixture,$Other){
+function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='None'){
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Hash([string]$Path){(Get-FileHash -LiteralPath $Path).Hash}
@@ -77,6 +84,10 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
         $book=$excel.Workbooks.Open($path,0,$false);$sheet=$book.Worksheets.Item(1)
         $decoy=$excel.Workbooks.Add();$otherSheet=$decoy.Worksheets.Item(1);$otherSheet.Name='Production'
         $otherSheet.Cells.Item(1,1).Value2=$canary;$otherSheet.Cells.Item(2,1).Formula='=4+5'
+        if($SeedBoundary -in @('BareSeed','FreshSeed','SeedOnly')){
+            Test-ProductionPrintSeedBoundary $Fixture $Other $book $decoy $SeedBoundary
+            return
+        }
         foreach($case in @('Current','Target','Session','SignedOut','MissingSheet')){
             SelectTarget $Fixture 'config-producer'
             [void](Probe 'OpenDesigner' @($book.Name))
@@ -122,7 +133,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other){
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
     }finally{
         if($null -ne $observer){Stop-Job $observer;Remove-Job $observer}
-        [void](Probe 'CloseDesigner')
+        if($SeedBoundary -cne 'BareSeed'){[void](Probe 'CloseDesigner')}
         if($null -ne $book){$book.Close($false)}
         if($null -ne $decoy){$decoy.Close($false)}
         SelectTarget $Fixture 'config-producer'

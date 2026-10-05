@@ -1,5 +1,66 @@
 # Slice 4be-A: Production Print Recall
 
+## Saved test-package confirmation, 2026-10-05
+
+On unchanged `validation-print-outcome-02`, the full Print handler gate passes
+250/250 using `-PrintBaselineOnly -SavedProbeCopiesForTest`. All248 previous
+checks retain their exact order; two additional checks require probes installed
+before forms and saved only in disposable packages. Five instrumented compiles,
+normal closure, original package hashes, settings restoration and delayed zero
+Excel Application errors pass. Four reviewed captures show preview return,
+failure, refusal after success and recovery. Native preview remains a test seam.
+
+This completes the scoped owner-feedback confirmation alongside outcome02's
+existing cold compile and chain32/live48/warehouse15 evidence. Fresh smoke86
+retains every ordered check and both unassisted exits. Outcome01 layout18/five
+native checks remain applicable: all304 component code/string-literal hashes
+match outcome02 and form geometry is unchanged. No runtime or production build
+tool changed. Earlier native failures remain unresolved; this is a passing test
+configuration, not proof that saving compiled state cures Excel instability.
+
+Ignored receipts, relative to `reports/runtime/`:
+
+| Gate | Receipt | Result |
+|---|---|---|
+| Full focused | `production-run-local-controller/6421e06c0ba6422f91a04be1ef8341d6/verification.json`; worker `slice4be-production-print-baseline/58f4ff803eb14921845d78748c763e9e` | 250 PASS, 22:37:41-22:40:48 UTC |
+| Smoke | `print-outcome02-regression/smoke-590d63d66be4484483b59bdfacc07a01/verification.json` | 86 PASS, 22:41:09-22:41:29 UTC |
+| Static | `print-seed-boundary-static-01/ratchet-verification.json`, `final-parse.json` | Unchanged311 components/6306 procedures/137979 lines; 9 literal/45 unresolved calls,190 duplicate candidates;28 caps,3 schemas,424 PowerShell parses |
+
+Narrow diagnostics retain their failures; none are behavioral RED or substitute
+for the full gate. Diagnostic controller IDs below are under
+`production-run-local-controller/`, with `failed-run-audit.json` or
+`verification.json` recording closure/preservation and delayed events:
+
+- SeedOnly, after shared Config/UOM exercises but without Print actions:
+  `5be01534b0b44da38aa4c986fda418d6`,40 PASS/2 harness FAIL,
+  22:24:33-22:27:37 UTC. Seed crashed with zero Production forms loaded;
+  assisted recovery preserved23 fixture hashes. Print actions are not necessary
+  for this failure.
+- FreshSeed, before shared Config/UOM exercises:
+  `75c1512da09949d58236a7943e68cadc`,6 PASS/1 harness FAIL,
+  22:27:53-22:28:21 UTC. Bootstrap failed before Seed.
+- Unmodified full-chain Admin entry control:
+  `print-seed-admin-entry/092838f63c9d44da8a112a8edfcbb754/verification.json`,
+  3 PASS,22:30:41-22:30:54 UTC, no delayed Excel errors. It generates a fresh
+  warehouse and seeds through the packaged Admin owner.
+- BareSeed, before shared forms and without Production probes:
+  `a2e1468a1622466eb67d47ece222e7c8`,2 PASS/1 harness FAIL,
+  22:32:19-22:32:53 UTC. Seed failed after both fixtures were generated.
+  This path also omits the five instrumented compiles, so it is not a controlled
+  compiled-state comparison. Production probes are not necessary for failure.
+- FreshSeed with saved disposable probes:
+  `b21a12a4424d4cb3801d02ad51bc5bfa`,14 PASS,
+  22:34:16-22:35:06 UTC, normal closure and delayed zero Excel errors.
+  Saving occurs before fixtures in the same Excel session, without a restart.
+
+Each failed diagnostic records Excel Application1000/1001; the successful ones
+restore settings and preserve original packages. Unused OpenClose/Prelude options
+were removed before commit; the successful full None path is unchanged. D13's
+prior231/17 behavioral RED remains the runtime evidence; these harness changes
+introduce no architectural contract. No error5 occurred. Next protect remaining
+Print Recall permission/interruption guards through the actual packaged handler;
+native preview, report identity/provenance and observation acceptance remain open.
+
 ## Truthful owner feedback, 2026-10-05
 
 The form previously inferred success by rebuilding the report after its owner
@@ -20,7 +81,7 @@ owner-build assertion. Four inventory cases now explicitly invoke the diagnostic
 API and still verify both reads' captured binding. This maps all217 preceding
 checks, with31 added checks; it is not an unchanged-check-identity claim.
 New cases cover preview return, preview failure after success, refusal after
-preview and recovery. The native-preview call is still an unsaved test seam;
+preview and recovery. The native-preview call is still a disposable test seam;
 actual native printing and interruption acceptance remain open.
 
 Entry: tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly,
@@ -117,11 +178,11 @@ and settings/packages were restored. failed-run-audit.json and
 assisted-recovery-closure.json retain the evidence. This is not behavioral RED
 or a focused GREEN on outcome02. Desktop probes remained successful.
 
-Checkpoint remains partial: focused248/layout/smoke evidence is on outcome01;
-full-chain evidence is on source-identical outcome02. No candidate has all gates
+At that checkpoint, evidence remained partial: focused248/layout/smoke was on outcome01;
+full-chain evidence was on source-identical outcome02. No candidate then had all gates
 passing together. Persisting compilation did not eliminate native instability;
 do not adopt it as a proven fix or repeat broad gates without a narrower diagnostic.
-Next isolate the post-form Admin Seed boundary with the existing packaged fixture,
+The next investigation isolated the post-form Admin Seed boundary with the existing packaged fixture,
 keeping owner calls, saved-byte preservation and normal shutdown observable.
 Source review found MouseScroll's native hook but no EnableMouseScroll caller in
 src; there is no evidence to blame or delete it. No speculative native-code fix.
@@ -348,12 +409,11 @@ The candidate is not promoted. No desktop error5 occurred during these checks.
 
 ## Remaining acceptance
 
-This checkpoint does not accept Print Recall as recorded or prove preview/physical
-printing. Permission changes, yielding/closure paths, truthful owner outcomes and
-observation integration remain open. The rebuild checkpoint above protects D14
-custom-content preservation; report identity/provenance remains open.
-Its diagnostic rebuild and unconditional
-"completed" prefix cannot establish successful preview or printing.
+This checkpoint does not accept Print Recall as recorded or prove native preview/
+physical printing. Permission changes, yielding/closure paths and observation
+integration remain open. Rebuild preservation and truthful owner feedback are
+protected above; report identity/provenance remains open. The displayed preview
+return cannot establish that a page was printed.
 
 Existing unchanged-workflow evidence remains scoped to its recorded candidates.
 The refusal-preservation candidate above now has fresh chain32/live48/warehouse15
