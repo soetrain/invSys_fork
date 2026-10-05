@@ -15,7 +15,8 @@ function Prepare-NextPath($Book,[string]$Canary,[string]$Mode){
     }
     [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'))
 }
-function Invoke-NextPath($Fixture,[string]$Canary,[string]$Mode,[string]$Label,$Before){
+function Invoke-NextPath($Fixture,[string]$Canary,[string]$Mode,[string]$Label,$Before,[string]$ChangingPolicy=''){
+    if($ChangingPolicy -and $ChangingPolicy -cne $Fixture.Config){throw 'Only the owned policy fixture may change during terminal fault injection.'}
     if($Mode -ceq 'Reusable'){
         PathCheck ('InstructionPaths.'+$Label+'.ActualHandlerAndGuards') ([bool](Probe 'NextActivityAct' @('')))
         PathCheck ('InstructionPaths.'+$Label+'.OwnerAdvancedOnce') ([int](Probe 'NextBaselineEntries') -eq 1 -and [bool](Probe 'NextBaselineReady'))
@@ -37,6 +38,7 @@ function Invoke-NextPath($Fixture,[string]$Canary,[string]$Mode,[string]$Label,$
         foreach($fact in @('Output','Identity','Custom','Palette')){PathCheck ('InstructionPaths.'+$Label+'.'+$fact) ([bool](Probe 'NextActivityWorksheetFact' @($fact,$Canary)))}
     }
     $after=Get-NextPathAuthorityPins $Fixture;$same=$Before.Count -eq $after.Count
-    foreach($file in $Before.Keys){$same=$same -and $after.ContainsKey($file) -and $after[$file] -ceq $Before[$file]}
-    PathCheck ('InstructionPaths.'+$Label+'.CanonicalBytesPreservedByNextBatch') $same
+    foreach($file in $Before.Keys){if($file -cne $ChangingPolicy){$same=$same -and $after.ContainsKey($file) -and $after[$file] -ceq $Before[$file]}}
+    $fact=if($ChangingPolicy){'.AuthorityExceptChangingPolicyPreservedByNextBatch'}else{'.CanonicalBytesPreservedByNextBatch'}
+    PathCheck ('InstructionPaths.'+$Label+$fact) $same
 }

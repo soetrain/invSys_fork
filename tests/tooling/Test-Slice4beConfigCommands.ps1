@@ -48,6 +48,7 @@ param(
     [ValidateSet('None','Submission','OutputReturn','Entry','Interruptions','Initial','PriorSequence')][string]$RunCompletePreparationPrelude='None',
     [switch]$RunNextBaselineOnly,
     [switch]$RunNextActivityOnly,
+    [switch]$RunNextTerminalOnly,
     [switch]$RunNextYieldOnly,
     [switch]$RunNextClosedOnly,
     [switch]$RunNextClosedEscapeForTest,
@@ -202,6 +203,7 @@ if($RunCompleteStatusOnly -and (-not $RunCompleteActivityOnly -or $RunCompleteSu
 if($RunCompletePathsOnly -and (-not $RunCompleteBaselineOnly -or $RunCompleteActivityOnly -or $RunCompletePreparationDiagnostic -or $RunNextBaselineOnly)){throw 'Complete paths require their isolated baseline fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($RunNextYieldOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly -or $RunNextPathsOnly)){throw 'Next Batch interruptions require the isolated Next baseline fixture.'}
+if($RunNextTerminalOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly -or $RunNextYieldOnly -or $RunNextPathsOnly)){throw 'Next terminal proof requires the isolated Next baseline.'}
 if($RunNextClosedOnly -and -not $RunNextYieldOnly){throw 'Next Batch native closure requires its isolated interruption fixture.'}
 if($RunNextClosedEscapeForTest -and -not $RunNextClosedOnly){throw 'Next Batch diagnostic escape requires native closure testing.'}
 if($RunNextPathsOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly)){throw 'Next Batch paths require the isolated Next baseline fixture.'}
@@ -567,6 +569,7 @@ if($CheckProductionDesignerActivity){
     if($RunCompleteSubmissionFaultOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-submission-fault/'+[guid]::NewGuid().ToString('N'))}
     if($RunCompletePathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-complete-paths-'+$RunCompletePathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextActivityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-activity/'+[guid]::NewGuid().ToString('N'))}
+    if($RunNextTerminalOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-terminal/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextYieldOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-yield/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextClosedOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-closed/'+[guid]::NewGuid().ToString('N'))}
     if($RunNextPathsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-next-paths-'+$RunNextPathMode.ToLowerInvariant()+'/'+[guid]::NewGuid().ToString('N'))}
@@ -1410,12 +1413,16 @@ End Function
                     if($RunNextBaselineOnly){
                         . (Join-Path $PSScriptRoot 'Slice4beProductionNextBaseline.ps1')
                         Install-ProductionNextBaselineProbe
-                        if($RunNextActivityOnly -or $RunNextPathsOnly -or $RunNextYieldOnly){
+                        if($RunNextActivityOnly -or $RunNextPathsOnly -or $RunNextYieldOnly -or $RunNextTerminalOnly){
                             . (Join-Path $PSScriptRoot 'Slice4beProductionNextActivity.ps1')
                             Install-ProductionNextActivityProbe
-                            if($RunNextActivityOnly -or $RunNextYieldOnly){
+                            if($RunNextActivityOnly -or $RunNextYieldOnly -or $RunNextTerminalOnly){
                                 . (Join-Path $PSScriptRoot 'Slice4beProductionNextPolicy.ps1')
                                 Install-ProductionNextPolicyProbe
+                            }
+                            if($RunNextTerminalOnly){
+                                . (Join-Path $PSScriptRoot 'Slice4beProductionCheckInTerminal.ps1')
+                                Install-ProductionCheckInTerminalProbe -ControlId 'PRODUCTION_RUN_NEXT_BATCH'
                             }
                             if($RunNextYieldOnly){
                                 . (Join-Path $PSScriptRoot 'Slice4beProductionNextYield.ps1')

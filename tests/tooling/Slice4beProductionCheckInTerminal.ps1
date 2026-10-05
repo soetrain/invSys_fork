@@ -1,6 +1,7 @@
 # Faults occur after the real owner and REQUESTED, before Core's terminal read/write.
 # Instrumentation is unsaved and restricted to the controller's disposable paths.
 function Install-ProductionCheckInTerminalProbe {
+    param([ValidateSet('PRODUCTION_RUN_CHECK_IN','PRODUCTION_RUN_NEXT_BATCH')][string]$ControlId='PRODUCTION_RUN_CHECK_IN')
     . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
     Install-ProductionPathsProbe
     $core=$packages['invSys.Core.xlam'].VBProject
@@ -41,8 +42,8 @@ End Function
         if($module.Lines($i,1).Trim() -ieq 'If Not modActivityPolicy.ReadPolicy(target, action("ControlId"), version, collect, visible, notice) Then GoTo CleanExit'){$i}
     })
     if($lines.Count -ne 1){throw 'Terminal observation boundary changed; not product RED.'}
-    $module.InsertLines($lines[0],'    If action("ControlId") = "PRODUCTION_RUN_CHECK_IN" Then TestShippingCatalog.CheckTerminalBoundary')
-    $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
+    $module.InsertLines($lines[0],('    If action("ControlId") = "'+$ControlId+'" Then TestShippingCatalog.CheckTerminalBoundary'))
+    $messageProbe=@'
 Public Function CheckTerminalMessageForTest(ByVal kind As String) As Boolean
     Dim notice As String
     If kind = "PolicyChanged" Then
@@ -57,7 +58,9 @@ Public Function CheckTerminalMessageForTest(ByVal kind As String) As Boolean
     CheckTerminalMessageForTest = InStr(1, mTxtStatus.Text, "Checked in ", vbBinaryCompare) = 1 And _
         Right$(mTxtStatus.Text, Len(notice) + 1) = " " & notice
 End Function
-'@)
+'@
+    if($ControlId -ceq 'PRODUCTION_RUN_NEXT_BATCH'){$messageProbe=$messageProbe.Replace('"Checked in "','"Next Batch "')}
+    $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule.AddFromString($messageProbe)
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
 Public Function CheckTerminalMessage(ByVal kind As String) As Boolean
     CheckTerminalMessage = mForm.CheckTerminalMessageForTest(kind)
@@ -65,12 +68,20 @@ End Function
 '@)
 }
 
-function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$SelectedKey,[string]$Canary,[string[]]$Keys){
+function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$SelectedKey,[string]$Canary,[string[]]$Keys,[switch]$NextBatch){
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
+    $controlId='PRODUCTION_RUN_CHECK_IN';$prefix='CheckInTerminal';$catalog=25
+    if($NextBatch){
+        $controlId='PRODUCTION_RUN_NEXT_BATCH';$prefix='NextTerminal'
+        $catalog=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.NextPolicyCatalogVersion')
+        . (Join-Path $PSScriptRoot 'Slice4beProductionNextPaths.ps1')
+        function SavedHash([string]$Path){Hash $Path}
+        function PathCheck([string]$Name,[bool]$Passed){Check ($Name.Replace('InstructionPaths.','')) $Passed}
+    }
     function RestoreStore {
         if(Test-Path -LiteralPath $held -PathType Container){
             if(Test-Path -LiteralPath $activityRoot -PathType Leaf){Remove-Item -LiteralPath $activityRoot -Force}
@@ -92,11 +103,13 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
     }
     if((Test-Path -LiteralPath $held) -or (Test-Path -LiteralPath $candidate) -or (Test-Path -LiteralPath $invalidCandidate)){throw 'Preserve existing terminal fixture artifacts.'}
     $original=[IO.File]::ReadAllBytes($Fixture.Config);$originalHash=Hash $Fixture.Config
-    $otherPins=RestartPins $Other.Root;$runs=@()
+    $otherPins=RestartPins $Other.Root;$runs=@();$nextWork=$null
     try{
         # CheckBaselineReopen first copies the source fixture from the live form.
         # Preserve it until that adapter has rebound it to the next actor.
-        SelectTarget $Fixture;SetRecordingPolicy $true
+        SelectTarget $Fixture
+        if($NextBatch -and -not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Next Batch command policy unavailable; not product RED.'}
+        SetRecordingPolicy $true
         $enabled=[IO.File]::ReadAllBytes($Fixture.Config);$enabledHash=Hash $Fixture.Config
         # Build a valid external policy version ahead of time, preserving every
         # historical row. The terminal hook installs it without switching actor.
@@ -122,54 +135,79 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
                     $row.Range.Cells.Item(1,$cv).Value2=[double]($latest+1)
                 }
             }
+            if($NextBatch){
+                # Current schema-2 policies retain their per-user rows in the new version.
+                $users=Table $cfg 'tblEventTrackingUsers';$uv=$users.ListColumns.Item('PolicyVersion').Index
+                $count=$users.ListRows.Count
+                for($i=1;$i -le $count;$i++){
+                    if([int]$users.ListRows.Item($i).Range.Cells.Item(1,$uv).Value2 -eq $latest){
+                        $row=$users.ListRows.Add();[void]$users.ListRows.Item($i).Range.Copy($row.Range)
+                        $row.Range.Cells.Item(1,$uv).Value2=[double]($latest+1)
+                    }
+                }
+            }
             $cfg.SaveCopyAs($candidate)
             $headers.ListRows.Item($newPolicyRow).Range.Cells.Item(1,$headers.ListColumns.Item('SchemaVersion').Index).Value2=999.0
             $cfg.SaveCopyAs($invalidCandidate)
         }finally{$cfg.Close($false)}
-        Write-Output 'Check In terminal fault policy fixture prepared.'
+        Write-Output ($prefix+': terminal fault policy fixture prepared.')
         foreach($kind in @('PolicyChanged','StoreUnavailable','PolicyUnreadable')){
             foreach($mode in @('Reusable','Worksheet')){
                 RestoreConfig $enabled
-                SelectTarget $Fixture 'config-producer';[void](Probe 'CheckBaselineReopen' @($Book.Name))
-                $ready=if($mode -ceq 'Reusable'){[bool](Probe 'CheckBaselineReusableStage' @('Selected'))}else{[bool](Probe 'CheckBaselineWorksheetStage' @($SelectedKey,$Canary))}
-                if(-not $ready){throw 'Terminal owner prerequisites unavailable; not product RED.'}
+                SelectTarget $Fixture 'config-producer'
+                if($NextBatch){
+                    $nextWork=$excel.Workbooks.Add();$nextSheet=$nextWork.Worksheets.Item(1)
+                    $nextSheet.Cells.Item(2,1).Value2=$Canary;$nextSheet.Cells.Item(2,2).Formula='=1+2'
+                    [void](Probe 'RunLocalReopen' @($nextWork.Name));Prepare-NextPath $nextWork $Canary $mode
+                    $ownerPins=Get-NextPathAuthorityPins $Fixture
+                }else{
+                    [void](Probe 'CheckBaselineReopen' @($Book.Name))
+                    $ready=if($mode -ceq 'Reusable'){[bool](Probe 'CheckBaselineReusableStage' @('Selected'))}else{[bool](Probe 'CheckBaselineWorksheetStage' @($SelectedKey,$Canary))}
+                    if(-not $ready){throw 'Terminal owner prerequisites unavailable; not product RED.'}
+                }
                 OpenRecordingViewer
                 $prior=@(if(Test-Path -LiteralPath $journalRoot){Get-ChildItem -LiteralPath $journalRoot -File -Filter '*.json'|ForEach-Object FullName})
                 if((RecordingControl 'Start Recording' 'Click') -cne 'DELIVERED'){throw 'Actual recording Start unavailable.'}
                 $starts=@(Get-ChildItem -LiteralPath $journalRoot -File -Filter '*.json'|Where-Object{$_.FullName -cnotin $prior}|ForEach-Object{[IO.File]::ReadAllText($_.FullName)|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
                 if($starts.Count -ne 1){throw 'Exactly one real recording Start required.'}
-                $before=ActivityPins;$label='CheckInTerminal.'+$kind+'.'+$mode
-                Write-Output ($label+': invoking actual Check In after recording Start.')
+                $before=ActivityPins;$label=$prefix+'.'+$kind+'.'+$mode
+                Write-Output ($label+': invoking actual handler after recording Start.')
                 [void](Probe 'CheckBaselineResetOwnerEntries')
-                [void](Probe 'RunLocalShowAndCapture' @($Book.Name,'CHECK_IN'));$Decoy.Activate()
+                $activeBook=if($NextBatch){$nextWork}else{$Book}
+                [void](Probe 'RunLocalShowAndCapture' @($activeBook.Name,'CHECK_IN'));$Decoy.Activate()
                 $selectedPolicy=if($kind -ceq 'PolicyUnreadable'){$invalidCandidate}else{$candidate}
                 [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalArm' @($kind,$Fixture.Config,$selectedPolicy,$activityRoot))
                 try{
-                    Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))
+                    if($NextBatch){Invoke-NextPath $Fixture $Canary $mode $label $ownerPins -ChangingPolicy $Fixture.Config}
+                    else{Check ($label+'.ActualHandlerReturned') ([bool](Probe 'CheckBaselineAct' @('')))}
                     Check ($label+'.ExactlyOneTerminalFault') ([int](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalHits') -eq 1)
                     Check ($label+'.CapturedContextPreservedAtFault') ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalSameContext'))
-                    Check ($label+'.OwnerEnteredOnce') ([int](Probe 'CheckBaselineOwnerEntries') -eq 1)
-                    if($mode -ceq 'Reusable'){
+                    if(-not $NextBatch){
+                      Check ($label+'.OwnerEnteredOnce') ([int](Probe 'CheckBaselineOwnerEntries') -eq 1)
+                      if($mode -ceq 'Reusable'){
                         Check ($label+'.CheckedFrozenWithoutCompletion') ([bool](Probe 'CheckBaselineReusableResult' @($true)))
                         Check ($label+'.ExactIdentityDisplay') ([bool](Probe 'CheckBaselineReusableDisplay' @($Keys[0],$Keys[1])))
-                    }else{
+                      }else{
                         foreach($fact in @('ReachedCheckRows','ExactSelectedKey','CustomValue','CustomFormula','PalettePreserved','HeadersPreserved','DisplayColumns')){Check ($label+'.'+$fact) ([bool](Probe 'CheckBaselineWorksheetFact' @($fact)))}
+                      }
                     }
                     Check ($label+'.ExactSuccessAndFailureNotice') ([bool](Probe 'CheckTerminalMessage' @($kind)))
-                    Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))
-                    Check ($label+'.CanonicalEntitiesPreserved') ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockSourcePreservedForTest'))
-                    CaptureOwnedFormByCaptionEvidence 'Production' ('check-in-terminal-'+$kind.ToLowerInvariant()+'-'+$mode.ToLowerInvariant()+'.png')
+                    # NextActivityAct checks its own guards before its adapter resets them.
+                    if(-not $NextBatch){Check ($label+'.GuardsRestored') ([bool](Probe 'CheckBaselineGuards'))}
+                    if(-not $NextBatch){Check ($label+'.CanonicalEntitiesPreserved') ([bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.StockSourcePreservedForTest'))}
+                    $capturePrefix=if($NextBatch){'next-terminal-'}else{'check-in-terminal-'}
+                    CaptureOwnedFormByCaptionEvidence 'Production' ($capturePrefix+$kind.ToLowerInvariant()+'-'+$mode.ToLowerInvariant()+'.png')
                 }finally{
                     [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalArm' @('','','',''))
                     RestoreStore
                 }
-                $policy=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @('PRODUCTION_RUN_CHECK_IN'))
+                $policy=[string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Policy' @($controlId))
                 if($kind -ceq 'PolicyUnreadable'){
                     Check ($label+'.UnreadablePolicyObserved') ($policy -ceq 'False|False|False|0')
                 }else{Check ($label+'.ExpectedValidPolicyVersion') ($policy -ceq ('True|True|True|'+$(if($kind -ceq 'PolicyChanged'){$latest+1}else{$latest})))}
                 $records=@(Get-ChildItem -LiteralPath $activityRoot -File -Filter '*.json'|Where-Object{-not $before.ContainsKey($_.Name)}|ForEach-Object{[IO.File]::ReadAllText($_.FullName)|ConvertFrom-Json})
                 $valid=$records.Count -eq 1
-                if($valid){$r=$records[0];$valid=$r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.OutcomeCode -ceq 'REQUESTED' -and $r.UserId -ceq 'config-producer' -and $r.SequenceId -ceq $starts[0].SequenceId -and $r.Ordinal -eq 1 -and $r.PolicyVersion -eq $latest -and $r.CatalogVersion -eq 25 -and @($r.SourceEventRefs).Count -eq 0}
+                if($valid){$r=$records[0];$valid=$r.ControlId -ceq $controlId -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.OutcomeCode -ceq 'REQUESTED' -and $r.UserId -ceq 'config-producer' -and $r.SequenceId -ceq $starts[0].SequenceId -and $r.Ordinal -eq 1 -and $r.PolicyVersion -eq $latest -and $r.CatalogVersion -eq $catalog -and @($r.SourceEventRefs).Count -eq 0}
                 Check ($label+'.OnlyOriginalRequestedNoFalseTerminal') $valid
                 Check ($label+'.PreviousActivityImmutable') (PinsRetained $before)
                 if($kind -ceq 'PolicyUnreadable'){
@@ -177,7 +215,8 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
                     Check ($label+'.UnfinishedJournalCannotClaimCompletion') ($pending.Count -eq 2 -and @($pending|Where-Object Lifecycle -CNE 'Recording').Count -eq 0 -and (JournalChain $starts[0].SequenceId 2))
                     Check ($label+'.ActualViewerRefreshWhileUnreadable') ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh','')))
                     Check ($label+'.UnavailablePolicyVisibleAndStopDisabled') ((RecordingStatus) -ceq 'Tracking unavailable: the saved tracking policy is invalid.' -and (RecordingControl 'Stop Recording') -ceq 'True|False')
-                    CaptureOwnedFormByCaptionEvidence ('Viewer - '+$Fixture.Warehouse) ('check-in-unreadable-policy-viewer-'+$mode.ToLowerInvariant()+'.png')
+                    $viewerPrefix=if($NextBatch){'next-unreadable-policy-viewer-'}else{'check-in-unreadable-policy-viewer-'}
+                    CaptureOwnedFormByCaptionEvidence ('Viewer - '+$Fixture.Warehouse) ($viewerPrefix+$mode.ToLowerInvariant()+'.png')
                     # Availability recovery cannot supply the missing terminal.
                     RestoreConfig $enabled
                     Check ($label+'.ActualViewerRefreshAfterRecovery') ([bool](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh','')))
@@ -196,6 +235,14 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
                 CloseRecordingViewer
                 RestoreConfig $enabled
                 Check ($label+'.ConfigBytesRestored') ((Hash $Fixture.Config) -ceq $enabledHash)
+                if($NextBatch){
+                    $after=Get-NextPathAuthorityPins $Fixture;$same=$after.Count -eq $ownerPins.Count
+                    foreach($file in $ownerPins.Keys){$same=$same -and $after.ContainsKey($file) -and $after[$file] -ceq $ownerPins[$file]}
+                    Check ($label+'.AllAuthorityBytesPreservedAfterPolicyRestoration') $same
+                    Check ($label+'.OperatorCustomValueAndFormulaPreserved') ($nextSheet.Cells.Item(2,1).Value2 -ceq $Canary -and $nextSheet.Cells.Item(2,2).Formula -ceq '=1+2')
+                    Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
+                    [void](Probe 'CloseDesigner');$nextWork.Close($false);$nextWork=$null
+                }
             }
         }
         $authority=@{}
@@ -207,7 +254,7 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
         foreach($run in $runs){
             $label=$run.Label;$journal=$run.Journal
             if((Select-EvaluationRun $journal.ActionPathId) -cne 'SELECTED'){throw 'Actual interrupted recording selection unavailable.'}
-            $ready=Set-EvaluationDraft @(,@('PRODUCTION_RUN_CHECK_IN','STAGED','True')) 0 'CommandCompleted'
+            $ready=Set-EvaluationDraft @(,@($controlId,'STAGED','True')) 0 'CommandCompleted'
             Check ($label+'.ActualExpectationEditor') $ready
             if(-not $ready){throw 'Existing Check In expectation unavailable.'}
             $before=@(EvaluationFiles|ForEach-Object FullName)
@@ -222,17 +269,18 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
             CaptureOwnedFormByCaptionEvidence 'Action Paths' ($label.ToLowerInvariant()+'.png')
         }
         $retained=$true;foreach($file in $trainingPins.Keys){$retained=$retained -and (Hash $file) -ceq $trainingPins[$file]}
-        Check 'CheckInTerminal.PriorTrainingImmutableThroughEvaluation' $retained
+        Check ($prefix+'.PriorTrainingImmutableThroughEvaluation') $retained
         $retained=$true;foreach($file in $authority.Keys){$retained=$retained -and (Hash $file) -ceq $authority[$file]}
-        Check 'CheckInTerminal.AuthorityPreservedThroughPublicationAndEvaluation' $retained
-        Check 'CheckInTerminal.OtherWarehouseUnchanged' (RestartPinsEqual $otherPins $Other.Root)
+        Check ($prefix+'.AuthorityPreservedThroughPublicationAndEvaluation') $retained
+        Check ($prefix+'.OtherWarehouseUnchanged') (RestartPinsEqual $otherPins $Other.Root)
     }finally{
         [void](Run 'invSys.Core.xlam' 'TestShippingCatalog.CheckTerminalArm' @('','','',''))
         RestoreStore;[void](Probe 'CloseDesigner');CloseRecordingViewer
+        if($null -ne $nextWork){$nextWork.Close($false);$nextWork=$null}
         RestoreConfig $original
         if(Test-Path -LiteralPath $candidate){Remove-Item -LiteralPath $candidate -Force}
         if(Test-Path -LiteralPath $invalidCandidate){Remove-Item -LiteralPath $invalidCandidate -Force}
         SelectTarget $Fixture 'config-producer'
     }
-    Check 'CheckInTerminal.OriginalConfigBytesRestored' ((Hash $Fixture.Config) -ceq $originalHash)
+    Check ($prefix+'.OriginalConfigBytesRestored') ((Hash $Fixture.Config) -ceq $originalHash)
 }

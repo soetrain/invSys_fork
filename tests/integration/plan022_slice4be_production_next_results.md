@@ -1,5 +1,52 @@
 # Slice 4be-A: Production Next Batch binding and recording
 
+## Interrupted recording and reader evaluation, 2026-10-05
+
+Unchanged `deploy/validation-next-closed-01` passes213/213, retaining all70 ordered
+binding checks. The actual Next Batch handler runs in both owner branches after
+Start Recording. Faults at Core's terminal boundary change a valid policy version,
+make the activity store unavailable, or make the policy unreadable. Ordinary local
+work, exact identities/custom columns and prior history survive; only the original
+REQUESTED observation remains. Valid policy/store interruptions close the recording
+as Incomplete with POLICY_CHANGED/TRACKING_UNAVAILABLE. Unreadable policy disables
+Viewer Stop; actual Refresh/Stop after recovery closes it as UNFINISHED_ACTIONS.
+
+After explicit Admin publication, the reader's actual expectation/Evaluate handlers
+bind each exact original journal/hash and Next Batch/STAGED expectation. All six
+results are Incomplete/CAPTURE_INCOMPLETE, with no matched completion or Domain
+sources. Incremental journal integrity, restored Config bytes, authority, prior
+training, other warehouse and operator bytes pass. Fourteen new Production/Viewer/
+diagnostic captures are individually reviewed and readable.
+
+Controller `production-run-local-controller/2621afbdd5c64ae49a9622ffad3ec1c0`;
+worker `slice4be-production-next-terminal/4c2c7c7cdec9425c9e816d238bcbf92f/green.json`;
+19:17:25.389--19:29:45.394 UTC. Five instrumented compiles, unassisted closure,
+settings/package preservation and delayed zero Excel errors pass. No error5.
+Reproduce with `Test-Slice4beProductionRunLocal.ps1 -DeployRoot
+deploy/validation-next-closed-01 -Phase GREEN -CompleteBaselineOnly
+-NextBaselineOnly -NextTerminalOnly`.
+
+The first attempt had109 PASS/4 harness failures: three assertions read Check In's
+private guard flag, and reused staging collided with a still-loaded reusable run.
+Next Batch's own pre-reset guard result and separate generated case workbooks fix
+the harness; all109 prior passes remain. This is not product RED or a runtime fix.
+Trial controller `production-run-local-controller/ec01fb59e57e48c6b1175fd4b01dd554`,
+worker `slice4be-production-next-terminal/2b34b30dc5514ac190b38213790f8ea9/green.json`,
+19:10:43.521--19:17:18.910 UTC; normal closure/restoration and delayed zero errors.
+
+Static `next-terminal-static-01` retains310 components/6300 procedures/137873 lines,
+9 literal/45 unresolved dynamic calls and190 duplicate groups. All28 module caps,
+three schemas and419 PowerShell parses pass. Runtime/packages are unchanged;
+reuse the preceding build, smoke and unchanged layout evidence. The shared helper's
+original Check In regression retains629/629 exact ordered checks on frozen
+`validation-production-check-in-activity-03`; all five package hashes match its
+prior629 receipt. Controller `production-run-local-controller/672c7b8aa95240cd8bb579c5e8a3d4ca`,
+worker `slice4be-production-check-in-activity/1baf62d521a445d39ce8e1f525532d50/green.json`,
+19:30:09.231--19:42:18.490 UTC. Five compiles, unassisted closure, settings/package
+preservation and delayed zero Excel errors pass. This verifies default test-helper
+compatibility, not current-package Check In acceptance. Remaining controls and
+comprehensive A1/A2/full-chain acceptance stay open; no deployment or broader replay acceptance.
+
 ## Native workbook-closure correction, 2026-10-05
 
 On unchanged activity04, closing the captured workbook unloads Production during
@@ -56,8 +103,8 @@ captures are reviewed and readable. No error5 occurred.
 
 Each regression's `candidate-regression-audit.json` verifies the exact prior
 ordered checks and the same five package hashes as focused GREEN156.
-Recording-policy changes, incomplete-guide proof and broader A1/A2/full-chain
-acceptance remain open. Candidate is not promoted.
+Subsequent interrupted-recording proof is recorded above. Broader A1/A2/full-chain
+acceptance remains open. Candidate is not promoted.
 
 ## Mid-action context/permission evidence, 2026-10-05
 
@@ -83,9 +130,9 @@ Reproduce: `Test-Slice4beProductionRunLocal.ps1 -DeployRoot
 deploy/validation-complete-activity-04 -Phase GREEN -CompleteBaselineOnly
 -NextBaselineOnly -NextYieldOnly`.
 
-Keep the separate302 policy/store and86/94 guide gates. Native workbook dismissal,
-mid-action recording-policy changes and incomplete-guide proof remain open for
-Next Batch; this is not comprehensive A1/A2 or full-chain acceptance.
+Keep the separate302 policy/store and86/94 guide gates. Later native-dismissal and
+interrupted-recording gates are recorded above; this is not comprehensive A1/A2 or
+full-chain acceptance.
 
 ## Optional recording policy/store evidence, 2026-10-05
 

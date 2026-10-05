@@ -1,5 +1,11 @@
 # Slice4be Production Check In correctness and observations
 
+Shared terminal-helper compatibility reverified2026-10-05: all629 checks remain
+GREEN in exact order on the original frozen activity03 packages. Five compiles,
+normal closure, restoration and delayed zero Excel errors pass. See the
+[Next Batch results](plan022_slice4be_production_next_results.md) for receipts and
+the new optional Next Batch test path; no Check In runtime behavior changed.
+
 ## Unreadable-policy recovery and additional owner refusals
 
 Test-only expansion,2026-10-01 UTC: unchanged activity03 passes629/629, retaining
