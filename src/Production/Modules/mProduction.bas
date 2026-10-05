@@ -17,7 +17,6 @@ Private Const PRODUCTION_MAX_ROW_BUDGET As Long = 1000
 Private Const TABLE_RECIPE_CHOOSER As String = "RC_RecipeChoose"
 Private Const TABLE_RECIPE_CHOOSER_GENERATED As String = "RecipeChooser_generated"
 Private Const TABLE_INV_PALETTE_GENERATED As String = "InventoryPalette_generated"
-Private Const TABLE_RECALL_REPORT As String = "RecallCodesReport"
 Private Const TABLE_RUNTIME_RECIPES As String = "tblProductionRecipes"
 Private Const TABLE_RUNTIME_INGREDIENT_PALETTE As String = "tblProductionIngredientPalette"
 Private Const TABLE_TEMPLATES As String = "TemplatesTable"
@@ -9574,12 +9573,6 @@ Private Function EnsureRecallCodesReportSheet(ByVal wb As Workbook) As Worksheet
         EnsureRecallCodesReportSheet.Name = PROD_RECALL_REPORT_SHEET
     End If
 
-    Dim lo As ListObject
-    For Each lo In EnsureRecallCodesReportSheet.ListObjects
-        lo.Delete
-    Next lo
-
-    EnsureRecallCodesReportSheet.Cells.Clear
 End Function
 
 Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut As ListObject, ByVal invLo As ListObject, ByRef wsReport As Worksheet, ByRef detailOut As String) As Long
@@ -9652,6 +9645,10 @@ Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut 
 NextSourceRow:
     Next r
 
+    Dim loReport As ListObject
+    Set loReport = modProductionRecallReport.WriteRows(wsReport, reportData, detailOut)
+    If loReport Is Nothing Then Exit Function
+
     With wsReport
         .Range("A1").Value = "Production Recall Codes"
         .Range("A2").Value = "Workbook"
@@ -9665,15 +9662,7 @@ NextSourceRow:
         .Range("A1:D3").Font.Bold = True
 
         Dim tableRange As Range
-        Set tableRange = .Range("A5").Resize(rowCount + 1, 9)
-        tableRange.Value = reportData
-
-        Dim loReport As ListObject
-        Set loReport = .ListObjects.Add(xlSrcRange, tableRange, , xlYes)
-        loReport.Name = TABLE_RECALL_REPORT
-        loReport.TableStyle = "TableStyleMedium2"
-
-        .Columns("A:I").AutoFit
+        Set tableRange = loReport.Range
         .Range("D2").NumberFormat = "yyyy-mm-dd hh:mm:ss"
         ' PageSetup can raise 1004 when the workstation has no usable default
         ' printer. The recall table remains valid; only print-page preferences
@@ -9683,7 +9672,7 @@ NextSourceRow:
         .PageSetup.Zoom = False
         .PageSetup.FitToPagesWide = 1
         .PageSetup.FitToPagesTall = False
-        .PageSetup.PrintArea = .Range("A1").Resize(tableRange.Rows.Count + 4, tableRange.Columns.Count).Address
+        .PageSetup.PrintArea = .Range("A1").Resize(tableRange.Row + tableRange.Rows.Count - 1, tableRange.Column + tableRange.Columns.Count - 1).Address
         On Error GoTo 0
     End With
 

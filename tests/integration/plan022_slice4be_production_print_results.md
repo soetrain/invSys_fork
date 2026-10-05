@@ -1,5 +1,65 @@
 # Slice 4be-A: Production Print Recall
 
+## Successful rebuild preservation, 2026-10-05
+
+Under existing D14, the report now reuses its named table and writes managed
+fields by normalized header. Custom columns, values, formulas and positions,
+other tables and unrelated cells survive reuse, growth and shrink. Missing or
+ambiguous managed headers and occupied managed growth cells refuse before writes.
+Existing custom growth cells remain allowed. This does not define report identity
+or change inventory authority. The new typed Operations helper has three procedures;
+the owning mProduction module loses eleven lines.
+
+The actual packaged Print Recall handler protects this change. Only native
+PrintOut Preview is replaced in unsaved test instrumentation with an observed
+boundary; no native preview or physical printing acceptance is claimed.
+Corrected RED138/40 on print-preserve01 becomes GREEN178/178 on print-rebuild02,
+retaining all106 prior checks. Intermediate rebuild01 RED175/3 isolates overly
+restrictive custom-cell growth. Five additional first-preview metadata checks pass
+on unchanged rebuild02:183/183. That positive run was invoked with Phase RED and
+keeps its red.json filename; it is not a behavioral RED.
+
+Entry point: tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly,
+using Phase RED with deploy/validation-print-preserve-01 and Phase GREEN with
+deploy/validation-print-rebuild-02. The current test also includes the five later
+metadata checks; the recorded original RED/GREEN pair contains178 checks.
+
+Ignored receipts, relative to reports/runtime/:
+
+| Gate | Controller / worker or verification receipt | Result |
+|---|---|---|
+| Corrected RED | production-run-local-controller/88789176c8884afaac18f24f5604199e; slice4be-production-print-baseline/01a6091a860f4af8b6a76d9d794c6ed1/red.json | 138 PASS / 40 FAIL; 20:35:45-20:38:23 UTC |
+| Expansion RED | production-run-local-controller/d707b72cd084492d8f30a3fc383926f0; slice4be-production-print-baseline/66cf3e75e3ee4c458d8bbc70cf8ccb98/red.json | 175 PASS / 3 FAIL; 20:38:42-20:41:24 UTC |
+| Build | print-rebuild-build-02/verification.json | Five cold compiles;304 components,303 unchanged from rebuild01; only helper changes |
+| GREEN | production-run-local-controller/532c91edd064417abc6987d5426e104e; slice4be-production-print-baseline/35264c02e0484f108312fbd602bc91da/green.json | 178 PASS; exact corrected RED check order;20:42:45-20:45:33 UTC |
+| Metadata proof | production-run-local-controller/3979f0c4407e401b9b33673478883321; slice4be-production-print-baseline/be655a3f8e7b4174af2f6d6f1bda61f9/red.json | 183 PASS; all178 retained plus five readable timestamp checks;20:46:09-20:48:54 UTC |
+| Smoke | print-rebuild02-regression/smoke-ef9c488c2733416a976a05fc572903be/verification.json | 86 PASS, exact prior order, both unassisted exits;20:49:43-20:50:08 UTC |
+| Full chain | print-rebuild02-regression/chain-61b5c7586c6d45a3899d023cc6e2473b/verification.json | Chain32/live-role48/warehouse15 PASS, exact prior order;20:53:18-20:59:14 UTC |
+| Static | print-rebuild-static-02/ratchet-verification.json | 311 components/6304 procedures/137970 lines;9 literal/45 unresolved dynamic calls/190 duplicate candidates;28 non-growing caps,3 schemas,421 PowerShell parses |
+
+Focused runs/build/smoke/chain verify five package hashes, settings restoration,
+normal Excel closure and delayed zero Excel errors. Smoke and chain also restore
+tracked reports. Full chain retains the positive report diagnostic, Boxing,
+Shipping, restart and reconciliation checks.
+Net runtime growth from preserve01 is one small module, three procedures and92
+lines; oversized modules, dynamic calls and duplicate counts do not regress.
+Forms are unchanged; binding01 layout18/five native checks remains applicable.
+Reviewed GREEN captures show preserved custom cells during growth and below the
+shrunk table, retained unrelated content, and the occupied-growth refusal. The
+existing misleading completed prefix remains an explicit open defect.
+
+Superseded trials: controller ef09f887ee5f42889a0ffd20e3c17944 / worker
+54c39f7daee64799809ef919974720b4 produced133/35. Controller
+c005ffdff8fc42c5b94f4d21e3b5f57d / worker adbd4a41bf014d20a538c1e2b5656127
+produced165/3 on rebuild01, but its collision fixture wrote below an existing table
+and Excel expanded it. Those three failures are fixture errors, not product RED.
+Corrected fixtures populate collision/custom cells before table creation and assert
+the initial row count; the two governing REDs above supersede these trials.
+
+Candidate deploy/validation-print-rebuild-02 is not promoted. No error5 occurred.
+Report System_Key/provenance, inventory lookup binding, native preview,
+permission/yield/closure guards, truthful outcomes and observations remain open.
+
 ## Refusal preservation, 2026-10-05
 
 The actual Print Recall handler previously created or cleared RecallCodesPrint
@@ -104,9 +164,9 @@ The candidate is not promoted. No desktop error5 occurred during these checks.
 
 This checkpoint does not accept Print Recall as recorded or prove preview/physical
 printing. Permission changes, yielding/closure paths, truthful owner outcomes and
-observation integration remain open. The existing report builder clears the report
-sheet and tables; required D14 unknown-column preservation needs protecting tests
-and correction before acceptance. Its diagnostic rebuild and unconditional
+observation integration remain open. The rebuild checkpoint above protects D14
+custom-content preservation; report identity/provenance remains open.
+Its diagnostic rebuild and unconditional
 "completed" prefix cannot establish successful preview or printing.
 
 Existing unchanged-workflow evidence remains scoped to its recorded candidates.
