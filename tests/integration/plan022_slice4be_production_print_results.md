@@ -1,5 +1,49 @@
 # Slice 4be-A: Production Print Recall
 
+## Native preview and dismissed form, 2026-10-05
+
+Test-only GREEN384/384 retains all359 previous ordered checks and adds25 through
+the actual Print handler. The original `wsReport.PrintOut Preview:=True` renders
+an unobscured native preview; the observer invokes only Close Print Preview.
+The returned form shows "Print preview closed." A separate preview-seam case
+calls the actual Production Close handler: Print returns without reinitializing
+or querying the dismissed form, while the workbook stays open. Both cases build
+once and preserve source/exact keys, decoy, authority workbooks and other warehouse.
+The existing optional Close observation is permitted; no unchanged-journal claim
+is made. Saved operator bytes remain unchanged.
+
+No runtime or architectural contract changes, so no behavioral RED is manufactured.
+The native observer falls back from UI Automation to the owned window's legacy
+accessibility tree. It identifies the enabled visible Close Print Preview control
+by name and invokes its native action; it never invokes Print. Physical printing,
+report identity/provenance and Print observation integration remain unaccepted.
+
+Run `tests/tooling/Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly
+-SavedProbeCopiesForTest -Phase GREEN -DeployRoot deploy/validation-print-yield-01`.
+Ignored receipts are relative to `reports/runtime/`:
+
+- GREEN: `production-run-local-controller/a84ec25bb34f47a7825474f3156ddcda/verification.json`;
+  worker `slice4be-production-print-baseline/611a091f13b94b5fa9a7ac4c968c8313`,
+  23:43:51-23:48:41 UTC. Five instrumented compiles,384 passes, normal closure,
+  restored settings, preserved packages and delayed zero Excel errors. Reviewed
+  `print-native-preview.png` and `print-native-return.png`; the native receipt
+  confirms visible capture, Close invoked, no occlusion and no Print invocation.
+- Harness trials: controllers `2726ac7543624eb4898b64063b7e905a` (354/1) and
+  `351c4e013f81456095d0417d6e941a48` (364/4). The first passed one argument to a
+  two-argument adapter; the second could not discover the native ribbon through
+  UI Automation and reused a fixture variable. Preview was dismissed with owned
+  Escape in the second trial. These are not product RED. Both closed normally,
+  restored settings, preserved packages and have delayed zero Excel errors.
+- Observer diagnostic `print-preview-observer-d7486d9f0aad4827be9b4523f4e3efba`
+  proves automatic native capture/Close in a disposable workbook before GREEN.
+- Static: `print-native-static-01/ratchet-verification.json`: unchanged311
+  components/6306 procedures/138000 lines,9 literal/45 unresolved calls,
+  190 duplicates,28 non-growing oversized caps; three schemas and428 parses pass.
+
+The unchanged yield01 candidate retains its five cold compiles, smoke86,
+chain32/live48/warehouse15 and identical-form entry01 layout18/five native checks
+documented below. No rebuild, promotion or broader acceptance is claimed.
+
 ## Preview-return continuation, 2026-10-05
 
 Print previously displayed normal preview completion after sign-out, target loss,
@@ -521,11 +565,10 @@ The candidate is not promoted. No desktop error5 occurred during these checks.
 
 ## Remaining acceptance
 
-This checkpoint does not accept Print Recall as recorded or prove native preview/
-physical printing. Permission changes, yielding/closure paths and observation
-integration remain open. Rebuild preservation and truthful owner feedback are
-protected above; report identity/provenance remains open. The displayed preview
-return cannot establish that a page was printed.
+Print Recall observation integration and report identity/provenance remain open.
+The latest checkpoint above proves native preview and dismissed-form behavior,
+retaining the permission, interruption, preservation and truthful-feedback checks.
+A preview return does not establish that a page was physically printed.
 
 Existing unchanged-workflow evidence remains scoped to its recorded candidates.
 The refusal-preservation candidate above now has fresh chain32/live48/warehouse15

@@ -4,6 +4,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintOutcome.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintEntry.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintYield.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintNative.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintSeedBoundary.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
@@ -65,6 +66,7 @@ End Function
 '@)
     Install-ProductionPrintEntryProbe
     Install-ProductionPrintYieldProbe
+    Install-ProductionPrintNativeProbe
 }
 
 function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='None'){
@@ -134,6 +136,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='Non
         Test-ProductionPrintOutcome $Fixture $book $sheet
         Test-ProductionPrintEntry $Fixture $book $sheet $decoy
         Test-ProductionPrintYield $Fixture $Other $book $decoy
+        Test-ProductionPrintNative $Fixture $Other $book $sheet $decoy
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)
