@@ -1,6 +1,38 @@
 # Optional logging may fail; the actual authorized completion still owns business effects.
 function Install-ProductionCompletePolicyProbe {
+    $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule
+    $form.InsertLines(1,'Private mCompleteStatusOriginal As String')
+    $form.AddFromString(@'
+Public Function CompleteStatusFocusForTest() As Boolean
+    mCompleteStatusOriginal = mTxtStatus.Text
+    mTxtStatus.SetFocus
+    CompleteStatusFocusForTest = mTxtStatus.Locked And mTxtStatus.MultiLine And _
+        mTxtStatus.ScrollBars = fmScrollBarsVertical And Len(mCompleteStatusOriginal) > 0
+End Function
+Public Function CompleteStatusPositionForTest(ByVal atEnd As Boolean) As Boolean
+    Dim expected As Long
+    DoEvents
+    ' Native edit positions count a CRLF pair as one character.
+    If atEnd Then expected = Len(Replace(mCompleteStatusOriginal, vbCrLf, vbLf))
+    CompleteStatusPositionForTest = (mTxtStatus.Text = mCompleteStatusOriginal And _
+        mTxtStatus.SelStart = expected And mTxtStatus.SelLength = 0)
+End Function
+Public Function CompleteStatusFactsForTest() As Variant
+    CompleteStatusFactsForTest = Array(Len(mCompleteStatusOriginal), mTxtStatus.SelStart, _
+        mTxtStatus.SelLength, Me.ActiveControl.Name = mTxtStatus.Name, _
+        mTxtStatus.Text = mCompleteStatusOriginal)
+End Function
+'@)
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
+Public Function CompleteStatusFocus() As Boolean
+    CompleteStatusFocus = mForm.CompleteStatusFocusForTest()
+End Function
+Public Function CompleteStatusPosition(ByVal atEnd As Boolean) As Boolean
+    CompleteStatusPosition = mForm.CompleteStatusPositionForTest(atEnd)
+End Function
+Public Function CompleteStatusFacts() As Variant
+    CompleteStatusFacts = mForm.CompleteStatusFactsForTest()
+End Function
 Public Function CompletePolicyNotice(ByVal policy As String) As Boolean
     Dim notice As String, text As String
     Select Case policy
@@ -20,7 +52,25 @@ End Function
 '@)
 }
 
-function Test-ProductionCompletePolicy($Fixture,$Other,$Book,$Decoy,[string]$Canary) {
+function Test-CompleteStatusScrolling([string]$Label,[string]$Prefix) {
+    # Real keyboard navigation in the existing locked control; never replace its text.
+    CaptureOwnedFormByCaptionEvidence 'Production' ($Prefix+'-initial.png')
+    Check ($Label+'.StatusReadOnlyMultilineVertical') ([bool](Probe 'CompleteStatusFocus'))
+    $window=[InvSysSettingsCapture]::OwnedVisibleForm('Production',[IntPtr]$excel.Hwnd)
+    if($window -eq [IntPtr]::Zero -or [InvSysSettingsCapture]::GetAncestor([InvSysSettingsCapture]::GetForegroundWindow(),2) -ne $window){throw 'Owned Production foreground required for status navigation; not product RED.'}
+    [System.Windows.Forms.SendKeys]::SendWait('^{HOME}')
+    Check ($Label+'.KeyboardHomePreservesText') ([bool](Probe 'CompleteStatusPosition' @($false)))
+    if(-not [InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$excel.Hwnd,@('Production'),(Join-Path $reportRoot ($Prefix+'-start.png')))){throw 'Owned foreground status capture unavailable.'}
+    if(-not [bool](Probe 'CompleteStatusFocus')){throw 'Status focus unavailable before End; not product RED.'}
+    if([InvSysSettingsCapture]::GetAncestor([InvSysSettingsCapture]::GetForegroundWindow(),2) -ne $window){throw 'Production focus changed before status navigation; not product RED.'}
+    [System.Windows.Forms.SendKeys]::SendWait('^{END}')
+    Check ($Label+'.KeyboardEndPreservesText') ([bool](Probe 'CompleteStatusPosition' @($true)))
+    $facts=Probe 'CompleteStatusFacts'
+    [pscustomobject]@{Case=$Label;Length=$facts[0];Caret=$facts[1];Selection=$facts[2];StatusFocused=$facts[3];TextPreserved=$facts[4]}|ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'status-scroll-facts.jsonl')
+    if(-not [InvSysSettingsCapture]::SaveOwnedForegroundForm([IntPtr]$excel.Hwnd,@('Production'),(Join-Path $reportRoot ($Prefix+'-end.png')))){throw 'Owned foreground status capture unavailable.'}
+}
+
+function Test-ProductionCompletePolicy($Fixture,$Other,$Book,$Decoy,[string]$Canary,[switch]$StoreOnly) {
     function TrainingPins($Target){
         $pins=@{};$training=Join-Path $Target.Root 'Training'
         if(Test-Path -LiteralPath $training){foreach($file in Get-ChildItem -LiteralPath $training -Recurse -File){$pins[$file.FullName]=Hash $file.FullName}}
@@ -44,6 +94,7 @@ function Test-ProductionCompletePolicy($Fixture,$Other,$Book,$Decoy,[string]$Can
     $prior=TrainingPins $Fixture;$otherPins=TrainingPins $Other
     $historical=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(27))).Split("`n")|Where-Object{$_})
     foreach($policy in @('Off','Older','Invalid','StoreUnavailable')){
+        if($StoreOnly -and $policy -cne 'StoreUnavailable'){continue}
         try{
             SelectTarget $Fixture
             if($policy -ceq 'Off'){
@@ -106,7 +157,11 @@ function Test-ProductionCompletePolicy($Fixture,$Other,$Book,$Decoy,[string]$Can
                     Check ($label+'.NoPolicyRepairOrRewrite') ((Hash $Fixture.Config) -ceq $policyPin)
                     Check ($label+'.CustomValueAndFormula') ($sheet.Cells.Item(2,1).Value2 -ceq $Canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
                     Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
-                    if($policy -ceq 'StoreUnavailable'){CaptureOwnedFormByCaptionEvidence 'Production' ('complete-policy-store-'+$mode.ToLowerInvariant()+'.png')}
+                    if($policy -ceq 'StoreUnavailable'){
+                        CaptureOwnedFormByCaptionEvidence 'Production' ('complete-policy-store-'+$mode.ToLowerInvariant()+'.png')
+                        Test-CompleteStatusScrolling $label ('complete-policy-store-'+$mode.ToLowerInvariant()+'-scroll')
+                        Check ($label+'.TrackingNoticePreservedAfterScrolling') ([bool](Probe 'CompletePolicyNotice' @($policy)))
+                    }
                 }finally{
                     [void](Probe 'CompleteSubmissionReset');[void](Probe 'CloseDesigner')
                     if($null -ne $work){$work.Close($false)}

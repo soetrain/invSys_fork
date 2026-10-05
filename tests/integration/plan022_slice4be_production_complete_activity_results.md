@@ -406,17 +406,65 @@ unchanged caps; runtime metrics remain unchanged. Long Production status/warning
 scrolling, comprehensive A1/A2 and broader release gates remain open. No deployment,
 package promotion, Production replay or runtime UI change is claimed.
 
+## Existing status scrolling, 2026-10-05
+
+Test-only evidence uses the existing locked multiline status control after actual
+Complete Run handlers. Native Ctrl+Home/Ctrl+End preserves its full text; capture
+the already-focused form without activation that can reset its viewport. Caret
+positions count CRLF as one character. No runtime, wording or layout change and
+no new product RED are claimed. The isolated `-CompleteStatusOnly` activity mode
+runs both unavailable-store branches; default activity coverage remains intact.
+
+Trials (not product RED):
+
+- Full activity439 PASS/1 new assertion FAIL, controller
+  `production-run-local-controller/5a10c49931c24e97b540deb89056bfb2`, worker
+  `slice4be-production-complete-activity/b50f006c8f7f43c287520f1769a5a4af/green.json`,
+  16:51:43.889--17:06:25.533 UTC. All432 prior checks remain GREEN in exact order.
+  The new worksheet end-position assertion was wrong; initial captures reset the
+  viewport. Cleanup recovered unassisted; preservation and delayed zero Excel errors pass.
+- Focused128 PASS/1 assertion FAIL, controller
+  `production-run-local-controller/ac757ddbbc9c4163b5382f7637cf6dc4`, worker
+  `slice4be-production-complete-activity/2488af007a6c4c7fba0fae31fc464cd7/green.json`,
+  17:06:32.335--17:09:17.023 UTC. Redacted diagnostics show focused unchanged text
+  and a one-character caret/string-length difference. This led to the CRLF count
+  correction and nonactivating capture; normal closure/preservation pass.
+
+Focused **129/129**, controller
+`production-run-local-controller/96fdcf8805584887a10f3d892fd63bf1`, worker
+`slice4be-production-complete-activity/d62341b91358464b944b64cc8e932781/green.json`,
+17:09:59.384--17:12:57.790 UTC. All128 trial GREEN checks remain ordered. Reviewed
+`complete-policy-store-{reusable,worksheet}-scroll-{start,end}.png` show readable
+status and the final tracking warning. Five instrumented compiles, normal closure,
+settings/package preservation and delayed zero Excel errors pass.
+
+Submission faults **410/410**, controller
+`production-run-local-controller/3269422850404fa3bd3e6cc209f8de45`, worker
+`slice4be-production-complete-submission-fault/00919bb14996465e881df67032032fdf/green.json`.
+17:13:23.699--17:19:50.019 UTC. Five instrumented compiles, normal closure,
+settings/package preservation and delayed zero Excel errors pass.
+All404 prior checks remain ordered; six keyboard-navigation assertions pass.
+Reviewed `complete-writer-{reusable,worksheet}-pending-scroll-{start,end}.png`
+show the initial and final diagnostic lines. These owner messages remain unchanged;
+the redacted Event Logger contract is separate.
+
+Static `complete-status-scroll-static-04b/` passes415 parses, three schemas and28
+unchanged caps;310 components,6300 procedures,137871 lines,9 literal/45 unresolved
+dynamic calls and190 duplicate groups remain unchanged. Retain activity04 cold
+build, smoke86/layout18, closure318 and both guide-view gates. No package rebuild,
+promotion, deployment or comprehensive A1/A2 acceptance. No error5 observed.
+
 ## Next test-first work
 
 Retain native closure, permission, identity, interruption and optional logging
-proofs and both recording-to-guide gates. Next prove worksheet status/warning
-scrolling through the existing control. The older live-role
+proofs, both recording-to-guide gates and scoped status scrolling. Advance remaining
+observation/guide coverage, including Next Batch. The older live-role
 check named `Production.Form.CompleteRun.Process` calls
 `mProduction.CompleteProductionRunAfterCheckInForOutputResult` directly; it cannot
 replace the actual-handler worksheet gate. Existing writer `writeAttemptedOut`
 can distinguish attempted uncertain writes from unused allocated event IDs.
 
 Complete Run publication, fresh exact source evaluation and all three presentation
-modes now have functional and scoped visible guide proof; status scrolling remains open.
+modes now have functional and scoped visible guide/status proof.
 Focused observation GREEN is established;
 package promotion, comprehensive A1 and Slice4be-A acceptance are not claimed.

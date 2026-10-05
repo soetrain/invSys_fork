@@ -37,6 +37,7 @@ param(
     [switch]$RunLocalRefillDiagnostic,
     [switch]$RunCompleteActivityOnly,
     [switch]$RunCompleteSubmissionFaultOnly,
+    [switch]$RunCompleteStatusOnly,
     [switch]$RunCompletePathsOnly,
     [ValidateSet('Reusable','Worksheet')][string]$RunCompletePathMode='Reusable',
     [switch]$RunCompleteBaselineOnly,
@@ -192,6 +193,7 @@ if($RunCompleteVisibleHostForTest -and (-not $RunCompleteBaselineOnly -or $RunNe
 if($RunCompleteSavedDecoyForTest -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
 if($RunCompleteActivityOnly -and (-not $RunCompleteBaselineOnly -or $RunNextBaselineOnly -or $RunCompletePreparationDiagnostic)){throw 'Complete activity requires its isolated baseline fixture.'}
 if($RunCompleteSubmissionFaultOnly -and -not $RunCompleteActivityOnly){throw 'Complete submission faults require the activity fixture.'}
+if($RunCompleteStatusOnly -and (-not $RunCompleteActivityOnly -or $RunCompleteSubmissionFaultOnly)){throw 'Status-only evidence requires the completion activity fixture without submission faults.'}
 if($RunCompletePathsOnly -and (-not $RunCompleteBaselineOnly -or $RunCompleteActivityOnly -or $RunCompletePreparationDiagnostic -or $RunNextBaselineOnly)){throw 'Complete paths require their isolated baseline fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($TraceGuideResourcesForTest){
@@ -1906,7 +1908,7 @@ End Function
                 Test-ProductionInstructionPaths $a -RunCheckIn -CheckInMode $RunCheckInPathMode
             }
             elseif($RunNextBaselineOnly){Test-ProductionNextBaseline $a $b}
-            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -SubmissionFaultOnly:$RunCompleteSubmissionFaultOnly -Paths:$RunCompletePathsOnly -PathMode $RunCompletePathMode -ClosedBoundary $RunCompleteClosedBoundary}
+            elseif($RunCompleteBaselineOnly){Test-ProductionCompleteBaseline $a $b -PreparationDiagnostic:$RunCompletePreparationDiagnostic -PreparationPrelude $RunCompletePreparationPrelude -SavedDecoy:$RunCompleteSavedDecoyForTest -VisibleHost:$RunCompleteVisibleHostForTest -Activity:$RunCompleteActivityOnly -SubmissionFaultOnly:$RunCompleteSubmissionFaultOnly -StatusOnly:$RunCompleteStatusOnly -Paths:$RunCompletePathsOnly -PathMode $RunCompletePathMode -ClosedBoundary $RunCompleteClosedBoundary}
             elseif($RunCheckInActivityOnly){Test-ProductionCheckInActivity $a $b}
             elseif($RunCheckInClosedOnly){Test-ProductionCheckInClosed $a $b}
             elseif($RunCheckInRoutedOnly){Test-ProductionCheckInRouted $a $b}

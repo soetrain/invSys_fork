@@ -175,7 +175,10 @@ function Test-ProductionCompleteSubmissionFault($Fixture,$Other,$Book,$Decoy,[st
             Check ($label+'.NoRedirectedActivity') ((@(Get-Slice4beActivityFiles $Other) -join '|') -ceq ($otherBefore -join '|'))
             Check ($label+'.CustomValueAndFormula') ($sheet.Cells.Item(2,1).Value2 -ceq $Canary -and $sheet.Cells.Item(2,2).Formula -ceq '=1+2')
             Check ($label+'.DecoyPreserved') ($Decoy.Worksheets.Count -eq 1 -and $Decoy.Worksheets.Item(1).Cells.Item(1,1).Value2 -ceq $Canary)
-            if($ordinal -eq 2 -and $fault -cin @('AfterAppend','Pending')){CaptureOwnedFormByCaptionEvidence 'Production' ('complete-writer-'+$branch.ToLowerInvariant()+'-'+$fault.ToLowerInvariant()+'.png')}
+            if($ordinal -eq 2 -and $fault -cin @('AfterAppend','Pending')){
+                CaptureOwnedFormByCaptionEvidence 'Production' ('complete-writer-'+$branch.ToLowerInvariant()+'-'+$fault.ToLowerInvariant()+'.png')
+                if($fault -ceq 'Pending'){Test-CompleteStatusScrolling $label ('complete-writer-'+$branch.ToLowerInvariant()+'-pending-scroll')}
+            }
         }finally{
             [void](Run 'invSys.Core.xlam' 'modRoleEventWriter.CompleteFaultResetForTest')
             [void](Probe 'CloseDesigner');if($null -ne $work){$work.Close($false)}

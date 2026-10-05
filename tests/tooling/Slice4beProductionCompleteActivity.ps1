@@ -1,6 +1,6 @@
 # Observe actual Complete Run clicks and verify their independent owner effects.
 # No activity records or business results are manufactured by this fixture.
-function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary,[switch]$SubmissionFaultOnly) {
+function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary,[switch]$SubmissionFaultOnly,[switch]$StatusOnly) {
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     $activities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     function Pair([string[]]$Before,[string]$Outcome,[string]$Label,[string[]]$EventIds=@(),[string]$Actor='config-producer',[string[]]$ReferenceStates=@()) {
@@ -56,6 +56,7 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
     if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Tracking policy prerequisite unavailable; not product RED.'}
     SelectTarget $Fixture 'config-producer';[void](Probe 'RunLocalReopen' @($Book.Name))
     if($SubmissionFaultOnly){Test-ProductionCompleteSubmissionFault $Fixture $Other $Book $Decoy $Canary;return}
+    if($StatusOnly){Test-ProductionCompletePolicy $Fixture $Other $Book $Decoy $Canary -StoreOnly;return}
     foreach($guard in @('Loading','Busy','Normal','NoProcess')){
         [void](Probe 'CompleteSubmissionReset')
         if(-not [bool](Probe 'CompleteBaselinePrepare' @($guard -cne 'NoProcess'))){throw 'Actual Check In prerequisite unavailable; not product RED.'}
