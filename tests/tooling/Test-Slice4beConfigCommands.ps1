@@ -136,6 +136,7 @@ param(
     [switch]$GuideActionCurationOnly,
     [switch]$CheckGuideTransfer,
     [switch]$CheckGuideTransferRoundTrip,
+    [switch]$CheckGuideTransferActivity,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
     [switch]$WaitForExcelReadyForTest,
@@ -228,6 +229,7 @@ if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $Captu
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
 }
 if($CheckGuideTransferRoundTrip -and -not $CheckGuideTransfer){throw 'Round trip requires the isolated guide transfer fixture.'}
+if($CheckGuideTransferActivity -and (-not $CheckGuideTransfer -or $CheckGuideTransferRoundTrip)){throw 'Transfer activity requires its separate compiled transfer fixture.'}
 if($CheckGuideTransfer){
     if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Guide transfer requires its compiled saved-copy guide fixture.'}
     if($CheckReceivingReplay -or $GuideActionCurationOnly -or $PublishedGuideEditOnly -or $GuidePresentationRestartOnly){throw 'Guide transfer requires an isolated fixture.'}
@@ -1262,12 +1264,13 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
     Unload frmProduction
 End Function
 '@)
-    if ($CheckTrackingSettings) { Install-Slice4beTrackingSettingsProbe $testModule }
-    if ($CheckTrackingPolicy -or $CheckUserTrackingPolicy -or $CheckGuidePresentationAvailability) {
+    if ($CheckGuideTransferActivity) { . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1') }
+    if ($CheckTrackingSettings -or $CheckGuideTransferActivity) { Install-Slice4beTrackingSettingsProbe $testModule }
+    if ($CheckTrackingPolicy -or $CheckUserTrackingPolicy -or $CheckGuidePresentationAvailability -or $CheckGuideTransferActivity) {
         . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
         Install-Slice4beTrackingPolicyProbe $testModule $formCode
     }
-    if ($CheckUserTrackingPolicy) {
+    if ($CheckUserTrackingPolicy -or $CheckGuideTransferActivity) {
         . (Join-Path $PSScriptRoot 'Slice4beUserTrackingPolicy.ps1')
         Install-UserTrackingPolicyProbe $testModule
     }
@@ -1338,6 +1341,10 @@ End Function
             if($CheckGuideTransfer){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
                 Install-GuideTransferDialogProbe
+                if($CheckGuideTransferActivity){
+                    . (Join-Path $PSScriptRoot 'Slice4beGuideTransferActivity.ps1')
+                    Install-GuideTransferActivityProbe
+                }
             }
             if($CheckReceivingReplay){
                 . (Join-Path $PSScriptRoot 'Slice4beReceivingReplay.ps1')
@@ -1786,6 +1793,10 @@ End Function
             Initialize-GuideRestartFixture $a -ForPublishedEdit
             . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
             Test-GuideTransferEntry $a $b $guidePresentationRestartFixture.Guide
+            if($CheckGuideTransferActivity){
+                $step='packaged guide transfer observations'
+                Test-GuideTransferActivity $a $b $guidePresentationRestartFixture.Guide
+            }
             if($CheckGuideTransferRoundTrip){
                 $step='packaged guide transfer round trip and guards'
                 . (Join-Path $PSScriptRoot 'Slice4beGuideTransferRoundTrip.ps1')

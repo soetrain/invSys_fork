@@ -7,6 +7,34 @@ passes **71/71 GREEN**, with the native-guide editing regression **58/58**.
 Observation accounting and remaining affected regressions remain
 open; neither transfer nor 4be-A is accepted or deployed.
 
+## Transfer observation RED
+
+Catalog30 refines D18's existing comprehensive-recording rule for Export/Import;
+it adds no permission or replay authority. On unchanged `fe60f926` packages,
+the actual-handler gate passes45 checks and fails exactly34 expected assertions:
+two missing definitions and four observation assertions for each of eight actions.
+The actions cover cancellation, successful export/import, existing destination,
+invalid import, picker failure and context loss. All24 original entry checks pass.
+Loading/busy suppression, immutable prior records, successful owner writes and
+preserved source files pass independently. No implementation GREEN is claimed.
+
+UTC2026-10-06 06:43:48.6862835--06:47:19.3359237; controller
+`guide-transfer-controller/e7916539999e402994455e3c5342fd0b`, worker
+`slice4be-guide-transfer/e193c2972fe74eb8b22cb9666adb77a5` under `reports/runtime/`.
+Five instrumented compiles,77 saved-host observations, closed-byte/package/settings
+preservation, normal closure and delayed zero Excel failures pass. The controller's
+`verification.json` checks exact failures and retained entry identities.
+Policy/storage, maintenance revocation and recorded/evaluated transfer proof still
+need focused coverage; this gate does not claim those acceptance requirements.
+
+Qualified harness trials: `045855e19bcd4f8fa30ef27d2c690e52` failed Admin compile
+because the added user-policy probe lacked its settings helper. The reviewed owned
+compile dialog was acknowledged natively; Excel exited and settings/packages were
+restored. It is not behavioral RED. `93e2c7ce7f7a457ea0977c54c7547577` then reached
+43 PASS/36 FAIL:34 behavioral failures plus two empty-COM/string assertion errors.
+Adding the missing probe dependency and explicit string conversion produced the
+clean RED above without runtime changes. No desktop Win32 error5 was observed.
+
 ## Transfer round trip and guards
 
 **2026-10-06 UTC: RED24 PASS / 32 expected FAIL -> GREEN69/69.** RED retains

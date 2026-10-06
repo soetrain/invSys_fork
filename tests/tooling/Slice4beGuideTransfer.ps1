@@ -41,6 +41,7 @@ End Function
     $module.DeleteLines($start,$count)
     $module.InsertLines($start,@'
 Private Function SelectFileForTransfer(ByVal exporting As Boolean) As String
+    If TransferFileForTest = "TRANSFER_PICKER_FAULT" Then Err.Raise 5, , "Transfer fixture diagnostic content"
     If TransferSignOutForTest Then Application.Run "'invSys.Core.xlam'!modAuth.SignOut"
     SelectFileForTransfer = TransferFileForTest
 End Function
