@@ -1,5 +1,94 @@
 # Slice 4be-A: Production Print Recall
 
+## Catalog29 observation baseline and Seed preservation, 2026-10-06 UTC
+
+Print RED620/75 -> GREEN695/695 retains all474 prior checks and exact ordered
+RED/GREEN identities. The actual handler records owner outcomes; loading/busy/
+nested entry is suppressed. Entry denial, missing sheet, preview failure,
+recovery, dismissal and disabled recording are covered. PREVIEW_RETURNED proves
+command completion only, never physical printing or fresh business results.
+Keys/custom values, canonical bytes, saved operator bytes and other-warehouse
+content remain intact. Policy/fault, recorded interruption, publication and
+independent How-To/Diagnostic/Compare proof remain open; Print and 4be-A are not
+accepted by this checkpoint.
+
+Current candidate: `deploy/validation-print-activity-03`. Local receipts below
+are ignored paths beneath `reports/runtime/`; no operational reports are committed.
+
+| Gate | Result | Receipt |
+| --- | --- | --- |
+| Print actual-handler RED, identity01 | 620 pass/75 expected failures; all474 prior pass | `production-run-local-controller/c864ba592ef24f2fb9781f267d5f5551/verification.json` |
+| Print GREEN, activity03 | 695/695, exact RED identities, five instrumented compiles | `production-run-local-controller/1039e6eb8c68458d8336efdbeaaf2ac8/verification.json` |
+| Seed callback RED, activity01 | 51 pass/2 expected failures | `production-run-local-controller/c1b70adf7b9948dfb4171fe9c3ade186/verification.json` |
+| Seed GREEN, activity03 | 53/53, exact RED identities, five instrumented compiles | `production-run-local-controller/f073fd3fc52c4e788fc3ccac57b36de7/verification.json` |
+| Cold build | Five compiles; all305 component sources identical to activity02 | `print-activity-build-03/verification.json` |
+| Full chain/live-role/warehouse | 32/48/15; every prior ordered check retained | `print-activity03-regression/chain-481bfa1c69334790aa79584ad3aa7bb8/verification.json` |
+| Check In with saved probes | 631/631; all629 prior checks plus two fixture checks | `production-run-local-controller/802e4010a498470990e0373cb1e088d1/verification.json` |
+| Packaged smoke | 86/86; every prior ordered check and both unassisted exits | `print-activity03-regression/smoke-30f2b5d7bac44662a1610eb4bc7bcd4f/verification.json` |
+
+Print GREEN ran02:21:57-02:29:36 UTC; Seed GREEN02:30:06-02:31:39 UTC;
+chain02:15:53-02:21:25 UTC. Each closed Excel without assistance, restored
+settings, preserved frozen packages and passed the delayed Excel-error audit.
+Print worker `slice4be-production-print-baseline/e0c4256e29484418958ff74f0e4b9b7f`
+contains two reviewed operator captures and `print-activity-visible-review.json`:
+preview-return status is readable; current preview failure replaces prior success.
+Check In ran02:32:05-02:44:20 UTC, worker
+`slice4be-production-check-in-activity/c7bf000f04aa42e1ae8151cb7849f941`;
+smoke ran02:44:48-02:45:08 UTC. Both confirm clean lifecycle, settings/package
+preservation and delayed zero Excel errors on the same candidate. Five Check In
+instrumented compiles pass. Smoke also restores its tracked report.
+
+Static03:312 components/6307 procedures/138053 lines, growth of one component,
+one procedure and54 lines. Dynamic calls9 literal/45 unresolved,190 duplicate
+candidates and all28 oversized caps remain non-growing. Three schemas and430
+PowerShell parses pass (`print-activity-static-03/ratchet-verification.json`).
+All forms remain identical to identity01; accepted entry01 layout18/five native
+checks still apply. Runtime source has not changed since activity02/static03.
+
+The newly exposed Seed defect: schema completion for Config lacking optional
+Timezone normalized its entire sheet set, deleting saved policy/history and
+returning to recording defaults. The one-line Core fix normalizes only newly
+created files. Actual Admin callback `RunDemoInventoryActionCallbackForAutomation`
+-> `Seed_DemoInventory` now preserves two policy versions, effective disabled
+policy, extra-sheet text/formula, unknown managed columns and unrelated content.
+Ordinary reads remain non-mutating. RED fails only policy/history preservation
+and effective-policy assertions; Seed itself succeeds. RED ran01:06:12-01:07:43
+UTC, worker `9ff7703f1f654ab498c088456f9a323c`. GREEN worker is
+`fadf4f54523a49fa8e7d208d0882e424`. Both are under
+`slice4be-production-print-baseline/`. Run the Print command with
+`-PrintSeedBoundaryForTest SeedOnly` against activity01/03 for RED/GREEN.
+
+Retained failed trials and bounded comparisons:
+
+- Activity01 Print672/23 (`production-run-local-controller/eb3330b88534477ca3e267830df0639c`,
+  00:53:39-01:01:32 UTC) exposed the Seed defect. All new observation checks passed;
+  prior preservation and two interruption-status checks failed. Activity02 then
+  passed unchanged695 and Seed53, with clean lifecycle (controllers
+  `d3ac0a97b6de4b21a8c7cc3a54514aa0` and `bad264615780446ea204c598f3fef3a8`).
+- Activity02 Check In passed629 assertions in each of controllers
+  `87b1e223936b4d23bde8be348a9e7320` and `e0f59f8907b24a73820219cea43f91d3`.
+  Owned windowless Excel was terminated about two minutes after results; retained
+  controllers restored settings/packages. These are assisted trials, not clean
+  lifecycle evidence. No second COM attachment was made; cause is unresolved.
+- The existing saved-probe test option now also permits isolated Check In:
+  install/compile probes before forms, save only writable disposable package
+  copies, then run fixtures. Runtime/default fixture behavior is unchanged.
+  Activity02 passes631, retaining629 ordered checks plus two fixture-state checks,
+  and exits without assistance (`production-run-local-controller/bf195745ede141169add29b252c732cb`,
+  01:56:37-02:08:43 UTC). This does not establish a general native/exit fix.
+- Activity02 chain fails twice at
+  `mProduction.CompleteProductionRunAfterCheckInForOutputResult`, HRESULT0x800706BE,
+  Excel/ntdll.dll exception c0000028. Receipts:
+  `print-activity02-regression/chain-c2d80cbbc2d04d689f63cbbec53245de` and
+  `chain-2a0e6142ce4744fdbe03b90cd1fd5322`; fault times01:47:48 and02:10:37 UTC.
+  Settings/packages/tracked reports were restored. Frozen identity01 passes32/48/15
+  (`print-identity01-regression/chain-82ecd1f198bc4e249541027efba9f433`).
+  Source-identical activity03 passes as above; this is artifact evidence, not a
+  proven native-crash fix. No speculative callback/COM cleanup change was made.
+- Harness-only trials are not product RED: controller
+  `7b421f08fac34791a4d7d3e8629934eb` incorrectly required Designs authority;
+  `abe6e7491b3e4d59b7978c8b1f6af388` expected Visible=True for a disabled policy.
+
 ## Exact-key location lookup, 2026-10-06 UTC
 
 Print Recall and its shared recall-log helper trimmed System_Key and matched it

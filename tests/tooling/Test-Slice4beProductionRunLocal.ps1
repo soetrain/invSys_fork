@@ -9,7 +9,7 @@ if($CompleteActivityOnly -and (-not $CompleteBaselineOnly -or $NextBaselineOnly 
 if($CompleteVisibleHostForTest -and (-not $CompleteBaselineOnly -or $NextBaselineOnly)){throw 'Visible-host comparison requires the isolated Complete Run fixture.'}
 if($CompletePreparationPrelude -ne 'None' -and -not $CompletePreparationDiagnostic){throw 'Preparation prelude requires explicit diagnostic mode.'}
 if($CompletePreparationDiagnostic -and (-not $CompleteBaselineOnly -or $NextBaselineOnly)){throw 'Preparation diagnosis requires the isolated Complete Run fixture.'}
-if($SavedProbeCopiesForTest -and ((-not $CompleteBaselineOnly -and -not $PrintBaselineOnly) -or $NextBaselineOnly)){throw 'Saved probe copies require the isolated completion or Print gate.'}
+if($SavedProbeCopiesForTest -and ((-not $CompleteBaselineOnly -and -not $PrintBaselineOnly -and -not $CheckInActivityOnly) -or $NextBaselineOnly)){throw 'Saved probe copies require an isolated completion, Print or Check In activity gate.'}
 if($SavedDecoyForTest -and (-not $CompleteBaselineOnly -or $NextBaselineOnly)){throw 'Saved decoy requires the isolated completion gate.'}
 if($NextTerminalOnly -and (-not $NextBaselineOnly -or $NextActivityOnly -or $NextYieldOnly -or $NextPathsOnly)){throw 'Next terminal proof requires the isolated Next baseline.'}
 if($NextClosedOnly -and -not $NextYieldOnly){throw 'Next Batch native closure requires its isolated interruption fixture.'}

@@ -6,6 +6,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintYield.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintNative.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintIdentity.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintActivity.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintSeedBoundary.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
@@ -83,6 +84,10 @@ function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='Non
     $canary='PRINT-FIXTURE';$book=$null;$decoy=$null;$observer=$null
     $otherPins=RestartPins $Other.Root
     try{
+        if($SeedBoundary -ceq 'None'){
+            SelectTarget $Fixture
+            if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($false))){throw 'Disabled baseline recording policy unavailable; not product RED.'}
+        }
         SelectTarget $Fixture 'config-producer'
         $book=$excel.Workbooks.Add();$sheet=$book.Worksheets.Item(1);$sheet.Name='Production'
         $sheet.Cells.Item(1,1).Value2=$canary;$sheet.Cells.Item(2,1).Formula='=1+2'
@@ -140,6 +145,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='Non
         Test-ProductionPrintEntry $Fixture $book $sheet $decoy
         Test-ProductionPrintYield $Fixture $Other $book $decoy
         Test-ProductionPrintNative $Fixture $Other $book $sheet $decoy
+        Test-ProductionPrintActivity $Fixture $book $sheet $decoy
         $book.Close($false);$book=$null
         Check 'PrintBaseline.SavedOperatorBytesPreserved' ((Hash $path) -ceq $pin)
         Check 'PrintBaseline.OtherWarehousePreserved' (RestartPinsEqual $otherPins $Other.Root)

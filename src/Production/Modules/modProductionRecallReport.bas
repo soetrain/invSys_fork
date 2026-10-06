@@ -12,12 +12,19 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, ByVal 
     On Error GoTo Failed
     busy = True
     Set action = New cProductionWorksheetAction
-    If Not action.BeginOwner(context, operatorBook, detail) Then GoTo Done
+    If Not action.Begin("PRODUCTION_RUN_PRINT", context, operatorBook, detail) Then
+        If action.OutcomeCode = "DENIED" Then detail = "Production permission changed. Reopen Production before continuing."
+        GoTo Done
+    End If
     If Not modProductionRunBinding.RequireWorksheetContext(owner, context, operatorBook) Then GoTo Done
     mProduction.BtnPrintRecallCodes outcome, detail
     If Not action.CanContinue(detail) Then GoTo Done
+    If Not modOperationsFormLifetime.IsLoaded(owner) Then GoTo Done
+    action.OutcomeCode = outcome
 Done:
-    loading = priorLoading: busy = priorBusy
+    loading = priorLoading
+    If Not action Is Nothing Then action.Finish detail
+    busy = priorBusy
     If detail <> "" And modOperationsFormLifetime.IsLoaded(owner) Then owner.ShowStatus detail
     If number <> 0 Then
         On Error GoTo 0

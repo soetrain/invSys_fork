@@ -18,6 +18,11 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
     Dim reference As Variant, field As Variant, seen As Object, key As String
     Dim shipping As Object, outcome As Object, sourceControl As Boolean, sourceKind As String
     On Error GoTo Invalid
+    If controlId = "PRODUCTION_RUN_PRINT" Then
+        Set outcome = modProductionPrintCodes.Outcome(controlId, outcomeCode)
+        If Not outcome Is Nothing Then Valid = (references.Count = 0)
+        Exit Function
+    End If
     Set outcome = modProductionRunCodes.Control(controlId)
     If Not outcome Is Nothing Then
         Set outcome = modProductionRunCodes.Outcome(controlId, outcomeCode)

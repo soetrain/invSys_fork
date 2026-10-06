@@ -286,7 +286,7 @@ Private Function OpenOrCreateRuntimeWorkbook(ByVal targetPath As String, _
         End If
     End If
 
-    NormalizeRuntimeWorkbookSheets wb, workbookKind
+    If wasCreated Then NormalizeRuntimeWorkbookSheets wb, workbookKind
 
     Select Case UCase$(workbookKind)
         Case "CONFIG"

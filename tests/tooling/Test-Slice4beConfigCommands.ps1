@@ -265,9 +265,10 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
     $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
     $savedPrint=$RunPrintBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and $PrintSeedBoundaryForTest -cne 'BareSeed'
+    $savedCheckIn=$RunCheckInActivityOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
     $savedComplete=$RunCompleteBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $RunNextBaselineOnly -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
-    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint)){
-        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion/Print gate.'
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint -or $savedCheckIn)){
+        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion/Print/Check In gate.'
     }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
@@ -1631,7 +1632,7 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
     }
-    if(($RunCompleteBaselineOnly -or $RunPrintBaselineOnly) -and $ViewerStartupPackageStateForTest -eq 'SavedCopies'){
+    if(($RunCompleteBaselineOnly -or $RunPrintBaselineOnly -or $RunCheckInActivityOnly) -and $ViewerStartupPackageStateForTest -eq 'SavedCopies'){
         $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
         Check 'Harness.ProductionProbesInstalledBeforeForms' $noForms
         if(-not $noForms){throw 'Production probes must precede forms; not product RED.'}
