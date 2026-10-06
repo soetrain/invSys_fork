@@ -1,5 +1,27 @@
 # Slice4be Production Check In correctness and observations
 
+## Current-catalog compatibility, 2026-10-06 UTC
+
+All629 prior ordered checks pass on `validation-print-identity-01`, protecting
+Check In after the shared recall-location fix. Controller
+`production-run-local-controller/de412d2e930049bab6b967f12b55b4d2`, worker
+`slice4be-production-check-in-activity/9e4724ac768e4248a2205eabbea6aeb2`,
+00:15:16-00:27:07 UTC. Five instrumented compiles, unassisted closure, restored
+settings, unchanged package hashes and delayed zero Excel errors pass.
+Receipts are under ignored `reports/runtime/`; `verification.json` confirms
+the exact prior629 identities and current catalog28/historical catalog25.
+
+The preceding trial (`302925ec459740ee823174c133a7bc1f`, worker
+`1c03b4e07cd74dd59b4526477ed65c80`) stopped at311 passes/13 failures.
+Twelve live-context assertions hardcoded catalog25; the older-policy fixture also
+retained controls added after its declared catalog24. These were harness defects,
+not product RED. Live assertions now read the loaded catalog version; the older
+fixture retains exactly catalog24 controls. Historical catalog25 checks remain.
+No runtime policy validation was weakened. The failed trial closed normally and
+preserved settings/packages with zero delayed Excel errors. See the
+[Print Recall results](plan022_slice4be_production_print_results.md) for the
+runtime RED/GREEN and remaining acceptance boundaries.
+
 Shared terminal-helper compatibility reverified2026-10-05: all629 checks remain
 GREEN in exact order on the original frozen activity03 packages. Five compiles,
 normal closure, restoration and delayed zero Excel errors pass. See the

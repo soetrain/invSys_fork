@@ -9471,7 +9471,7 @@ Private Sub ApplyRecallCodesForOutput(ByVal wsProd As Worksheet, ByVal loOut As 
                     Dim locVal As String
                     If cSystemKey > 0 Then
                         locVal = ResolveInvSysLocationBySystemKey( _
-                            invLo, Trim$(NzStr(loOut.DataBodyRange.Cells(idx, cSystemKey).value)))
+                            invLo, NzStr(loOut.DataBodyRange.Cells(idx, cSystemKey).value))
                     End If
                     If locVal <> "" Then lr.Range.Cells(1, cLogLoc).value = locVal
                 End If
@@ -9624,7 +9624,7 @@ Private Function RenderRecallCodesReport(ByVal wsProd As Worksheet, ByVal loOut 
         reportData(outRow, 8) = recallCode
         If cSystemKey > 0 Then
             reportData(outRow, 9) = ResolveInvSysLocationBySystemKey( _
-                invLo, Trim$(NzStr(src(r, cSystemKey))))
+                invLo, NzStr(src(r, cSystemKey)))
         End If
         outRow = outRow + 1
 NextSourceRow:
@@ -9812,7 +9812,6 @@ End Sub
 Private Function ResolveInvSysLocationBySystemKey(ByVal invLo As ListObject, _
                                                   ByVal systemKey As String) As String
     If invLo Is Nothing Then Exit Function
-    systemKey = Trim$(systemKey)
     If systemKey = "" Then Exit Function
     If invLo.DataBodyRange Is Nothing Then Exit Function
 
@@ -9822,8 +9821,8 @@ Private Function ResolveInvSysLocationBySystemKey(ByVal invLo As ListObject, _
 
     Dim cel As Range
     For Each cel In invLo.ListColumns(cSystemKey).DataBodyRange.Cells
-        If StrComp(Trim$(NzStr(cel.value)), systemKey, vbTextCompare) = 0 Then
-            ResolveInvSysLocationBySystemKey = NzStr(cel.Offset(0, cLoc - cel.Column).value)
+        If StrComp(NzStr(cel.value), systemKey, vbBinaryCompare) = 0 Then
+            ResolveInvSysLocationBySystemKey = NzStr(cel.Offset(0, cLoc - cSystemKey).value)
             Exit Function
         End If
     Next cel

@@ -57,6 +57,7 @@ function Test-ProductionCheckInPolicy($Fixture,$Other,$Book,$Decoy,[string]$Sele
     if(Test-Path -LiteralPath $held){throw 'Preserve existing held policy fixture.'}
     $configBytes=[IO.File]::ReadAllBytes($Fixture.Config);$configPin=Hash $Fixture.Config
     $oldTraining=TrainingPins $Fixture;$otherTraining=TrainingPins $Other
+    $historical=@(([string](Run 'invSys.Core.xlam' 'TestShippingCatalog.Ids' @(24))).Split("`n")|Where-Object{$_})
     foreach($policy in @('Off','Older','Invalid','StoreUnavailable')){
         $moved=$false;$markerCreated=$false
         try{
@@ -70,7 +71,7 @@ function Test-ProductionCheckInPolicy($Fixture,$Other,$Book,$Decoy,[string]$Sele
                     if($policy -ceq 'Older'){
                         $headers.ListColumns.Item('CatalogVersion').DataBodyRange.Value2=24.0
                         for($i=$controls.ListRows.Count;$i -ge 1;$i--){
-                            if([string]$controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -ceq 'PRODUCTION_RUN_CHECK_IN'){$controls.ListRows.Item($i).Delete()}
+                            if([string]$controls.ListRows.Item($i).Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cnotin $historical){$controls.ListRows.Item($i).Delete()}
                         }
                     }else{$headers.ListColumns.Item('SchemaVersion').DataBodyRange.Value2=999.0}
                     $cfg.Save()

@@ -74,7 +74,8 @@ function Test-ProductionCheckInTerminal($Fixture,$Other,$Book,$Decoy,[string]$Se
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
-    $controlId='PRODUCTION_RUN_CHECK_IN';$prefix='CheckInTerminal';$catalog=25
+    $controlId='PRODUCTION_RUN_CHECK_IN';$prefix='CheckInTerminal'
+    $catalog=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.DeclaredCatalogVersionForTest')
     if($NextBatch){
         $controlId='PRODUCTION_RUN_NEXT_BATCH';$prefix='NextTerminal'
         $catalog=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.NextPolicyCatalogVersion')

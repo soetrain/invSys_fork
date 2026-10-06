@@ -1,5 +1,70 @@
 # Slice 4be-A: Production Print Recall
 
+## Exact-key location lookup, 2026-10-06 UTC
+
+Print Recall and its shared recall-log helper trimmed System_Key and matched it
+case-insensitively. A second defect subtracted an absolute worksheet column from
+a table-relative column index, losing location after table movement. D14's existing
+opaque-identity/header rules now explicitly cover this relationship in D18. Both
+callers pass the untouched key; the helper uses binary comparison and a table-
+relative offset. Missing or near-miss references retain blank optional location.
+No report column, identity conversion or inventory write is introduced.
+
+Focused RED464/10 becomes GREEN474/474 with identical ordered checks, retaining
+all384 prior checks. Six cases cover exact keys, case mismatch, padded references,
+padded projection keys, shifted tables and reordered/normalized headers. The real
+Print handler builds once. Supplementary tests exercise the existing recall-log
+writer, including new recall-code creation; they do not substitute for Check In's
+public-handler regression. Disposable projections use Admin-seeded identities;
+canonical keys are never changed. Source/custom values, inventory projections,
+decoy, authority files and saved workbook bytes are preserved. Two reviewed GREEN
+captures show the formerly missing location; the RED reordered-table capture is
+retained. Report identity/schema/provenance beyond this lookup remain open.
+
+Run `Test-Slice4beProductionRunLocal.ps1 -PrintBaselineOnly
+-SavedProbeCopiesForTest` with RED/yield01 then GREEN/identity01. Receipts below
+are relative to `reports/runtime/`:
+
+- Initial Print-only RED: controller `production-run-local-controller/ee00a782f2f348519ce0dc342b6eb639`;
+  worker `slice4be-production-print-baseline/2e653bec802d49d78119e2610717e777`,
+  October5,23:52:22-23:57:39 UTC.445/5 with exact prior384 retained.
+- Expanded RED: controller `production-run-local-controller/be148c6052a244c08ad9d681497e2ee1`;
+  worker `slice4be-production-print-baseline/6ecb832dc8be4c82be5fe22daa4bca5b`,
+  October5,23:57:40-October6,00:03:03 UTC.464/10; only the five expected location
+  assertions in each caller fail. Five compiles, normal cleanup, restoration,
+  package preservation and delayed zero Excel errors pass in both RED runs.
+- Build: `print-identity-build-01/verification.json`,00:03:10-00:04:06 UTC.
+  Five cold compiles; only mProduction changes, with303 other components identical
+  after identifier-case normalization and exact string-literal comparison.
+  Candidate compilation persistence follows the existing test setup; production
+  build tools are unchanged. Prior candidate/settings and delayed audits pass.
+- GREEN: controller `production-run-local-controller/f61472c999b24498bc179f71cf7359cc`;
+  worker `slice4be-production-print-baseline/7ad63d742a8e4179a4311cc8cc92c9c8`,
+  00:04:17-00:09:47 UTC.474/474, five compiles, normal closure, restored settings,
+  preserved packages and delayed zero Excel errors. Captures:
+  `printidentity.shiftedtable.png`, `printidentity.reorderedtable.png`.
+- Static: `print-identity-static-01/ratchet-verification.json`:311 components,
+  6306 procedures,137999 lines (one fewer);9 literal/45 unresolved calls,
+  190 duplicates,28 non-growing oversized caps, three schemas and429 parses.
+- Check In: controller `production-run-local-controller/de412d2e930049bab6b967f12b55b4d2`,
+  worker `slice4be-production-check-in-activity/9e4724ac768e4248a2205eabbea6aeb2`,
+  00:15:16-00:27:07 UTC.629/629 exact prior checks and five compiles pass.
+  Current catalog28 and historical catalog25 are both protected; see the
+  [Check In record](plan022_slice4be_production_check_in_results.md) for the
+  preceding harness-only failure and fixture correction.
+- Smoke: `print-identity01-regression/smoke-4cafdad895e440d5bfec6b3cd2e6c063`,
+  00:29:01-00:29:21 UTC.86/86 exact prior checks; both unassisted exits pass.
+- Full chain: `print-identity01-regression/chain-b024c2c009ea4b349951dc87def113f1`,
+  00:29:28-00:34:52 UTC.32 chain,48 live-role and15 warehouse checks pass,
+  preserving every prior ordered identity. Check In, smoke and chain use the same
+  compiled candidate hashes. Normal closure, restored settings, preserved packages
+  and delayed zero Excel errors pass; smoke/chain restore their tracked reports.
+
+Candidate `deploy/validation-print-identity-01` is unpromoted. The identical form
+retains entry01 layout18/five native checks. This completes the scoped lookup fix;
+Print observations, remaining report identity/provenance and 4be-A acceptance
+remain open.
+
 ## Native preview and dismissed form, 2026-10-05
 
 Test-only GREEN384/384 retains all359 previous ordered checks and adds25 through

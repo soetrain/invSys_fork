@@ -64,6 +64,9 @@ End Function
 
 function Test-ProductionCheckInActivity($Fixture,$Other) {
     Test-ProductionCheckInCatalog
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.DeclaredCatalogVersionForTest')
+    if($catalogVersion -lt 25){throw 'Check In catalog prerequisite unavailable; not product RED.'}
+    [pscustomobject]@{DeclaredCatalogVersion=$catalogVersion;HistoricalCatalogVersion=25}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'check-in-catalog-version.json')
     function Probe([string]$Method,[object[]]$Values=@()){Run 'invSys.Operations.xlam' ('TestProductionDesigner.'+$Method) $Values}
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
     function Hash([string]$Path){$s=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $s).Hash}finally{$s.Dispose()}}
@@ -74,7 +77,7 @@ function Test-ProductionCheckInActivity($Fixture,$Other) {
         $paired=$records.Count -eq 2 -and $first.Count -eq 1 -and $last.Count -eq 1
         $context=$paired;$safe=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false
         foreach($r in $records){
-            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq 25
+            $context=$context -and $r.ControlId -ceq 'PRODUCTION_RUN_CHECK_IN' -and $r.OwnerId -ceq 'PRODUCTION_RUN_LOCAL' -and $r.UserId -ceq $Actor -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.StationId -ceq 'S1' -and $r.CatalogVersion -eq $catalogVersion
             $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
         }
         foreach($value in $raw){

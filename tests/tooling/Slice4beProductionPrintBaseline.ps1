@@ -5,6 +5,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintEntry.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintYield.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintNative.ps1')
+. (Join-Path $PSScriptRoot 'Slice4beProductionPrintIdentity.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beProductionPrintSeedBoundary.ps1')
 function Install-ProductionPrintBaselineProbe {
     $project=$packages['invSys.Operations.xlam'].VBProject
@@ -67,6 +68,7 @@ End Function
     Install-ProductionPrintEntryProbe
     Install-ProductionPrintYieldProbe
     Install-ProductionPrintNativeProbe
+    Install-ProductionPrintIdentityProbe
 }
 
 function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='None'){
@@ -133,6 +135,7 @@ function Test-ProductionPrintBaseline($Fixture,$Other,[string]$SeedBoundary='Non
         Test-ProductionPrintRefusalPreservation $Fixture $book $sheet
         Test-ProductionPrintRebuild $Fixture $book $sheet
         Test-ProductionPrintInventory $Fixture $book $sheet $decoy
+        Test-ProductionPrintIdentity $Fixture $book $decoy
         Test-ProductionPrintOutcome $Fixture $book $sheet
         Test-ProductionPrintEntry $Fixture $book $sheet $decoy
         Test-ProductionPrintYield $Fixture $Other $book $decoy

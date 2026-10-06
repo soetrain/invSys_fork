@@ -3,6 +3,9 @@ function Install-Slice4beShippingCatalogProbe {
     $module=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
     $module.Name='TestShippingCatalog'
     $module.CodeModule.AddFromString(@'
+Public Function DeclaredCatalogVersionForTest() As Long
+    DeclaredCatalogVersionForTest = modActivityCatalog.CATALOG_VERSION
+End Function
 Public Function Definition(ByVal id As String, ByVal version As Long) As String
     Dim value As Object
     Set value = modActivityCatalog.Control(id, version)
