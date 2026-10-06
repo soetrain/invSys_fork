@@ -1,7 +1,7 @@
 # Faults occur after the real owner and REQUESTED, before Core's terminal read/write.
-# Instrumentation is unsaved and restricted to the controller's disposable paths.
+# Instrumentation is restricted to the controller's disposable package copies/paths.
 function Install-ProductionCheckInTerminalProbe {
-    param([ValidateSet('PRODUCTION_RUN_CHECK_IN','PRODUCTION_RUN_NEXT_BATCH')][string]$ControlId='PRODUCTION_RUN_CHECK_IN')
+    param([ValidateSet('PRODUCTION_RUN_CHECK_IN','PRODUCTION_RUN_NEXT_BATCH','PRODUCTION_RUN_PRINT')][string]$ControlId='PRODUCTION_RUN_CHECK_IN')
     . (Join-Path $PSScriptRoot 'Slice4beProductionPathsProbe.ps1')
     Install-ProductionPathsProbe
     $core=$packages['invSys.Core.xlam'].VBProject
@@ -60,6 +60,7 @@ Public Function CheckTerminalMessageForTest(ByVal kind As String) As Boolean
 End Function
 '@
     if($ControlId -ceq 'PRODUCTION_RUN_NEXT_BATCH'){$messageProbe=$messageProbe.Replace('"Checked in "','"Next Batch "')}
+    if($ControlId -ceq 'PRODUCTION_RUN_PRINT'){$messageProbe=$messageProbe.Replace('"Checked in "','"Print preview closed."')}
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule.AddFromString($messageProbe)
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
 Public Function CheckTerminalMessage(ByVal kind As String) As Boolean

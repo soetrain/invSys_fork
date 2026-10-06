@@ -1,5 +1,59 @@
 # Slice 4be-A: Production Print Recall
 
+## Recorded Print and expectation authoring, 2026-10-06 UTC
+
+Focused RED216/8 -> GREEN248/248 preserves all224 RED check identities and adds24
+independent diagnostic assertions. Eight recordings cover policy change, terminal
+store failure, unreadable policy, sign-out, target change, revoked permission,
+closed captured workbook and recovery. Actual Start/Print/Stop/publication/editor/
+Evaluate handlers preserve owner results, captured identity, journal provenance,
+prior records, unknown values, saved bytes and other-warehouse authority.
+
+The eight RED failures expose one implementation gap: Core's expectation picker
+omitted the already-registered PREVIEW_RETURNED outcome. Adding that candidate in
+`modExpectationDraft.Choices` lets the existing catalog filter expose it for Print.
+This implements D18's registered-outcome picker and Print observation contract;
+no architecture, schema, capability or form-layout change is adopted. Incomplete
+captures remain Incomplete; permission/workbook failures evaluate Failed; recovery
+alone concludes CommandCompleted. No physical printing or business application is
+inferred. Independent How-To/Compare and guide-source/run proof remain open.
+
+Candidate: `deploy/validation-print-recorded-01`. Receipts are ignored local paths
+beneath `reports/runtime/`:
+
+| Gate | Result | Receipt |
+| --- | --- | --- |
+| Focused RED | 216 pass/8 missing-outcome failures | `production-run-local-controller/f665ddc6e3924e7a9ce9bf26d2f4f344/verification.json` |
+| Focused GREEN | 248/248; five instrumented compiles | `production-run-local-controller/7944906500e14c2f99814e554ce54498/verification.json` |
+| Cold build | Five compiles; only modExpectationDraft changed among305 components | `print-recorded-build-01/verification.json` |
+| Static maintenance | All metrics and28 oversized caps unchanged;3 schemas/432 PowerShell parses | `print-recorded-static-02/ratchet-verification.json` |
+| Full Print regression | 986/986; exact prior695 plus291 policy checks; five instrumented compiles | `production-run-local-controller/3ce96d3bb6a840999d329219e1743f31/verification.json` |
+| Check In regression | 631/631; exact prior629 plus two fixture checks; five instrumented compiles | `production-run-local-controller/389b0680b42041c48e9e4b13649a8237/verification.json` |
+| Packaged smoke | 86/86; every prior ordered check and both unassisted exits | `print-recorded01-regression/smoke-daa14dc9a9fb466484f50f7257c06040/verification.json` |
+| Full chain/live-role/warehouse | 32/48/15; every prior ordered check retained | `print-recorded01-regression/chain-a0823267a25b410bb9906679c4138f9d/verification.json` |
+
+RED ran03:17:39-03:24:20 UTC; GREEN03:26:45-03:35:15 UTC. Both exited without
+assistance, restored settings, preserved package hashes and passed the delayed
+Excel-error audit. Ten directly reviewed screenshots show truthful Production
+feedback, unavailable tracking, incomplete/failed diagnostics and recovered command
+completion. See `slice4be-production-print-recorded/3c262187ca09467ea6420fcfba9a622b/print-recorded-visible-review.json`.
+All forms are unchanged; existing entry01 layout18/five native checks remain valid.
+The same candidate passes Print986,03:35:27-03:47:07 UTC, and Check In631,
+03:47:19-03:59:37 UTC, with normal closure, restoration and clean delayed audits.
+Packaged smoke86 ran03:59:51-04:00:12 UTC and chain32/live48/warehouse15 ran
+04:00:52-04:06:19 UTC with the same preservation and delayed audit checks. Seed53
+and unchanged-form layout evidence remain valid from activity03/entry01; the new
+recording fixture also exercises actual Admin Seed. Independent guide presentations
+remain next; no control or 4be-A acceptance is claimed.
+
+An earlier harness trial is excluded from RED: selecting a terminal index after
+the missing outcome caused VBA380. The fixture now uses the existing
+`-StopAtMissingChoice` option. Ending the failed macro was followed by a native
+Excel crash/recovery; verified owned recovery cleanup restored settings/packages
+but did not prove disposable fixture cleanup. Preserve controller
+`production-run-local-controller/db1707b33fa145708647b47dd445ea7d` as failed-trial
+evidence; the subsequent clean RED/GREEN does not establish a general native fix.
+
 ## Entry policy and storage proof, 2026-10-06 UTC
 
 GREEN986/986 retains all695 prior ordered checks and adds291 through the actual
