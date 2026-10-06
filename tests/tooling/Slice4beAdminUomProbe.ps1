@@ -48,14 +48,15 @@ End Function
 '@)
 }
 
-function Invoke-AdminUomResetChoice([ValidateSet('Yes','No')][string]$Choice,[string]$CaptureName) {
+function Invoke-AdminUomResetChoice([ValidateSet('Yes','No')][string]$Choice,[string]$CaptureName,[switch]$Carrier) {
     # The only click is the caller-selected response to this exact disposable
-    # fixture's existing UOM reset question. No unrelated dialogs are dismissed.
+    # fixture's exact UOM or carrier reset question. No unrelated dialogs are dismissed.
     $handle=[long]$excel.Hwnd
     $ready=Join-Path $runRoot ('uom-dialog-'+[guid]::NewGuid().ToString('N')+'.ready')
     $capture=Join-Path $reportRoot $CaptureName
-    $job=Start-Job -ArgumentList $handle,$Choice,$ready,$capture -ScriptBlock {
-        param($handle,$choice,$ready,$capture)
+    $prompt=if($Carrier){'Reset shipping carriers to defaults?'}else{'Reset the warehouse UOM catalog to defaults?'}
+    $job=Start-Job -ArgumentList $handle,$Choice,$ready,$capture,$prompt -ScriptBlock {
+        param($handle,$choice,$ready,$capture,$prompt)
         $ErrorActionPreference='Stop'
         Add-Type -ReferencedAssemblies System.Drawing @'
 using System;
@@ -63,6 +64,7 @@ using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
 public static class UomResetDialog {
+    public static string ExpectedPrompt;
     public delegate bool EnumProc(IntPtr h,IntPtr p);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int L,T,R,B; }
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc f,IntPtr p);
@@ -86,7 +88,7 @@ public static class UomResetDialog {
         int buttons=0;
         EnumChildWindows(h,(child,p)=>{
             if(!IsWindowVisible(child)) return true;
-            if(Class(child)=="Static" && Text(child)=="Reset the warehouse UOM catalog to defaults?") prompt=true;
+            if(Class(child)=="Static" && Text(child)==ExpectedPrompt) prompt=true;
             if(Class(child)=="Button") buttons++;
             return true;
         },IntPtr.Zero);
@@ -121,6 +123,7 @@ public static class UomResetDialog {
     }
 }
 '@
+        [UomResetDialog]::ExpectedPrompt=$prompt
         $owner=[UomResetDialog]::Owner([IntPtr]$handle)
         if($owner -eq 0){throw 'Generated Excel owner is unavailable.'}
         $created=(Get-Process -Id $owner).StartTime.ToUniversalTime().Ticks
@@ -148,7 +151,7 @@ public static class UomResetDialog {
     try {
         for($i=0;$i -lt 100 -and -not (Test-Path -LiteralPath $ready);$i++){Start-Sleep -Milliseconds 100}
         if(-not (Test-Path -LiteralPath $ready)){throw 'UOM confirmation observer did not become ready.'}
-        $status=[string](Run 'invSys.Admin.xlam' 'TestD5Commands.UomActivityAction' @('Reset',''))
+        $status=if($Carrier){[string](Run 'invSys.Admin.xlam' 'TestD5Commands.GeneralSettingsAction' @('CarrierReset',''))}else{[string](Run 'invSys.Admin.xlam' 'TestD5Commands.UomActivityAction' @('Reset',''))}
         [void](Wait-Job $job -Timeout 5)
         $observation=Receive-Job $job -ErrorAction Stop
         if($null -eq $observation -or -not $observation.ExactQuestion -or -not $observation.Captured -or -not $observation.ClickDelivered -or $observation.RequestedChoice -cne $Choice){throw 'Actual native confirmation evidence is incomplete.'}

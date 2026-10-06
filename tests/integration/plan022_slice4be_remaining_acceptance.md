@@ -12,6 +12,12 @@ candidate is `deploy/validation-guide-transfer-notice-01`; the preceding Print c
 is `deploy/validation-print-recorded-01`, code checkpoint `89674af1`.
 Do not equate control registration, a scoped GREEN or a diagnostic with full acceptance.
 
+Active next group: [General Settings](plan022_slice4be_general_settings_results.md)
+under the catalog31 specification refinement. Runtime remains catalog30;
+packaged RED105/86 across191 checks proves missing observations and10 stale-form
+safety failures. All16 ordinary owner results pass. Implement the protected
+contract before advancing its acceptance; retain the transfer499 checkpoint.
+
 | Required outcome | Verified evidence / remaining action |
 | --- | --- |
 | Approved shared A/B contract | D18-REPLAY-01 was approved2026-10-04. Preserve the A finish line and early B0 requirement; broader replay/results management belongs to B. RUN-SCALE-01/RUN-UI-01 remain pending explicit decisions. |
@@ -41,7 +47,7 @@ Shipping7, Boxing2 and Viewer4. These are registration counts, not coverage scor
 | --- | --- |
 | Production | The existing census still accounts for68 constructed buttons on six pages,14 unconstructed legacy buttons and34 non-button handlers. `PRODUCTION_RUN_SCALE` is registered, but `mBtnApplyBatchScale_Click` has no activity boundary; RUN-SCALE-01 remains pending. The non-button audit has only two registered Assignment selections; distinguish remaining deliberate selections from excluded text/programmatic events. Deliberate tab changes and launcher coverage also remain open. Do not call all28 remaining handlers required new events. |
 | Shipping/Boxing | Catalog29 includes the seven shipment mutation commands and Make/Unbox. Refresh, history/export, form lifecycle, Box Designer commands, deliberate tabs/selections and other reachable controls in the source map still need individual coverage/exclusion evidence. The old catalog7 map is historical discovery, not current registration status. |
-| Admin | The28 IDs cover Settings Save Value, three UOM commands, Tracking12, Detail8 and personal preference4. They do not cover all Admin tools. General selection/reload, carrier/connection controls, navigation/lifecycle and eligible warehouse/user/processor/publication/maintenance commands remain to be accounted for through their actual handlers. Pre-sign-in and nonexistent-target exclusions remain mandatory. Canonical audit alone does not prove shared user-activity capture. |
+| Admin | The28 runtime IDs cover Settings Save Value, three UOM commands, Tracking12, Detail8 and personal preference4. General selection/reload and carrier/connection controls now have a nine-control normative refinement and packaged RED105/86; implementation remains pending. Navigation/lifecycle and eligible warehouse/user/processor/publication/maintenance commands also need actual-handler coverage. Pre-sign-in and nonexistent-target exclusions remain mandatory. Canonical audit alone does not prove shared user-activity capture. |
 | Replay setup/editor/runner | `frmActionPathLibrary` Configure execution/Run How-To and the new `frmActionPathExecution`/`frmActionPathRun` controls have no registered observation IDs. D18-REPLAY-01 boundary5 explicitly prevents inferring observation exclusion from replay exclusion. Review each owner/result; retain the older explicit authoring/evaluation exclusions only where applicable. Actual replayed Receiving actions already have fresh activity proof. |
 | Guide transfer | Catalog30 observation RED45/34 -> GREEN79 and policy429 are retained. Recorded GREEN499 now proves maintenance revocation, terminal/interruption, explicit evaluation and independent guide comparisons through actual handlers. Broader transfer/A acceptance stays open. |
 

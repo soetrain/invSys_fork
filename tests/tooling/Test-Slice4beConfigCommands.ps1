@@ -94,6 +94,7 @@ param(
     [switch]$CheckProductionDesignerPaths,
     [switch]$CaptureProductionDesignerPaths,
     [switch]$CheckSettingsEditorActivity,
+    [switch]$GeneralSettingsOnly,
     [switch]$CheckSettingsDiagnostics,
     [switch]$SettingsSafetyOnly,
     [switch]$CheckAdminUomExpectationChoice,
@@ -317,6 +318,7 @@ if($CheckAdminUomActivity){
     $CheckActivityEvidence=$true
 }
 if($CheckSettingsDiagnostics){$CheckSettingsEditorActivity=$true}
+if($GeneralSettingsOnly -and (-not $CheckSettingsEditorActivity -or $CheckSettingsDiagnostics)){throw 'General Settings requires its separate compiled Settings callback gate.'}
 if($CheckSettingsEditorActivity){
     if(-not $CompileEvaluationProbesForTest -or -not $CaptureEvidence -or $CheckAdminUomActivity -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Settings editor observations require their separate visible compiled gate.'}
     $CheckActivityEvidence=$true
@@ -566,6 +568,12 @@ if($CheckSettingsEditorActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-settings-activity/'+[guid]::NewGuid().ToString('N'))
     . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorProbe.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beSettingsEditorActivity.ps1')
+    if($GeneralSettingsOnly){
+        $reportRoot=Join-Path $repo ('reports/runtime/slice4be-general-settings/'+[guid]::NewGuid().ToString('N'))
+        . (Join-Path $PSScriptRoot 'Slice4beGeneralSettingsProbe.ps1')
+        . (Join-Path $PSScriptRoot 'Slice4beGeneralSettings.ps1')
+        Write-Output ('General Settings evidence: '+$reportRoot)
+    }
 }
 if($CheckProductionDesignerActivity){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-production-designer/'+[guid]::NewGuid().ToString('N'))
@@ -1693,6 +1701,7 @@ End Function
         . (Join-Path $PSScriptRoot 'Slice4beShippingCatalog.ps1')
         Install-Slice4beShippingCatalogProbe
         Install-SettingsActivityProbe
+        if($GeneralSettingsOnly){Install-GeneralSettingsProbe}
         if($CheckSettingsDiagnostics){
             . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
             Test-Slice4beRecordingReader $null $null $true
@@ -2119,7 +2128,7 @@ End Function
     }
     if($CheckSettingsEditorActivity){
         $step='Settings observations through actual packaged callbacks'
-        Test-SettingsEditorActivity $a $b
+        if($GeneralSettingsOnly){Test-GeneralSettings $a $b}else{Test-SettingsEditorActivity $a $b}
     }
     if ($CheckShippingActivity) {
         $step='Shipping catalog and source-reference contract'
