@@ -42,27 +42,30 @@ Public Sub SaveConfiguredCarriersText(ByVal carrierText As String)
     SaveCarrierCollection carriers
 End Sub
 
-Public Function AddConfiguredCarrier(ByVal carrierName As String) As Boolean
+Public Function AddConfiguredCarrier(ByVal carrierName As String, Optional ByRef outcome As String = "") As Boolean
     Dim carriers As Collection
 
+    outcome = "REJECTED"
     carrierName = NormalizeCarrierName(carrierName)
     If carrierName = "" Then Exit Function
 
     Set carriers = ConfiguredCarrierCollection()
     If CarrierCollectionContains(carriers, carrierName) Then
+        outcome = "UNCHANGED"
         AddConfiguredCarrier = True
         Exit Function
     End If
 
     carriers.Add carrierName
-    SaveCarrierCollection carriers
+    SaveCarrierCollection carriers, outcome
     AddConfiguredCarrier = True
 End Function
 
-Public Function RemoveConfiguredCarrier(ByVal carrierName As String) As Boolean
+Public Function RemoveConfiguredCarrier(ByVal carrierName As String, Optional ByRef outcome As String = "") As Boolean
     Dim carriers As Collection
     Dim idx As Long
 
+    outcome = "REJECTED"
     carrierName = NormalizeCarrierName(carrierName)
     If carrierName = "" Then Exit Function
 
@@ -74,11 +77,15 @@ Public Function RemoveConfiguredCarrier(ByVal carrierName As String) As Boolean
         End If
     Next idx
 
-    If RemoveConfiguredCarrier Then SaveCarrierCollection carriers
+    If RemoveConfiguredCarrier Then SaveCarrierCollection carriers, outcome
 End Function
 
-Public Sub ResetConfiguredCarriers()
-    SaveCarrierCollection DefaultCarrierCollection()
+Public Sub ResetConfiguredCarriers(Optional ByRef outcome As String = "")
+    outcome = "FAILED"
+    If PackedCarriers(ConfiguredCarrierCollection()) = PackedCarriers(DefaultCarrierCollection()) Then
+        outcome = "UNCHANGED": Exit Sub
+    End If
+    SaveCarrierCollection DefaultCarrierCollection(), outcome
 End Sub
 
 Private Function ConfiguredCarrierCollection() As Collection
@@ -134,7 +141,7 @@ Private Function ParseCarrierPackedText(ByVal packedText As String) As Collectio
     Set ParseCarrierPackedText = carriers
 End Function
 
-Private Sub SaveCarrierCollection(ByVal carriers As Collection)
+Private Function PackedCarriers(ByVal carriers As Collection) As String
     Dim idx As Long
     Dim packed As String
     Dim carrierName As String
@@ -147,7 +154,19 @@ Private Sub SaveCarrierCollection(ByVal carriers As Collection)
             packed = packed & carrierName
         End If
     Next idx
+    PackedCarriers = packed
+End Function
+
+Private Sub SaveCarrierCollection(ByVal carriers As Collection, Optional ByRef outcome As String = "")
+    Dim packed As String
+    outcome = "FAILED": packed = PackedCarriers(carriers)
+    If GetSetting(SETTINGS_APP, SETTINGS_SECTION_SHIPPING, SETTINGS_CARRIERS, "") = packed Then
+        outcome = "UNCHANGED": Exit Sub
+    End If
     SaveSetting SETTINGS_APP, SETTINGS_SECTION_SHIPPING, SETTINGS_CARRIERS, packed
+    If GetSetting(SETTINGS_APP, SETTINGS_SECTION_SHIPPING, SETTINGS_CARRIERS, "") <> packed Then _
+        Err.Raise 5, , "Carrier settings save could not be verified."
+    outcome = "COMPLETED"
 End Sub
 
 Private Sub AddCarrierUnique(ByVal carriers As Collection, ByVal carrierName As String)

@@ -32,7 +32,7 @@ function Test-GeneralSettings($Fixture,$Other) {
         Check ('GeneralSettings.'+$Name+'.ExactOwnerContextSequenceAndEffect') $metadata
         foreach($file in $files){
             $raw=[IO.File]::ReadAllText($file)
-            foreach($value in @($canary,$Fixture.Secret,$Fixture.Root,'"BatchSize"','"WarehouseId":"'+$Other.Warehouse+'"','mBtn','mLst','PinHash')){if($raw.Contains($value)){$redacted=$false}}
+            foreach($value in @($canary,$Fixture.Secret,$Fixture.Root,'"BatchSize"',('"WarehouseId":"'+$Other.Warehouse+'"'),'mBtn','mLst','PinHash')){if($raw.Contains($value)){$redacted=$false}}
             $match=[regex]::Match($raw,'^(?<body>\{.*),"ContentSha256":"(?<hash>[a-f0-9]{64})"\}$')
             if(-not $match.Success){$integrity=$false;continue}
             $sha=[Security.Cryptography.SHA256]::Create()
@@ -49,7 +49,11 @@ function Test-GeneralSettings($Fixture,$Other) {
         else{$null=Act $Action $Value}
         $valid=[bool](& $Owner)
         Check ('GeneralSettings.'+$Name+'.ActualOwnerResult') $valid
-        if(-not $valid){throw 'Existing General Settings owner prerequisite failed; inspect before claiming observation RED.'}
+        if(-not $valid){
+            $codes=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object{(Get-Content -LiteralPath $_ -Raw|ConvertFrom-Json).OutcomeCode}|Where-Object {$_ -cmatch '^(REQUESTED|REFRESHED|DENIED|FAILED|REJECTED)$'})
+            [pscustomobject]@{Case=$Name;Facts=(Act 'FailureFacts');ObservedOutcomes=$codes}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'owner-failure-facts.json')
+            throw 'Existing General Settings owner prerequisite failed; inspect before claiming observation RED.'
+        }
         Pair $before $Id $Outcome $Name
         Check ('GeneralSettings.'+$Name+'.WarehouseConfigPreserved') ((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $enabledHash -and (Get-FileHash -LiteralPath $Other.Config).Hash -ceq $otherHash)
     }

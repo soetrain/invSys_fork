@@ -37,6 +37,7 @@ Private WithEvents mBtnSaveConnectionPolicy As MSForms.CommandButton
 Private mLblStatus As MSForms.Label
 Private mLblConfigWorkbook As MSForms.Label
 Private mLoading As Boolean
+Private mGeneralBusy As Boolean
 Private mWarehouseId As String
 Private mStationId As String
 Private mActivityContext As String
@@ -207,6 +208,10 @@ Private Sub LoadConfigRows()
 End Sub
 
 Private Sub mLstConfig_Click()
+    PerformGeneral "ADMIN_SETTINGS_SELECT_CONFIG"
+End Sub
+
+Private Sub ShowSelectedConfig()
     Dim keyName As String
 
     If mLoading Then Exit Sub
@@ -235,12 +240,7 @@ Private Sub mBtnSaveConfig_Click()
 End Sub
 
 Private Sub mBtnReloadConfig_Click()
-    If modConfig.Reload() Then
-        LoadConfigRows
-        ShowStatus "Canonical config reloaded."
-    Else
-        ShowStatus "Config reload failed: " & modConfig.Validate()
-    End If
+    PerformGeneral "ADMIN_SETTINGS_RELOAD"
 End Sub
 
 Private Function IsIdentityConfigKey(ByVal keyName As String) As Boolean
@@ -261,20 +261,19 @@ Public Function TestInitializeConfigEditor() As String
 End Function
 
 Private Sub LoadConnectionPolicy()
+    Dim wasLoading As Boolean
     If mChkManualServerCredentials Is Nothing Then Exit Sub
+    wasLoading = mLoading: mLoading = True
     mChkManualServerCredentials.Value = modNasConnection.RequireManualServerCredentials()
+    mLoading = wasLoading
 End Sub
 
 Private Sub mBtnSaveConnectionPolicy_Click()
-    Dim report As String
+    PerformGeneral "ADMIN_CONNECTION_SAVE"
+End Sub
 
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
-        ShowStatus report
-        Exit Sub
-    End If
-
-    modNasConnection.SetRequireManualServerCredentials CBool(mChkManualServerCredentials.Value)
-    ShowStatus "Server connection option saved for this Windows user."
+Private Sub mChkManualServerCredentials_Click()
+    PerformGeneral "ADMIN_CONNECTION_SELECT"
 End Sub
 
 Private Sub LoadCarriers()
@@ -296,45 +295,15 @@ Private Sub LoadCarriers()
 End Sub
 
 Private Sub mBtnAdd_Click()
-    Dim carrierName As String
-
-    carrierName = Trim$(CStr(mTxtCarrier.Value))
-    If carrierName = "" Then
-        ShowStatus "Enter a carrier."
-        Exit Sub
-    End If
-
-    If modCarrierSettings.AddConfiguredCarrier(carrierName) Then
-        mTxtCarrier.Value = ""
-        LoadCarriers
-        ShowStatus "Carrier added."
-    Else
-        ShowStatus "Carrier was not added."
-    End If
+    PerformGeneral "ADMIN_CARRIER_ADD"
 End Sub
 
 Private Sub mBtnRemove_Click()
-    Dim carrierName As String
-
-    If mLstCarriers.ListIndex < 0 Then
-        ShowStatus "Select a carrier."
-        Exit Sub
-    End If
-
-    carrierName = CStr(mLstCarriers.List(mLstCarriers.ListIndex, 0))
-    If modCarrierSettings.RemoveConfiguredCarrier(carrierName) Then
-        LoadCarriers
-        ShowStatus "Carrier removed."
-    Else
-        ShowStatus "Carrier was not removed."
-    End If
+    PerformGeneral "ADMIN_CARRIER_REMOVE"
 End Sub
 
 Private Sub mBtnReset_Click()
-    If MsgBox("Reset shipping carriers to defaults?", vbQuestion + vbYesNo, "invSys Settings") <> vbYes Then Exit Sub
-    modCarrierSettings.ResetConfiguredCarriers
-    LoadCarriers
-    ShowStatus "Defaults restored."
+    PerformGeneral "ADMIN_CARRIER_RESET"
 End Sub
 
 Private Sub mBtnClose_Click()
@@ -342,8 +311,7 @@ Private Sub mBtnClose_Click()
 End Sub
 
 Private Sub mLstCarriers_Click()
-    If mLoading Then Exit Sub
-    If mLstCarriers.ListIndex >= 0 Then mTxtCarrier.Value = CStr(mLstCarriers.List(mLstCarriers.ListIndex, 0))
+    PerformGeneral "ADMIN_CARRIER_SELECT"
 End Sub
 
 Private Sub LoadUoms()
@@ -399,8 +367,100 @@ Private Sub mBtnUomReset_Click()
 End Sub
 
 Private Sub mLstUoms_Click()
-    If mLoading Then Exit Sub
-    If mLstUoms.ListIndex >= 0 Then mTxtUom.Value = CStr(mLstUoms.List(mLstUoms.ListIndex, 0))
+    PerformGeneral "ADMIN_UOM_SELECT"
+End Sub
+
+Private Function GeneralContextIsCurrent() As Boolean
+    GeneralContextIsCurrent = (mActivityContext <> "" And mActivityContext = modActivity.CaptureContext())
+    If Not GeneralContextIsCurrent Then ShowStatus "Session or warehouse changed. Reopen Settings."
+End Function
+
+Private Sub PerformGeneral(ByVal controlId As String)
+    Dim activityId As String, notice As String, outcome As String, report As String
+    If mLoading Or mGeneralBusy Then Exit Sub
+    On Error GoTo Failed
+    If Not GeneralContextIsCurrent() Then Exit Sub
+    Select Case controlId
+        Case "ADMIN_SETTINGS_SELECT_CONFIG": If mLstConfig.ListIndex < 0 Then Exit Sub
+        Case "ADMIN_CARRIER_SELECT": If mLstCarriers.ListIndex < 0 Then Exit Sub
+        Case "ADMIN_UOM_SELECT": If mLstUoms.ListIndex < 0 Then Exit Sub
+    End Select
+    mGeneralBusy = True
+    activityId = modActivity.BeginAction(controlId, mActivityContext, notice)
+    outcome = "REJECTED"
+    Select Case controlId
+        Case "ADMIN_SETTINGS_RELOAD", "ADMIN_CARRIER_ADD", "ADMIN_CARRIER_REMOVE", "ADMIN_CARRIER_RESET", "ADMIN_CONNECTION_SAVE"
+            If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
+                outcome = "DENIED": ShowStatus report: GoTo Done
+            End If
+    End Select
+    Select Case controlId
+        Case "ADMIN_SETTINGS_SELECT_CONFIG": ShowSelectedConfig: outcome = "SELECTED"
+        Case "ADMIN_CARRIER_SELECT"
+            mTxtCarrier.Value = CStr(mLstCarriers.List(mLstCarriers.ListIndex, 0)): outcome = "SELECTED"
+        Case "ADMIN_UOM_SELECT"
+            mTxtUom.Value = CStr(mLstUoms.List(mLstUoms.ListIndex, 0)): outcome = "SELECTED"
+        Case "ADMIN_SETTINGS_RELOAD"
+            If modGeneralSettingsCommands.ReloadConfig(outcome) Then
+                LoadConfigRows
+                ShowStatus "Canonical config reloaded."
+            Else
+                ShowStatus "Config reload failed: " & modConfig.Validate()
+            End If
+        Case "ADMIN_CONNECTION_SELECT"
+            outcome = "STAGED": ShowStatus "Connection option staged. Click Save Connection Option to apply."
+        Case "ADMIN_CONNECTION_SAVE"
+            modGeneralSettingsCommands.SaveConnectionOption CBool(mChkManualServerCredentials.Value), outcome
+            ShowStatus IIf(outcome = "UNCHANGED", "Server connection option already matches for this Windows user.", _
+                "Server connection option saved for this Windows user.")
+        Case "ADMIN_CARRIER_ADD", "ADMIN_CARRIER_REMOVE", "ADMIN_CARRIER_RESET"
+            ChangeGeneralCarrier controlId, outcome
+    End Select
+Done:
+    If activityId <> "" Then modActivity.FinishAction activityId, outcome, notice
+    If notice <> "" Then ShowStatus mLblStatus.Caption & vbCrLf & notice
+    mGeneralBusy = False
+    Exit Sub
+Failed:
+    mLoading = False
+    If outcome <> "COMPLETED" And outcome <> "UNCHANGED" Then outcome = "FAILED"
+    ShowStatus "Settings action or display update could not be verified. Reopen Settings to verify."
+    Resume Done
+End Sub
+
+Private Sub ChangeGeneralCarrier(ByVal controlId As String, ByRef outcome As String)
+    Dim carrierName As String, report As String
+    Select Case controlId
+        Case "ADMIN_CARRIER_ADD"
+            carrierName = Trim$(CStr(mTxtCarrier.Value))
+            If carrierName = "" Then ShowStatus "Enter a carrier.": Exit Sub
+            If modCarrierSettings.AddConfiguredCarrier(carrierName, outcome) Then
+                mTxtCarrier.Value = "": LoadCarriers
+                ShowStatus IIf(outcome = "UNCHANGED", "Carrier already configured.", "Carrier added.")
+            Else
+                ShowStatus "Carrier was not added."
+            End If
+        Case "ADMIN_CARRIER_REMOVE"
+            If mLstCarriers.ListIndex < 0 Then ShowStatus "Select a carrier.": Exit Sub
+            carrierName = CStr(mLstCarriers.List(mLstCarriers.ListIndex, 0))
+            If modCarrierSettings.RemoveConfiguredCarrier(carrierName, outcome) Then
+                LoadCarriers
+                ShowStatus "Carrier removed."
+            Else
+                ShowStatus "Carrier was not removed."
+            End If
+        Case "ADMIN_CARRIER_RESET"
+            If MsgBox("Reset shipping carriers to defaults?", vbQuestion + vbYesNo, "invSys Settings") <> vbYes Then
+                outcome = "CANCELLED": ShowStatus "Carrier reset cancelled.": Exit Sub
+            End If
+            If Not GeneralContextIsCurrent() Then Exit Sub
+            If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", report) Then
+                outcome = "DENIED": ShowStatus report: Exit Sub
+            End If
+            modCarrierSettings.ResetConfiguredCarriers outcome
+            LoadCarriers
+            ShowStatus IIf(outcome = "UNCHANGED", "Carriers already match defaults.", "Defaults restored.")
+    End Select
 End Sub
 
 Private Sub ShowStatus(ByVal message As String)

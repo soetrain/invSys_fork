@@ -96,6 +96,11 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     Set outcome = modActivityCatalog.Outcome(CStr(record("ControlId")), CStr(record("OutcomeCode")))
     If outcome Is Nothing Then Exit Function
     code = CStr(record("OutcomeCode"))
+    Set outcome = modGeneralSettingsCodes.Control(CStr(record("ControlId")))
+    If Not outcome Is Nothing Then
+        CommandCompleted = modGeneralSettingsCodes.PositiveOutcome(CStr(record("ControlId")), code)
+        Exit Function
+    End If
     If CStr(definition("OwnerId")) = "PRODUCTION_RUN_LOCAL" Then
         CommandCompleted = (code = modProductionRunCodes.PositiveOutcome(CStr(record("ControlId"))))
         Exit Function
