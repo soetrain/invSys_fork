@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-warehouse-purpose-02',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$TraceReceivingRunCloseForTest)
+param([string]$DeployRoot='deploy/validation-warehouse-purpose-02',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$TraceReceivingRunCloseForTest,[switch]$CaptureEvidence)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated Receiving replay validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -15,6 +15,7 @@ try {
     # Reuse the accepted guide fixture's compiled, saved disposable package copies.
     $ErrorActionPreference='Continue'
     $extra=@();if($TraceReceivingRunCloseForTest){$extra+='-TraceReceivingRunCloseForTest'}
+    if($CaptureEvidence){$extra+='-CaptureEvidence'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckReceivingReplay -GuideDraftOnly -CheckGuideExpectation -CheckViewerPublishedRead -ViewerStartupPackageStateForTest SavedCopies -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
     $ErrorActionPreference='Stop'

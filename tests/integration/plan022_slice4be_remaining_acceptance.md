@@ -14,17 +14,40 @@ Do not equate control registration, a scoped GREEN or a diagnostic with full acc
 | Required outcome | Verified evidence / remaining action |
 | --- | --- |
 | Approved shared A/B contract | D18-REPLAY-01 was approved2026-10-04. Preserve the A finish line and early B0 requirement; broader replay/results management belongs to B. RUN-SCALE-01/RUN-UI-01 remain pending explicit decisions. |
-| Comprehensive Operations/Admin recording | Catalog29 is implemented. Reconcile the complete control/handler census with current source and scoped tests, including new replay surfaces and remaining Production boundaries. Registration alone is insufficient. |
+| Comprehensive Operations/Admin recording | Catalog29 declares133 IDs; the source audit below identifies missing handler coverage. Registration alone is insufficient. |
 | Per-action/per-user Admin policy | [Policy evidence](plan022_slice4be_user_tracking_policy_results.md) reaches104/104, with historical/version, rights, required-audit and preservation checks. Retain its candidate scope and reconcile final role coverage. |
-| Viewer and configurable Detail | Audit the current [Detail](plan022_slice4be_event_detail_results.md), [overflow](plan022_slice4be_detail_overflow_results.md) and [column](plan022_slice4be_detail_columns_results.md) evidence against long-value/multiline/provenance requirements; do not infer visible acceptance from unrelated policy captures. |
-| Versioned guide authoring/transfer | [Published-guide editing](plan022_slice4be_published_guide_edit_results.md), save/library/curation records establish scoped behavior. Reconcile current transfer, source immutability, version selection and permission gates; preserve assisted/failed lifecycle qualifications. |
+| Viewer and configurable Detail | [Multiline](plan022_slice4be_multiline_results.md) has88/88 with14 reviewed images and separate98-check captured Viewer regression; [overflow](plan022_slice4be_detail_overflow_results.md) has50/50. Preserve their exact candidate/source scope and reconcile later changed dependencies; human acceptance is separate. |
+| Versioned guide authoring/transfer | [Published-guide editing](plan022_slice4be_published_guide_edit_results.md), save/library/curation records establish scoped behavior. Export/import is unimplemented: the current published-guide form has no transfer controls and Core guide modules have no transfer owner. Define the approved contract's exact compatible wire before its consumers, then implement packaged transfer RED/GREEN. Preserve original evidence and origin-only foreign provenance. |
 | How-To/Diagnostic/Compare and preferences | [Print comparison](plan022_slice4be_production_print_results.md) passes full320 with five reviewed captures and normal closure; its earlier view-session failure remains unexplained. Existing presentation/restart evidence remains scoped. Reconcile visible Operations and Admin comparisons, incomplete evidence and restart/isolation proof. |
-| Early B0 Receiving proof | [Receiving replay](plan022_slice4be_receiving_replay_results.md) passes101/101, including fresh exact applied-event results through ordinary handlers. Its record still leaves observations, visible evidence and broader B0 acceptance open. Complete those requirements before closing A. |
+| Early B0 Receiving proof | [Receiving replay](plan022_slice4be_receiving_replay_results.md) passes103/103 on the current Print candidate, retaining101 and adding two displayed-result checks. Eleven reviewed captures cover editor/setup, fresh applied proof, stopped verification and minimum/default/larger layouts. Observation accounting, native maximize/restore, broader gates and human acceptance remain open. |
 | Final D13 and preservation gates | Current Print correction retains focused248, Print986, Check In631, smoke86, chain32/live48/warehouse15, five compiles and static/layout evidence. Reconcile all current GREENs and visible/restart/binding coverage against the final artifact; retain System_Key, unknown columns, captured binding, launcher reuse and headless authority. |
 
-Next: reconcile the full current control census and
-these acceptance rows against their actual receipts, then execute missing focused
-work. Reuse valid evidence. Neither this audit nor B0 alone accepts4be-A or R1.
+Next: define the approved guide-transfer wire and protect actual Export/Import
+with packaged RED before implementation; continue the concrete observation gaps
+below and final evidence reconciliation. Reuse valid evidence. Neither this audit
+nor B0 alone accepts4be-A or R1.
+
+### Current source findings (2026-10-06)
+
+Source-only review at runtime checkpoint `89674af1`; this does not establish
+operator acceptance or a new contract. No business action was used for the census.
+The additive `modActivityCatalog.ControlIds` branches across13 catalog
+modules declare133 unique IDs: Production70, Admin28, Receiving15, Disposition7,
+Shipping7, Boxing2 and Viewer4. These are registration counts, not coverage scores.
+
+| Surface | Concrete outstanding work |
+| --- | --- |
+| Production | The existing census still accounts for68 constructed buttons on six pages,14 unconstructed legacy buttons and34 non-button handlers. `PRODUCTION_RUN_SCALE` is registered, but `mBtnApplyBatchScale_Click` has no activity boundary; RUN-SCALE-01 remains pending. The non-button audit has only two registered Assignment selections; distinguish remaining deliberate selections from excluded text/programmatic events. Deliberate tab changes and launcher coverage also remain open. Do not call all28 remaining handlers required new events. |
+| Shipping/Boxing | Catalog29 includes the seven shipment mutation commands and Make/Unbox. Refresh, history/export, form lifecycle, Box Designer commands, deliberate tabs/selections and other reachable controls in the source map still need individual coverage/exclusion evidence. The old catalog7 map is historical discovery, not current registration status. |
+| Admin | The28 IDs cover Settings Save Value, three UOM commands, Tracking12, Detail8 and personal preference4. They do not cover all Admin tools. General selection/reload, carrier/connection controls, navigation/lifecycle and eligible warehouse/user/processor/publication/maintenance commands remain to be accounted for through their actual handlers. Pre-sign-in and nonexistent-target exclusions remain mandatory. Canonical audit alone does not prove shared user-activity capture. |
+| Replay setup/editor/runner | `frmActionPathLibrary` Configure execution/Run How-To and the new `frmActionPathExecution`/`frmActionPathRun` controls have no registered observation IDs. D18-REPLAY-01 boundary5 explicitly prevents inferring observation exclusion from replay exclusion. Review each owner/result; retain the older explicit authoring/evaluation exclusions only where applicable. Actual replayed Receiving actions already have fresh activity proof. |
+| Guide transfer | `frmActionPathLibrary` exposes search/refresh/use/edit/configure/run/close, with no export/import. `modGuideModel`, `modGuideStore` and related current guide modules provide no transfer consumer. Authoring/editing GREENs do not close this deliverable. |
+
+Evidence: current source plus ignored `production-tracking-source-census.json`,
+`production-button-owner-audit.json` and `catalog29-source-ids.json` under
+`reports/runtime/`. The maintained Production coverage audit and controls catalog
+retain per-control details. No new ControlIds, owner outcomes or exclusions are
+approved by this inventory; reconcile them with D18 before implementation.
 
 ## Historical checkpoints (candidate-specific)
 

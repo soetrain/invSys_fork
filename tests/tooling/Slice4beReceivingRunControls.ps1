@@ -9,6 +9,7 @@ function Test-ReceivingRunControls {
     if($choices.Count){$selected=(RunnerControl 'lstRunSourceEntities' 'Select' '0') -ceq 'SELECTED'}
     foreach($size in @('Minimum','Default','Larger')){
         Check ('ReceivingRun.Layout.'+$size) ($opened -and (RunnerControl '' 'Fit' $size) -ceq 'True')
+        if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Run How-To' ('b0-run-'+$size.ToLowerInvariant()+'.png')}
     }
     $mode=(RunnerControl 'cboRunMode' 'Write' 'Step through') -ceq 'DELIVERED'
     $started=(RunnerControl 'btnStartRun' 'Click') -ceq 'DELIVERED'
@@ -41,6 +42,12 @@ function Test-ReceivingRunControls {
     $evaluation=$null
     if($fresh.Count -eq 1){$evaluation=Get-Content -LiteralPath $fresh[0].FullName -Raw|ConvertFrom-Json}
     Check 'ReceivingRun.StoppedRunCannotBorrowPriorSuccess' ($stoppedAtOne -and $verify -and $null -ne $evaluation -and $evaluation.ActionPathId -ceq $last.Recording.ActionPathId -and $evaluation.ResultState -ceq 'Failed' -and @($evaluation.TerminalSources).Count -eq 0)
+    $visible=RunnerControl 'txtRunVerification' 'Text'
+    Check 'ReceivingRun.DisplayMatchesStoppedAttempt' ($stoppedAtOne -and $verify -and $null -ne $evaluation -and $visible.StartsWith('Failed') -and $visible.Contains([string]$evaluation.EvaluationId) -and -not $visible.Contains('Conclusion observed'))
+    if($CaptureEvidence){
+        [void](RunnerControl 'txtRunVerification' 'ViewportTop')
+        CaptureOwnedFormByCaptionEvidence 'Run How-To' 'b0-run-stopped-verification.png'
+    }
     $preserved=$true
     foreach($path in $prior.Keys){if(-not (Test-Path -LiteralPath $path) -or (Get-FileHash -LiteralPath $path).Hash -cne $prior[$path]){$preserved=$false}}
     Check 'ReceivingRun.NewAttemptPreservesPriorRunRevisions' $preserved

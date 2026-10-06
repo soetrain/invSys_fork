@@ -60,6 +60,7 @@ function Test-ReceivingRun($Guide,$Original,$Staging,[string]$InventoryPath,$Fix
     $selected=$false;$selectedKey=''
     if($entities.Count){$selectedKey=$entities[0];$selected=(RunnerControl 'lstRunSourceEntities' 'Select' '0') -ceq 'SELECTED'}
     Check 'ReceivingRun.ExactTargetLocalEntityPrompt' ($opened -and $selected -and $selectedKey -cne '' -and $selectedKey -cin $priorKeys -and (RunnerControl 'lstRunSourceEntities' 'Selected') -ceq $selectedKey)
+    if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Run How-To' 'b0-run-setup.png'}
     # A setup captured in A cannot dispatch into B, even when B is the active target.
     SelectTarget $Other 'config-admin'
     [void](RunnerControl 'btnStartRun' 'Click')

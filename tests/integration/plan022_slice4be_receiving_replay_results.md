@@ -1,16 +1,44 @@
 # Slice 4be-A / early B0: Receiving replay
 
-Last verified: 2026-10-05 UTC. D18-REPLAY-01 is approved. Frozen
-`validation-user-policy-02` passes **101/101** focused checks, retaining all94 prior
-checks. Per-user capture-loss stopping and ordinary Receiving's required audit
-with optional recording disabled pass through real Admin/Receiving handlers.
-Actual Receiving replay and fresh exact business proof pass. B0 and 4be-A acceptance remain
-open for observations, visible evidence and broader gates. Earlier RED receipts
-below record the progression; they are not the current implementation status.
+Last verified: 2026-10-06 UTC. D18-REPLAY-01 is approved. Frozen
+`validation-print-recorded-01` passes **103/103**, retaining all101 prior checks
+and adding two display-to-saved-result checks. Eleven captures are directly
+reviewed: profile editing, exact Training setup, successful fresh applied proof,
+stopped-run verification, and minimum/default/larger editor/runner layouts.
+Observation coverage, broader acceptance and human review remain open; this is
+not B0 or4be-A acceptance. Earlier receipts retain their original scope.
+
+## Visible replay checkpoint, 2026-10-06 UTC
+
+Actual Configure/Save/Run/Start/Next/Stop/Verify handlers retain the earlier
+fresh recording, exact new System_Key/quantity/application and preservation proof.
+The visible successful result names its own saved evaluation and applied event;
+a separate stopped attempt shows the missing confirmation and cannot borrow success.
+The new assertions compare the displayed text with independently read saved results.
+Eleven owned-window captures are readable without obstructing overlays. This gate
+does not claim native maximize/restore or human acceptance.
+
+Command: `Test-Slice4beReceivingReplay.ps1 -DeployRoot deploy/validation-print-recorded-01 -Phase GREEN -CaptureEvidence`.
+Controller `receiving-replay-controller/299bd5133def42e48b7fcf6514f30aec`,
+05:05:45.790--05:15:29.324 UTC; worker
+`slice4be-receiving-replay/8512006a03f24f54a23c14addfaebb96` under `reports/runtime/`.
+Controller `verification.json` proves exact ordered prior101 retention, two new
+checks, five instrumented compiles, unchanged compiled package pins, restored
+settings, normal Excel exit and zero delayed Excel Application failures. Worker
+`visible-review.json` records the eleven reviewed image hashes. No desktop error5.
+
+Test/evidence changes only: no new behavioral RED or runtime fix. Regenerated
+`receiving-replay-visible-static-01/ratchet-verification.json` retains312 components,
+6307 procedures,138053 lines, dynamic calls9/45,190 duplicate candidates and all28
+size caps; three schemas and433 PowerShell parses pass. The frozen candidate's
+existing cold compiles, Print986/guide320, Check In631, smoke86 and
+chain32/live48/warehouse15 remain applicable; they were not rerun here.
+No deployment. Next use the [current acceptance index](plan022_slice4be_remaining_acceptance.md)
+for missing observation/transfer implementation and final evidence reconciliation.
 
 ## Evidence
 
-Latest controller `receiving-replay-controller/7b97d29b39404453ab103ca3b9da9a43`,
+Prior101-check controller `receiving-replay-controller/7b97d29b39404453ab103ca3b9da9a43`,
 03:58:29.554--04:07:57.909 UTC, worker
 `slice4be-receiving-replay/e3766508e935446c90c2375707781790/green.json`.
 All94 prior checks retain exact relative order. The UserDisabled guard saves the

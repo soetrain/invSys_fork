@@ -60,6 +60,14 @@ function Test-ReceivingRunProof($Guide,$SavedProfile,$Original,$Latest,$Files,$P
     if($created.Count -eq 1){$evaluation=Get-Content -LiteralPath $created[0].FullName -Raw|ConvertFrom-Json}
     $evaluated=$verified -and $fresh -and $owner -and $null -ne $evaluation -and $evaluation.ResultState -ceq 'Concluded' -and $evaluation.Guide.ContentSha256 -ceq $Guide.ContentSha256 -and $evaluation.ActionPathId -ceq $closed.ActionPathId -and $evaluation.JournalSha256 -ceq $closed.ContentSha256 -and @($evaluation.TerminalSources).Count -eq 1 -and $evaluation.TerminalSources[0].EventId -ceq $eventId -and @($evaluation.TerminalSources[0].SystemKeys).Count -eq 1 -and $evaluation.TerminalSources[0].SystemKeys[0] -ceq $newKey
     Check 'ReceivingRun.VerifyUsesFreshRecordingAndExactOwnerProof' $evaluated
+    $visible=RunnerControl 'txtRunVerification' 'Text'
+    Check 'ReceivingRun.DisplayMatchesFreshAppliedProof' ($evaluated -and $visible.StartsWith('Conclusion observed') -and $visible.Contains([string]$evaluation.EvaluationId) -and $visible.Contains($eventId))
+    if($CaptureEvidence){
+        [void](RunnerControl 'txtRunVerification' 'ViewportTop')
+        CaptureOwnedFormByCaptionEvidence 'Run How-To' 'b0-run-concluded.png'
+        [void](RunnerControl 'txtRunVerification' 'ViewportBottom')
+        CaptureOwnedFormByCaptionEvidence 'Run How-To' 'b0-run-applied-source.png'
+    }
     Check 'ReceivingRun.VerifyReadOnlyBusinessAndDispatch' ($verified -and (BoundSame $businessBefore (BusinessPins)) -and (BoundSame $runBefore (BoundPins $runRoot)) -and (Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishedBefore -and (PinsRetained $activityBefore))
     $Proof.Value=($Dispatched -and $intact -and $exact -and $fresh -and $ordered -and $identity -and $newEvent -and $owner -and $evaluated)
 }

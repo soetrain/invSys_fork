@@ -1,5 +1,15 @@
 # Plan 022 Slice 4be.1 Shipping/Boxing activity discovery
 
+Current source review, 2026-10-06: catalog29 includes Shipping Add/Update/Remove/
+Hold/Return/Stage/Send and Boxing Make/Unbox. Their later scoped evidence is in
+[Shipping activity](plan022_slice4be_shipping_activity_results.md) and
+[Boxing activity](plan022_slice4be_boxing_activity_results.md). The catalog7 map
+below is historical discovery; its blanket pending label does not supersede those
+results. Other reachable controls still require the individual accounting in the
+[current acceptance index](plan022_slice4be_remaining_acceptance.md).
+
+## Historical catalog7 discovery
+
 Last verified: 2026-09-12, including the Shipping context/timer candidates described
 in [context evidence](plan022_slice4be_shipping_context_results.md). This source map
 advances D18's comprehensive coverage inventory. It neither registers new

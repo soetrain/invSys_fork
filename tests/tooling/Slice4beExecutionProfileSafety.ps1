@@ -57,6 +57,7 @@ function Test-ExecutionProfileSafety($Guide,$Profile,[string]$ProfilePath,$Fixtu
     $opened=(BoundControl '' 'Count' '' 'frmActionPathExecution') -ceq '1'
     foreach($size in @('Minimum','Default','Larger')){
         Check ('ExecutionProfile.Layout.'+$size) ($opened -and (BoundControl '' 'Fit' $size 'frmActionPathExecution') -ceq 'True')
+        if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Configure execution' ('b0-profile-'+$size.ToLowerInvariant()+'.png')}
     }
     $otherRoot=Join-Path $Other.Root ('Training/ActionPaths/'+$Other.Warehouse+'/ExecutionProfiles')
     $otherPins=BoundPins $otherRoot

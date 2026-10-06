@@ -64,6 +64,7 @@ function Test-ReceivingExecutionProfile($Guide,$Staging,[string]$JournalRoot,[st
     }
     Check 'ExecutionProfile.BindsExactGuideAndConclusion' $bound
     Check 'ExecutionProfile.ReviewedInputsSeparateFromLogs' ($typed -and (PinsRetained $activity) -and (ActivityPins).Count -eq $activity.Count)
+    if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Configure execution' 'b0-profile-saved.png'}
     [void](ProfileControl 'btnCloseExecution' 'Click')
     [void](BoundControl 'btnConfigureExecution' 'Click')
     $caption=ProfileControl 'lblExecutionProfile' 'Label'
