@@ -27,6 +27,7 @@ Private WithEvents mClose As MSForms.CommandButton
 Private WithEvents mExport As MSForms.CommandButton
 Private WithEvents mImport As MSForms.CommandButton
 Private mTransferring As Boolean
+Private mTransferStatus As String
 Private mInstructions As MSForms.TextBox
 Private mObservations As MSForms.TextBox
 Private mSource As MSForms.Label
@@ -119,8 +120,9 @@ Private Function ContextValid() As Boolean
     End If
 End Function
 
-Public Sub ValidateSelection()
+Public Sub ValidateSelection(Optional ByRef transferNoticeCurrent As Boolean = False)
     Dim instructions As String, observations As String, provenance As String, notice As String, key As String, editNotice As String
+    transferNoticeCurrent = False
     If mLoading Then Exit Sub
     If Not ContextValid() Then Exit Sub
     If mGuides.ListIndex < 0 Then ClearSelection "Select a published guide version.": Exit Sub
@@ -152,6 +154,8 @@ Public Sub ValidateSelection()
         If Not mUse.Enabled Then mStatus.Caption = "The selected recording changed. Reopen Published guides from the intended recording."
     End If
     If editNotice <> "" Then mStatus.Caption = mStatus.Caption & vbCrLf & editNotice
+    transferNoticeCurrent = mEdit.Enabled And editNotice = ""
+    If Not mOwner Is Nothing And mObservedId <> "" Then transferNoticeCurrent = transferNoticeCurrent And mUse.Enabled
 End Sub
 
 Private Sub RefreshGuides()
@@ -189,6 +193,7 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
+    mTransferStatus = ""
     mExport.Enabled = False
     If Not mLoading Then CloseRunner
     mRunHowTo.Enabled = False
@@ -241,6 +246,7 @@ Private Sub TransferGuide(ByVal exporting As Boolean)
     End If
     mStatus.Caption = notice
     If tracking <> "" Then mStatus.Caption = mStatus.Caption & vbCrLf & tracking
+    mTransferStatus = mStatus.Caption
 Done:
     mTransferring = False
     Exit Sub
@@ -354,13 +360,20 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
 End Sub
 
 Private Sub UserForm_Activate()
+    Dim priorStatus As String, priorKey As String, transferNoticeCurrent As Boolean
     If Not ContextValid() Then Exit Sub
+    priorStatus = mStatus.Caption
+    If mGuides.ListIndex >= 0 Then priorKey = CStr(mGuides.Value)
     If Not mResizeReady Then
         modUserFormResizeWin.EnableResizableUserForm Me, True, True
         mResizeReady = True
     End If
     mLayout.ApplyAnchoredLayout
-    ValidateSelection
+    ValidateSelection transferNoticeCurrent
+    ' Retain owner feedback only after current selection and access revalidation.
+    If transferNoticeCurrent And priorKey <> "" And priorStatus <> "" And priorStatus = mTransferStatus Then
+        If CStr(mGuides.Value) = priorKey Then mStatus.Caption = priorStatus
+    End If
 End Sub
 
 Private Sub UserForm_Layout()

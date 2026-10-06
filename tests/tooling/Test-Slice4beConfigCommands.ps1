@@ -137,6 +137,7 @@ param(
     [switch]$CheckGuideTransfer,
     [switch]$CheckGuideTransferRoundTrip,
     [switch]$CheckGuideTransferActivity,
+    [switch]$CheckGuideTransferPolicy,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
     [switch]$WaitForExcelReadyForTest,
@@ -230,6 +231,7 @@ if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $Captu
 }
 if($CheckGuideTransferRoundTrip -and -not $CheckGuideTransfer){throw 'Round trip requires the isolated guide transfer fixture.'}
 if($CheckGuideTransferActivity -and (-not $CheckGuideTransfer -or $CheckGuideTransferRoundTrip)){throw 'Transfer activity requires its separate compiled transfer fixture.'}
+if($CheckGuideTransferPolicy -and -not $CheckGuideTransferActivity){throw 'Transfer policy requires the activity fixture.'}
 if($CheckGuideTransfer){
     if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Guide transfer requires its compiled saved-copy guide fixture.'}
     if($CheckReceivingReplay -or $GuideActionCurationOnly -or $PublishedGuideEditOnly -or $GuidePresentationRestartOnly){throw 'Guide transfer requires an isolated fixture.'}
@@ -1796,6 +1798,11 @@ End Function
             if($CheckGuideTransferActivity){
                 $step='packaged guide transfer observations'
                 Test-GuideTransferActivity $a $b $guidePresentationRestartFixture.Guide
+                if($CheckGuideTransferPolicy){
+                    $step='packaged guide transfer policy and storage'
+                    . (Join-Path $PSScriptRoot 'Slice4beGuideTransferPolicy.ps1')
+                    Test-GuideTransferPolicy $a $b $guidePresentationRestartFixture.Guide
+                }
             }
             if($CheckGuideTransferRoundTrip){
                 $step='packaged guide transfer round trip and guards'

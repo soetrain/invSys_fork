@@ -9,6 +9,67 @@ open; neither transfer nor 4be-A is accepted or deployed.
 
 ## Transfer observations
 
+Entry-policy/storage coverage on the unchanged activity candidate exposed a
+display RED: **423 PASS / 1 FAIL across424 checks**. Actual export succeeds, but
+foreground activation replaces its result with the generic guide description.
+Only `GuideTransferPolicy.Recovery.Export.Success.NoticeSurvivesLayoutAndCapture`
+fails; all79 ordered observation checks, owner writes, suppression, preservation
+and five instrumented compiles pass. This enforces D18's visible owner-result
+requirement; it changes no permission, catalog or execution contract.
+
+UTC2026-10-06 07:15:10.1632225--07:26:54.6440345; controller
+`guide-transfer-controller/cffe850e7b8b4479b66338fe8c1f0f84`, worker
+`slice4be-guide-transfer/da1424f168a64da68ec598f923456ad3`. All422 saved-host
+observations, closed bytes, package/settings preservation, normal closure and
+delayed zero Excel failures pass. Four captures were directly reviewed; recovered
+Export visibly loses its result, while unavailable-storage notices and recovered
+Import remain readable. The run was requested as GREEN but supplies behavioral
+RED before the form fix. Five subsequent test assertions force actual activation
+and guard permission revalidation; they have no separate pre-fix RED claim.
+The strengthened gate is **GREEN429/429**, retaining all424 ordered RED checks.
+Harness: `Test-Slice4beGuideTransfer.ps1 -Phase GREEN -CaptureEvidence -SavedHost -Activity -ActivityPolicy -DeployRoot deploy/validation-guide-transfer-notice-01`.
+The RED used the same flags against `validation-guide-transfer-activity-01`
+before the activation reinforcement and runtime correction.
+Only the Operations guide-library form changes: transfer feedback survives
+activation after successful current-context, guide, permission and observed-run
+revalidation. Permission loss supersedes the old success message and disables
+Export. No validation is skipped and no owner/capability contract changes.
+
+GREEN UTC07:33:39.7467022--07:45:53.0263659; controller
+`guide-transfer-controller/10440d62781c4eb19147d4ea5c094af0`, worker
+`slice4be-guide-transfer/ff9fb138e81e4910b0b5cce0ab6bc63e`. The unpromoted candidate
+is `deploy/validation-guide-transfer-notice-01`. All five policy states cover
+actual Export/Import success, cancel, refusal and picker failure. Four directly
+reviewed minimum-size captures retain owner results and separate tracking notices.
+All427 saved-host observations, closed bytes, package/settings preservation,
+normal closure and delayed zero Excel failures pass. Affected regressions are
+recorded separately below when verified.
+
+Build UTC07:32:39.3691499--07:33:18.0702665 passes cold startup/five compiles,
+preservation/closure and delayed audit. Exactly one of310 packaged components
+changes, with309 unchanged. `guide-transfer-notice-build-01/verification.json`
+and `transfer-notice-static-01/ratchet-verification.json` contain receipts.
+Static:317 components,6328 procedures,138507 lines (+13 for guarded feedback),
+unchanged9/45 dynamic calls,190 duplicate groups and28 oversized caps; three
+schemas and441 PowerShell files validate. No new procedures or controls.
+
+The notice candidate retains the exact ordered **71/71** transfer regression,
+UTC07:46:06.4888967--07:52:55.4314881. Controller
+`guide-transfer-controller/e13c2298ae0d4b74993d07d34248d19d`; worker
+`slice4be-guide-transfer/f8326191769a4fc18b73ebd071d013c0`. Five instrumented
+compiles,69 saved-host observations, closed bytes, package/settings preservation,
+normal closure and delayed zero Excel failures pass. Two fresh captures were
+directly reviewed: entry cancellation status and minimum-size imported multiline
+bottom, including Unicode, final marker, local revision and foreign provenance.
+Other generated captures are not claimed as additional direct reviews.
+
+Native guide editing retains the exact ordered **58/58**, UTC07:53:11.1387825--
+08:00:28.2702492. Controller `execution-profile-guide-regression/48a2bc04afcf41da83d8c1e0f29d09c3`;
+worker `slice4be-viewer-published-read/955df827768245aab7bb6eb24e3bb127`.
+Five instrumented compiles, package/settings preservation, normal closure and
+delayed zero Excel failures pass.
+No additional runtime changes or new image reviews are claimed for this regression.
+
 The initial catalog30 observation gate is **RED45/34 -> GREEN79/79**, retaining
 all79 ordered checks. Core supplies fixed primitive outcomes; actual Operations
 Export/Import handlers observe eligible outer clicks. Only committed transfers
@@ -20,9 +81,9 @@ GREEN UTC2026-10-06 06:50:04.9507294--06:53:47.8786625; controller
 `slice4be-guide-transfer/eb30e495f86e4568a85633ccf7cacd2e`. Five instrumented
 compiles,77 saved-host observations, closed-byte/package/settings preservation,
 normal closure and delayed zero Excel failures pass. Candidate
-`deploy/validation-guide-transfer-activity-01` is unpromoted. Policy/storage,
-maintenance revocation, recorded/evaluated transfer and visible fault notices
-remain unproved; this is a scoped implementation checkpoint, not acceptance.
+`deploy/validation-guide-transfer-activity-01` is unpromoted. At that checkpoint,
+policy/storage, maintenance revocation, recorded/evaluated transfer and visible
+fault notices remained unproved; entry policy/storage advances above.
 
 Build UTC06:49:11.0130121--06:49:51.0906348 passes cold startup/five compiles,
 preservation/closure and delayed audit. Package comparison finds303 unchanged,
@@ -48,9 +109,10 @@ UTC07:00:52.9267527--07:07:58.4431221. Controller
 `slice4be-viewer-published-read/5402524c8a9e4251a8c76abc198b3e00`. Five instrumented
 compiles, package/settings preservation, normal closure and delayed zero Excel
 failures pass. No further runtime changes followed the candidate build.
-The next focused gate is transfer action/user policy, storage/interruption and
-visible fault notices, followed by recorded/evaluated transfer conclusions.
-Broad live-role/Release1/restart reconciliation and final acceptance remain open.
+That checkpoint's entry policy/storage and visible-notice follow-up advances
+above. Maintenance-denial observations, terminal/interruption and recorded/
+evaluated transfer conclusions remain open, followed by broad live-role/Release1/
+restart reconciliation and final acceptance.
 
 Catalog30 refines D18's existing comprehensive-recording rule for Export/Import;
 it adds no permission or replay authority. On unchanged `fe60f926` packages,

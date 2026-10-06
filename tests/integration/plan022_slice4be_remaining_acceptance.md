@@ -8,7 +8,7 @@ and remaining verification, not a new contract or a percentage estimate.
 
 This replaces the stale catalog20/current-candidate labels in the historical
 checkpoints below. Current runtime catalog is30. The latest unpromoted transfer
-candidate is `deploy/validation-guide-transfer-activity-01`; the preceding Print candidate
+candidate is `deploy/validation-guide-transfer-notice-01`; the preceding Print candidate
 is `deploy/validation-print-recorded-01`, code checkpoint `89674af1`.
 Do not equate control registration, a scoped GREEN or a diagnostic with full acceptance.
 
@@ -18,13 +18,13 @@ Do not equate control registration, a scoped GREEN or a diagnostic with full acc
 | Comprehensive Operations/Admin recording | Catalog30 declares135 IDs, adding the two transfer controls. Initial actual-handler observation GREEN79 retains transfer71. The source audit below identifies remaining gaps; registration alone is insufficient. |
 | Per-action/per-user Admin policy | [Policy evidence](plan022_slice4be_user_tracking_policy_results.md) reaches104/104, with historical/version, rights, required-audit and preservation checks. Retain its candidate scope and reconcile final role coverage. |
 | Viewer and configurable Detail | [Multiline](plan022_slice4be_multiline_results.md) has88/88 with14 reviewed images and separate98-check captured Viewer regression; [overflow](plan022_slice4be_detail_overflow_results.md) has50/50. Preserve their exact candidate/source scope and reconcile later changed dependencies; human acceptance is separate. |
-| Versioned guide authoring/transfer | [Guide transfer](plan022_slice4be_guide_transfer_results.md) adds observation RED45/34 -> GREEN79/79 and retains the exact transfer71/native-edit58 regressions on the same candidate. Five cold/instrumented compiles, two fresh reviewed captures, preservation/normal closure and static ratchets pass. Action/user policy, storage/interruption, visible fault notices and recorded/evaluated transfer conclusions remain unproved. |
+| Versioned guide authoring/transfer | [Guide transfer](plan022_slice4be_guide_transfer_results.md) adds policy/storage RED423/1 -> GREEN429/429, retaining all424 ordered checks. Activation preserves owner feedback after access/selection revalidation. Five cold/instrumented compiles, four reviewed captures, preservation/normal closure and static ratchets pass. Transfer71 is retained with two fresh reviewed captures and clean lifecycle; native-edit58 is retained with closure/preservation. Terminal/interruption and recorded/evaluated conclusions remain open. |
 | How-To/Diagnostic/Compare and preferences | [Print comparison](plan022_slice4be_production_print_results.md) passes full320 with five reviewed captures and normal closure; its earlier view-session failure remains unexplained. Existing presentation/restart evidence remains scoped. Reconcile visible Operations and Admin comparisons, incomplete evidence and restart/isolation proof. |
 | Early B0 Receiving proof | [Receiving replay](plan022_slice4be_receiving_replay_results.md) passes103/103 on the current Print candidate, retaining101 and adding two displayed-result checks. Eleven reviewed captures cover editor/setup, fresh applied proof, stopped verification and minimum/default/larger layouts. Observation accounting, native maximize/restore, broader gates and human acceptance remain open. |
 | Final D13 and preservation gates | Current Print correction retains focused248, Print986, Check In631, smoke86, chain32/live48/warehouse15, five compiles and static/layout evidence. Reconcile all current GREENs and visible/restart/binding coverage against the final artifact; retain System_Key, unknown columns, captured binding, launcher reuse and headless authority. |
 
-Next: prove transfer policy/storage loss, recorded/evaluated conclusions and visible
-fault notices; finish affected regressions and remaining
+Next: prove transfer maintenance-denial observations, terminal/interruption and
+recorded/evaluated transfer conclusions; finish remaining
 visible acceptance; continue the observation gaps below and final evidence
 reconciliation. Reuse valid evidence. Neither this audit
 nor B0 alone accepts4be-A or R1.
@@ -43,7 +43,7 @@ Shipping7, Boxing2 and Viewer4. These are registration counts, not coverage scor
 | Shipping/Boxing | Catalog29 includes the seven shipment mutation commands and Make/Unbox. Refresh, history/export, form lifecycle, Box Designer commands, deliberate tabs/selections and other reachable controls in the source map still need individual coverage/exclusion evidence. The old catalog7 map is historical discovery, not current registration status. |
 | Admin | The28 IDs cover Settings Save Value, three UOM commands, Tracking12, Detail8 and personal preference4. They do not cover all Admin tools. General selection/reload, carrier/connection controls, navigation/lifecycle and eligible warehouse/user/processor/publication/maintenance commands remain to be accounted for through their actual handlers. Pre-sign-in and nonexistent-target exclusions remain mandatory. Canonical audit alone does not prove shared user-activity capture. |
 | Replay setup/editor/runner | `frmActionPathLibrary` Configure execution/Run How-To and the new `frmActionPathExecution`/`frmActionPathRun` controls have no registered observation IDs. D18-REPLAY-01 boundary5 explicitly prevents inferring observation exclusion from replay exclusion. Review each owner/result; retain the older explicit authoring/evaluation exclusions only where applicable. Actual replayed Receiving actions already have fresh activity proof. |
-| Guide transfer | Actual Export/Import and a Core consumer pass71 checks. Catalog30 adds fixed owner outcomes and actual-handler observations, RED45/34 -> GREEN79, with the71-check regression retained. Policy/storage, recorded/evaluated conclusions and visible fault notices remain unproved; broader transfer/A acceptance stays open. |
+| Guide transfer | Catalog30 adds fixed owner outcomes and actual-handler observations, RED45/34 -> GREEN79. Entry policy/storage now passes429, including separately visible tracking faults and guarded activation feedback. Terminal/interruption and recorded/evaluated conclusions remain unproved; broader transfer/A acceptance stays open. |
 
 Evidence: current source plus ignored `production-tracking-source-census.json`,
 `production-button-owner-audit.json` and `catalog29-source-ids.json` under

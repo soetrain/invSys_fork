@@ -1,6 +1,7 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-print-recorded-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence,[switch]$SavedHost,[switch]$RoundTrip,[switch]$Activity)
+param([string]$DeployRoot='deploy/validation-print-recorded-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CaptureEvidence,[switch]$SavedHost,[switch]$RoundTrip,[switch]$Activity,[switch]$ActivityPolicy)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+if($ActivityPolicy -and -not $Activity){throw 'Transfer policy proof requires the retained activity gate.'}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated guide transfer validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
@@ -15,6 +16,7 @@ try {
     $extra=@();if($CaptureEvidence){$extra+='-CaptureEvidence'}
     if($RoundTrip){$extra+='-CheckGuideTransferRoundTrip'}
     if($Activity){$extra+='-CheckGuideTransferActivity'}
+    if($ActivityPolicy){$extra+='-CheckGuideTransferPolicy'}
     if($SavedHost){$extra+=@('-CaptureGuideEvidence','-GuideCaptureVisibleExcelForTest','-GuideCaptureSavedWorkbookForTest')}
     $ErrorActionPreference='Continue'
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -CheckGuideTransfer -GuideDraftOnly -CheckGuideExpectation -CheckViewerPublishedRead -ViewerStartupPackageStateForTest SavedCopies -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
@@ -24,7 +26,7 @@ try {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $same=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;CaptureEvidence=[bool]$CaptureEvidence;SavedHost=[bool]$SavedHost;RoundTrip=[bool]$RoundTrip;Activity=[bool]$Activity;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);TransferAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{Phase=$Phase;CaptureEvidence=[bool]$CaptureEvidence;SavedHost=[bool]$SavedHost;RoundTrip=[bool]$RoundTrip;Activity=[bool]$Activity;ActivityPolicy=[bool]$ActivityPolicy;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);TransferAccepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'Guide transfer preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 12

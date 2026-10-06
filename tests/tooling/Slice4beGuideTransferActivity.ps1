@@ -12,9 +12,17 @@ End Function
 Public Function Terminal(ByVal serialized As String) As Boolean
     Terminal = modEvaluationMatches.CommandCompleted(modTrainingJson.DecodeObject(serialized))
 End Function
+Public Function Policy(ByVal id As String) As String
+    Dim version As Long, collect As Boolean, visible As Boolean, notice As String, ok As Boolean
+    ok = modActivityPolicy.ReadPolicy(modNasConnection.GetCurrentTarget(), id, version, collect, visible, notice)
+    Policy = CStr(ok) & "|" & CStr(collect)
+End Function
 '@)
     $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmActionPathLibrary').CodeModule
     $form.AddFromString(@'
+Public Sub TransferActivateForTest()
+    UserForm_Activate
+End Sub
 Public Sub TransferEntryStateForTest(ByVal mode As String, ByVal state As String)
     On Error GoTo Cleanup
     mLoading = (state = "Loading"): mTransferring = (state = "Busy")
@@ -25,6 +33,15 @@ End Sub
 '@)
     $ops=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $ops.AddFromString(@'
+Public Function TransferActivateForTest() As Boolean
+    Dim form As Object
+    For Each form In VBA.UserForms
+        If TypeName(form) = "frmActionPathLibrary" Then
+            form.TransferActivateForTest
+            TransferActivateForTest = True: Exit Function
+        End If
+    Next form
+End Function
 Public Function TransferEntryStateForTest(ByVal mode As String, ByVal state As String) As Boolean
     Dim form As Object
     For Each form In VBA.UserForms
