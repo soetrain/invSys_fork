@@ -134,6 +134,7 @@ param(
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
+    [switch]$CheckGuideTransfer,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
     [switch]$WaitForExcelReadyForTest,
@@ -224,6 +225,11 @@ if($TraceGuideViewCallsForTest -and -not $GuideResourceSavedWorkbookForTest){thr
 if($CheckGuideLayoutStabilityForTest -and -not $TraceGuideViewCallsForTest){throw 'Layout stability requires the instrumented handler trace.'}
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
+}
+if($CheckGuideTransfer){
+    if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Guide transfer requires its compiled saved-copy guide fixture.'}
+    if($CheckReceivingReplay -or $GuideActionCurationOnly -or $PublishedGuideEditOnly -or $GuidePresentationRestartOnly){throw 'Guide transfer requires an isolated fixture.'}
+    $CheckGuideExpectation=$true
 }
 if($GuideActionCurationOnly){
     if($PublishedGuideEditOnly -or $CheckPublishedGuideEdit -or $CheckGuidePresentation -or $GuidePresentationRestartOnly -or $CheckGuidePresentationRestart){throw 'Direct curation uses its own focused packaged gate.'}
@@ -632,6 +638,10 @@ if($CheckReceivingReplay){
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-receiving-replay/'+[guid]::NewGuid().ToString('N'))
     Write-Output ('Receiving replay evidence: '+$reportRoot)
 }
+if($CheckGuideTransfer){
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-guide-transfer/'+[guid]::NewGuid().ToString('N'))
+    Write-Output ('Guide transfer evidence: '+$reportRoot)
+}
 New-Item -ItemType Directory -Path $runRoot,$reportRoot -Force | Out-Null
 $inputDeploy=$deploy
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
@@ -666,6 +676,7 @@ if (Test-Path -LiteralPath $settingsRoot) {
 function Check([string]$Name,[bool]$Passed) {
     $results.Add([pscustomobject]@{Check=$Name;Passed=$Passed})
     Write-Output ("{0}: {1}" -f $Name, $(if($Passed){'PASS'}else{'FAIL'}))
+    if($CheckGuideTransfer -and $Name -clike 'Guide*' -and $Name -cne 'GuideCapture.SavedWorkbookBytesPreservedAfterClose'){Write-GuideTransferHostState $Name}
 }
 function Complete-ResultEvidence([string]$ReportPath,[scriptblock]$Cleanup) {
     # Preserve typed checks before fixture cleanup can encounter an external lock.
@@ -1322,6 +1333,10 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
             }
+            if($CheckGuideTransfer){
+                . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
+                Install-GuideTransferDialogProbe
+            }
             if($CheckReceivingReplay){
                 . (Join-Path $PSScriptRoot 'Slice4beReceivingReplay.ps1')
                 Install-ReceivingReplayProbe
@@ -1694,12 +1709,14 @@ End Function
     if($GuideCaptureSavedWorkbookForTest){
         . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
         Initialize-Slice4beViewerStartupWorkbook
+        if($CheckGuideTransfer){Write-GuideTransferHostState 'Initialized'}
     }
     $step='Admin-generated fixtures'; Write-Output $step
     if($PrintSeedBoundaryForTest -ne 'None'){'BeforeFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     $a=NewFixture 'a'
     if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     $b=NewFixture 'b'
+    if($CheckGuideTransfer){Write-GuideTransferHostState 'WarehousesCreated'}
     if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureB'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     if($PrintSeedBoundaryForTest -in @('FreshSeed','BareSeed')){
         $step='Admin Seed before shared Config and UOM form exercises'
@@ -1760,7 +1777,14 @@ End Function
         }
     }
     if($CheckViewerPublishedRead) {
-        if($CheckReceivingReplay){
+        if($CheckGuideTransfer){
+            $step='packaged guide transfer entry and cancelled actions'
+            Write-GuideTransferHostState 'BeforeGuideFixture'
+            . (Join-Path $PSScriptRoot 'Slice4beGuideRestartFixture.ps1')
+            Initialize-GuideRestartFixture $a -ForPublishedEdit
+            . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
+            Test-GuideTransferEntry $a $b $guidePresentationRestartFixture.Guide
+        } elseif($CheckReceivingReplay){
             $step='B0 actual Receiving recording and guide execution entry'
             Test-Slice4beReceivingReplay $a $b
         } elseif($GuideActionCurationOnly){
@@ -2115,6 +2139,7 @@ finally {
     if($null -ne $excel) {
         if($GuideCaptureSavedWorkbookForTest){
             try {
+                if($CheckGuideTransfer){Write-GuideTransferHostState 'BeforeCleanup'}
                 Check 'GuideCapture.SavedWorkbookIdentityPreserved' ($null -ne $script:ViewerStartupWorkbook -and $script:ViewerStartupWorkbook.FullName -ceq $script:ViewerStartupWorkbookPath -and $script:ViewerStartupWorkbook.Saved -is [bool] -and $script:ViewerStartupWorkbook.Saved)
                 Close-Slice4beViewerStartupWorkbook 'GuideCapture.SavedWorkbookBytesPreservedAfterClose'
             } catch {Check 'Harness.Exception.guide capture workbook cleanup' $false}
