@@ -57,9 +57,10 @@ Public Function Read(ByVal path As String, ByRef notice As String) As Object
 Invalid:
 End Function
 
-Public Function WriteNew(ByVal path As String, ByVal content As String, ByRef notice As String) As Boolean
+Public Function WriteNew(ByVal path As String, ByVal content As String, ByRef notice As String, Optional ByRef outcome As String = "") As Boolean
     Dim fso As Object, stream As Object, parent As String, pending As String, created As Boolean
     On Error GoTo Failed
+    outcome = "REJECTED"
     notice = "Unavailable: the guide package could not be exported."
     If path = "" Or content = "" Or Len(content) > 1048576 Then Exit Function
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -74,9 +75,10 @@ Public Function WriteNew(ByVal path As String, ByVal content As String, ByRef no
     stream.Write content: stream.Close: Set stream = Nothing
     If modRecordingJournal.ReadText(pending) <> content Then GoTo Failed
     Name pending As path
-    pending = "": WriteNew = True: notice = "Guide exported."
+    pending = "": WriteNew = True: notice = "Guide exported.": outcome = "COMPLETED"
     Exit Function
 Failed:
+    outcome = "FAILED"
     On Error Resume Next
     If Not stream Is Nothing Then stream.Close
     If created And pending <> "" And Not fso Is Nothing Then

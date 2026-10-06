@@ -7,7 +7,50 @@ passes **71/71 GREEN**, with the native-guide editing regression **58/58**.
 Observation accounting and remaining affected regressions remain
 open; neither transfer nor 4be-A is accepted or deployed.
 
-## Transfer observation RED
+## Transfer observations
+
+The initial catalog30 observation gate is **RED45/34 -> GREEN79/79**, retaining
+all79 ordered checks. Core supplies fixed primitive outcomes; actual Operations
+Export/Import handlers observe eligible outer clicks. Only committed transfers
+establish command completion. No paths, guide content, exceptions or source-event
+references enter activity records. Historical catalog29 remains unchanged.
+
+GREEN UTC2026-10-06 06:50:04.9507294--06:53:47.8786625; controller
+`guide-transfer-controller/bc56ece1e75d44d4b7f62b62b09d0a6d`, worker
+`slice4be-guide-transfer/eb30e495f86e4568a85633ccf7cacd2e`. Five instrumented
+compiles,77 saved-host observations, closed-byte/package/settings preservation,
+normal closure and delayed zero Excel failures pass. Candidate
+`deploy/validation-guide-transfer-activity-01` is unpromoted. Policy/storage,
+maintenance revocation, recorded/evaluated transfer and visible fault notices
+remain unproved; this is a scoped implementation checkpoint, not acceptance.
+
+Build UTC06:49:11.0130121--06:49:51.0906348 passes cold startup/five compiles,
+preservation/closure and delayed audit. Package comparison finds303 unchanged,
+six changed and one new component; Admin/both Domains are unchanged. Receipts:
+`guide-transfer-activity-build-01/{verification,compiled-pins,package-sources}.json`.
+`transfer-activity-green-static-01/ratchet-verification.json` validates three
+schemas and440 scripts:317 components,6328 procedures,138494 lines (+1/+2/+87),
+unchanged9/45 dynamic calls,190 duplicate groups and28 oversized-module caps.
+
+The same candidate retains the exact ordered **71/71** transfer regression,
+UTC06:53:53.6735525--07:00:47.0078279. Controller
+`guide-transfer-controller/55ae2e7ae1a24f41a98992829f4f2421`; worker
+`slice4be-guide-transfer/f70e6c71ce1e42069aad4134d3017f6c`. Five compiles,69
+saved-host observations, preservation, normal closure and delayed zero Excel
+failures pass. Two fresh captures were directly reviewed: entry controls/cancelled
+status and minimum-size imported multiline bottom. Provenance, Unicode second
+line, final marker and local revision remain readable. The other eight captures
+were generated but are not claimed as new direct reviews; geometry is unchanged.
+
+Native guide editing also retains the exact ordered **58/58** on this candidate,
+UTC07:00:52.9267527--07:07:58.4431221. Controller
+`execution-profile-guide-regression/65545d52fb714e918467ffa02fee595c`; worker
+`slice4be-viewer-published-read/5402524c8a9e4251a8c76abc198b3e00`. Five instrumented
+compiles, package/settings preservation, normal closure and delayed zero Excel
+failures pass. No further runtime changes followed the candidate build.
+The next focused gate is transfer action/user policy, storage/interruption and
+visible fault notices, followed by recorded/evaluated transfer conclusions.
+Broad live-role/Release1/restart reconciliation and final acceptance remain open.
 
 Catalog30 refines D18's existing comprehensive-recording rule for Export/Import;
 it adds no permission or replay authority. On unchanged `fe60f926` packages,
@@ -16,7 +59,7 @@ two missing definitions and four observation assertions for each of eight action
 The actions cover cancellation, successful export/import, existing destination,
 invalid import, picker failure and context loss. All24 original entry checks pass.
 Loading/busy suppression, immutable prior records, successful owner writes and
-preserved source files pass independently. No implementation GREEN is claimed.
+preserved source files pass independently. The GREEN above follows this clean RED.
 
 UTC2026-10-06 06:43:48.6862835--06:47:19.3359237; controller
 `guide-transfer-controller/e7916539999e402994455e3c5342fd0b`, worker

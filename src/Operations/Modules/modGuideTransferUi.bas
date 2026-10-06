@@ -3,28 +3,30 @@ Option Explicit
 Option Private Module
 
 ' Dialog ownership stays in Operations; Core rechecks the captured request.
-Public Function Export(ByVal context As String, ByVal key As String, ByRef notice As String) As Boolean
+Public Function Export(ByVal context As String, ByVal key As String, ByRef notice As String, ByRef outcome As String) As Boolean
     Dim path As String
     On Error GoTo Failed
-    If Not modGuideTransfer.CanExport(context, key, notice) Then Exit Function
+    If Not modGuideTransfer.CanExport(context, key, notice, outcome) Then Exit Function
     path = SelectFileForTransfer(True)
-    If path = "" Then notice = "Export cancelled.": Exit Function
-    Export = modGuideTransfer.ExportGuide(context, key, path, notice)
+    If path = "" Then notice = "Export cancelled.": outcome = "CANCELLED": Exit Function
+    Export = modGuideTransfer.ExportGuide(context, key, path, notice, outcome)
     Exit Function
 Failed:
+    outcome = "FAILED"
     notice = "Unavailable: the guide file could not be selected for export."
 End Function
 
-Public Function Import(ByVal context As String, ByRef key As String, ByRef notice As String) As Boolean
+Public Function Import(ByVal context As String, ByRef key As String, ByRef notice As String, ByRef outcome As String) As Boolean
     Dim path As String
     On Error GoTo Failed
     key = ""
-    If Not modGuideTransfer.CanImport(context, notice) Then Exit Function
+    If Not modGuideTransfer.CanImport(context, notice, outcome) Then Exit Function
     path = SelectFileForTransfer(False)
-    If path = "" Then notice = "Import cancelled.": Exit Function
-    Import = modGuideTransfer.ImportGuide(context, path, key, notice)
+    If path = "" Then notice = "Import cancelled.": outcome = "CANCELLED": Exit Function
+    Import = modGuideTransfer.ImportGuide(context, path, key, notice, outcome)
     Exit Function
 Failed:
+    outcome = "FAILED"
     notice = "Unavailable: the guide file could not be selected for import."
 End Function
 

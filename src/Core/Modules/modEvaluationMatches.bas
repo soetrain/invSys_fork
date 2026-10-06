@@ -106,6 +106,7 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     End If
     ' Explicit owner facts; severity and data effect are deliberately not classifiers.
     Select Case CStr(record("ControlId"))
+        Case "VIEWER_GUIDE_EXPORT", "VIEWER_GUIDE_IMPORT": CommandCompleted = (code = "COMPLETED")
         Case "PRODUCTION_RUN_PRINT": CommandCompleted = (code = "PREVIEW_RETURNED")
         Case "PRODUCTION_PROCESS_WORKSHEET_SEND", "PRODUCTION_PROCESS_WORKSHEET_ADD_ITEM"
             CommandCompleted = (code = "STAGED")

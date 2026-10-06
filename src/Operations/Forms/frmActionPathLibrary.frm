@@ -209,18 +209,28 @@ End Sub
 
 Private Sub TransferGuide(ByVal exporting As Boolean)
     Dim key As String, notice As String, completed As Boolean, index As Long
+    Dim activityId As String, controlId As String, outcome As String, tracking As String, finished As String
     On Error GoTo Failed
-    If mTransferring Or Not ContextValid() Then Exit Sub
+    If mLoading Or mTransferring Or Not ContextValid() Then Exit Sub
     If exporting Then
+        If Not mExport.Enabled Then Exit Sub
         If mGuides.ListIndex < 0 Then Exit Sub
         key = CStr(mGuides.Value)
+        controlId = "VIEWER_GUIDE_EXPORT"
+    Else
+        If Not mImport.Enabled Then Exit Sub
+        controlId = "VIEWER_GUIDE_IMPORT"
     End If
     mTransferring = True
+    activityId = modActivity.BeginAction(controlId, mContext, tracking)
     If exporting Then
-        completed = modGuideTransferUi.Export(mContext, key, notice)
+        completed = modGuideTransferUi.Export(mContext, key, notice, outcome)
     Else
-        completed = modGuideTransferUi.Import(mContext, key, notice)
+        completed = modGuideTransferUi.Import(mContext, key, notice, outcome)
     End If
+    If activityId <> "" Then Call modActivity.FinishAction(activityId, outcome, finished)
+    activityId = ""
+    If finished <> "" Then tracking = finished
     If Not modOperationsFormLifetime.IsLoaded(Me) Then GoTo Done
     If Not ContextValid() Then GoTo Done
     If completed And Not exporting Then
@@ -230,11 +240,13 @@ Private Sub TransferGuide(ByVal exporting As Boolean)
         Next index
     End If
     mStatus.Caption = notice
+    If tracking <> "" Then mStatus.Caption = mStatus.Caption & vbCrLf & tracking
 Done:
     mTransferring = False
     Exit Sub
 Failed:
     On Error Resume Next
+    If activityId <> "" Then Call modActivity.FinishAction(activityId, "FAILED", tracking)
     If modOperationsFormLifetime.IsLoaded(Me) Then mStatus.Caption = "Unavailable: the guide transfer could not be completed."
     mTransferring = False
 End Sub
