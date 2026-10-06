@@ -4,8 +4,53 @@ Architecture v4.11 D18 defines guide-transfer-v1, imported-guide-v2 and the
 reserved executable-transfer-v2 interface. These refine the approved transfer
 boundary; they add no execution or permission grant. The isolated implementation
 passes **71/71 GREEN**, with the native-guide editing regression **58/58**.
-Observation accounting and remaining affected regressions remain
-open; neither transfer nor 4be-A is accepted or deployed.
+Recorded transfer and independent guide comparisons now pass **499/499** on the
+unchanged notice candidate. Broader acceptance remains open; neither transfer nor
+4be-A is accepted or deployed.
+
+## Recorded transfers and independent guide comparisons
+
+Test-only extension of the approved D18 catalog30 contract; no runtime/package or
+architectural change and no new behavioral RED claim. Existing observation and
+activation RED/GREEN below remain the implementation evidence.
+
+The gate retains all79 ordered observation checks and adds420 checks:324 for20
+actual recordings/evaluations and96 for independently authored guide comparisons.
+Export and Import each cover terminal policy change, unavailable storage, invalid
+policy, sign-out, maintenance revocation, cancellation, validation refusal, picker
+failure, recovery and a second successful recording. Fault hooks affect only
+generated fixtures; actual handlers, owner decisions and evaluation remain real.
+Missing terminal evidence stays incomplete; denied/cancelled/rejected/failed
+actions cannot establish completion. Successful transfers establish command
+completion only, never Domain application.
+
+Each guide is authored from one successful recording and compared with separate
+successful, incomplete and denied recordings through actual controls. Reader
+access cannot author. Exact guide/journal/publication provenance, multiline
+instructions and unchanged evidence hold across How-To, Diagnostic and Compare.
+The successful source recording cannot supply a missing observed-run success.
+
+Harness: `Test-Slice4beGuideTransfer.ps1 -Phase GREEN -CaptureEvidence -SavedHost -Activity -Recorded -DeployRoot deploy/validation-guide-transfer-notice-01`.
+UTC2026-10-06 **08:05:41.7492482--08:41:57.5597361**; controller
+`guide-transfer-controller/00b24f6d17784cb9a372d2dfad4d65da`, worker
+`slice4be-guide-transfer/15d196bc79dd4d6f828dc4bdbb6466d7` under ignored
+`reports/runtime/`. Controller `verification.json` verifies499 unique passes,
+the exact420 added checks, all79 retained identities,497 saved-host observations,
+closed workbook bytes, frozen package hashes, restored settings and normal Excel
+closure. Delayed Application audit finds zero Excel failures.
+
+Twelve selected captures were directly reviewed: separate owner/tracking faults,
+invalid-policy controls, incomplete diagnostics, the three export presentations,
+and successful/denied import comparisons. No human acceptance or review of every
+generated image is claimed; exact image hashes are in worker `visible-review.json`.
+
+Five instrumented compiles pass. The unchanged candidate retains its prior cold
+build, policy429, transfer71 and native-edit58 evidence below. Static receipt
+`transfer-recorded-static-01/ratchet-verification.json`:317 components,6328
+procedures,138507 lines,9/45 dynamic calls,190 duplicate groups and28 unchanged
+oversized caps; three schemas validate and444 PowerShell scripts parse. Broader
+Operations/Admin observation coverage and final live-role/Release1/restart/visible
+acceptance reconciliation remain open.
 
 ## Transfer observations
 
@@ -110,9 +155,9 @@ UTC07:00:52.9267527--07:07:58.4431221. Controller
 compiles, package/settings preservation, normal closure and delayed zero Excel
 failures pass. No further runtime changes followed the candidate build.
 That checkpoint's entry policy/storage and visible-notice follow-up advances
-above. Maintenance-denial observations, terminal/interruption and recorded/
-evaluated transfer conclusions remain open, followed by broad live-role/Release1/
-restart reconciliation and final acceptance.
+above. The later recorded499 gate also proves maintenance denial, terminal/
+interruption and recorded/evaluated comparisons. Broad live-role/Release1/restart
+reconciliation and final acceptance remain open.
 
 Catalog30 refines D18's existing comprehensive-recording rule for Export/Import;
 it adds no permission or replay authority. On unchanged `fe60f926` packages,
@@ -289,8 +334,8 @@ unexplained; a later pass must not be represented as a general Excel repair.
 
 ## Remaining work
 
-Complete transfer observation-census accounting, remaining presentation/evaluation
-regressions, final live-role/full-chain reconciliation and remaining visible
-acceptance. Native file-dialog operation, stronger
-distinct-importer metadata and alternate-escape/observation-boundary cases remain
-unproved by this gate. Broader Operations/Admin coverage and 4be-A acceptance stay open.
+Retain the scoped observation79, policy429, recorded499, transfer71 and native-edit58
+gates. Finish final live-role/full-chain/restart reconciliation and remaining
+visible acceptance. Native file-dialog operation, stronger distinct-importer
+metadata and alternate-escape cases remain unproved by these gates. Broader
+Operations/Admin coverage and 4be-A acceptance stay open.
