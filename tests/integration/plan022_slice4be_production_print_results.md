@@ -1,5 +1,59 @@
 # Slice 4be-A: Production Print Recall
 
+## Independent Print guide comparison, 2026-10-06 UTC
+
+GREEN320/320 preserves the prior248 recorded-Print checks, adds24 for a
+separate successful run and48 for one authored guide paired with successful,
+incomplete and failed runs. Actual author/reader controls must show exact guide,
+journal and publication provenance, multiline instructions and observed activity
+identity in How-To, Diagnostic and Compare, without changing saved evidence.
+Runtime and the frozen `validation-print-recorded-01` packages are unchanged.
+The full run omits diagnostic handler tracing. Controller
+`production-run-local-controller/65ad924eaee64760af7ccd7b335ebbf0`, worker
+`slice4be-production-print-recorded/1a59feeac9cd49d7ba0d55a1a1eeba79`, ran
+04:44:01-04:58:31 UTC. `verification.json` confirms exact ordered prior248 plus72
+new checks, five instrumented compiles, unassisted exit, restored settings,
+unchanged package hashes and zero delayed Excel errors. Five directly reviewed
+captures show readable multiline instructions, distinct source/observed identities,
+all three presentation modes and truthful successful/incomplete/failed results;
+see the worker's `print-paths-visible-review.json`.
+
+Static evidence `print-paths-static-02/ratchet-verification.json` preserves all
+runtime metrics and28 oversized caps; three schemas and433 PowerShell parses pass.
+The unchanged build/layout, Print986, Check In631, smoke86 and chain32/live48/
+warehouse15 below remain valid. No new product RED, contract or general native
+failure fix is claimed. Print guide comparison is proved at this scope; full4be-A
+acceptance still requires the [current acceptance audit](plan022_slice4be_remaining_acceptance.md).
+
+The focused four-recording diagnostic passes182/182, including all48 guide checks,
+with five instrumented compiles, normal closure, settings/package preservation
+and zero delayed Excel errors. It ran04:34:06-04:43:18 UTC, controller
+`production-run-local-controller/4b85ed2d251241c5bd603f8fea8a9d73`, worker
+`slice4be-production-print-recorded/4ed1e5c5d50649dba66d78ebca8c96d7` under
+`reports/runtime/`. Six before/after view samples retain eight XLMAIN windows,
+at most710 current/796 peak GDI objects. Four directly reviewed screenshots show
+multiline How-To and distinct successful/incomplete/failed Compare results.
+This diagnostic does not substitute for the full gate or explain its failed trial.
+
+Two failed trials remain excluded from acceptance:
+
+- Controller `5e335a0241c24d048e73922c87c4c48d`:264 pass/one harness failure,
+  04:09:36-04:19:17 UTC. The new mode omitted the guide-control probe and explicit
+  fixture ACTION_PATH_MAINT grant. Both prerequisites and a fail-fast check are
+  now present. Normal cleanup restored settings/packages; this is not product RED.
+- Controller `7fdd301b98ad453ebc9a1f44880dfa67`:272 pass/one exception,
+  04:19:58-04:32:35 UTC. Authoring and exact guide-based evaluation passed;
+  `frmActionPaths.btnViewActionPath` dispatch returned DISP_E_EXCEPTION, followed
+  by unavailable Excel readiness. The original test process exited after launching
+  an Excel child displaying Home. Its verified native Close allowed controller
+  restoration. No secondary COM attachment or runtime fix was used. The cause is
+  unresolved; retain `first-call-failure.json` and `assisted-recovery-closure.json`.
+
+Failed controllers above are under `reports/runtime/production-run-local-controller/`.
+No desktop error5 occurred. These failed trials establish neither product RED nor
+guide acceptance. The narrowed `-PrintPathsDiagnostic` mode traces fixed procedure names
+in disposable packages; the required full run omits that mode.
+
 ## Recorded Print and expectation authoring, 2026-10-06 UTC
 
 Focused RED216/8 -> GREEN248/248 preserves all224 RED check identities and adds24

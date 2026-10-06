@@ -1,7 +1,32 @@
 # Slice 4be remaining acceptance checklist
 
-Last reviewed: 2026-09-30 UTC. **Incomplete.** This is an evidence index for the
-existing contract, not a new scope, architecture decision, or percentage estimate.
+Last reviewed: 2026-10-06 UTC. **4be-A remains incomplete.** Architecture v4.11,
+the designated Plan022 and the controls catalog govern; this index records evidence
+and remaining verification, not a new contract or a percentage estimate.
+
+## Current 4be-A completion audit
+
+This replaces the stale catalog20/current-candidate labels in the historical
+checkpoints below. Current runtime catalog is29. The unpromoted Print candidate is
+`deploy/validation-print-recorded-01`; its code checkpoint is `89674af1`.
+Do not equate control registration, a scoped GREEN or a diagnostic with full acceptance.
+
+| Required outcome | Verified evidence / remaining action |
+| --- | --- |
+| Approved shared A/B contract | D18-REPLAY-01 was approved2026-10-04. Preserve the A finish line and early B0 requirement; broader replay/results management belongs to B. RUN-SCALE-01/RUN-UI-01 remain pending explicit decisions. |
+| Comprehensive Operations/Admin recording | Catalog29 is implemented. Reconcile the complete control/handler census with current source and scoped tests, including new replay surfaces and remaining Production boundaries. Registration alone is insufficient. |
+| Per-action/per-user Admin policy | [Policy evidence](plan022_slice4be_user_tracking_policy_results.md) reaches104/104, with historical/version, rights, required-audit and preservation checks. Retain its candidate scope and reconcile final role coverage. |
+| Viewer and configurable Detail | Audit the current [Detail](plan022_slice4be_event_detail_results.md), [overflow](plan022_slice4be_detail_overflow_results.md) and [column](plan022_slice4be_detail_columns_results.md) evidence against long-value/multiline/provenance requirements; do not infer visible acceptance from unrelated policy captures. |
+| Versioned guide authoring/transfer | [Published-guide editing](plan022_slice4be_published_guide_edit_results.md), save/library/curation records establish scoped behavior. Reconcile current transfer, source immutability, version selection and permission gates; preserve assisted/failed lifecycle qualifications. |
+| How-To/Diagnostic/Compare and preferences | [Print comparison](plan022_slice4be_production_print_results.md) passes full320 with five reviewed captures and normal closure; its earlier view-session failure remains unexplained. Existing presentation/restart evidence remains scoped. Reconcile visible Operations and Admin comparisons, incomplete evidence and restart/isolation proof. |
+| Early B0 Receiving proof | [Receiving replay](plan022_slice4be_receiving_replay_results.md) passes101/101, including fresh exact applied-event results through ordinary handlers. Its record still leaves observations, visible evidence and broader B0 acceptance open. Complete those requirements before closing A. |
+| Final D13 and preservation gates | Current Print correction retains focused248, Print986, Check In631, smoke86, chain32/live48/warehouse15, five compiles and static/layout evidence. Reconcile all current GREENs and visible/restart/binding coverage against the final artifact; retain System_Key, unknown columns, captured binding, launcher reuse and headless authority. |
+
+Next: reconcile the full current control census and
+these acceptance rows against their actual receipts, then execute missing focused
+work. Reuse valid evidence. Neither this audit nor B0 alone accepts4be-A or R1.
+
+## Historical checkpoints (candidate-specific)
 
 **Current output-regulation candidate,2026-09-30:** catalog20 registers105 global
 controls and44/68 constructed Production controls;24 remain unregistered.
@@ -431,7 +456,7 @@ It does not establish the new lifecycle controls' Action Paths or native visibil
 | 4be.5 How-To and comparison | Recorded and directly curated guides, immutable versions, expectation authoring/binding, and paired views have recorded tests. | Implement approved export/import requirements after specifying the exact compatible wire/provenance contract. Embedded foreign observations remain origin-only evidence. Preserve authoring/search/edit/restart and current-policy behavior. Validate both presentations and an incomplete example for Operations and Admin. |
 | 4be.6 Release and user acceptance | Existing focused builds/compiles, static checks and multiple passing role regressions remain preserved. | Finish the current-candidate gates below; then run final applicable five-package build/compile/initialization, layout/header, static, launcher/inventory/reusable Production, restart/binding, live-role and full-chain gates. Obtain and record human comparison and applicable NAS acceptance separately from automated images. |
 
-## Current candidate gate ledger
+## Historical candidate gate ledger
 
 Base candidate: `deploy/validation-settings-diagnostic`; later candidates are
 identified per gate. No accepted deployment is changed by these tests.

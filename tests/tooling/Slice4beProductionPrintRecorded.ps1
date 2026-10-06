@@ -1,5 +1,5 @@
 # Actual Print, recording, publication and diagnostic handlers on disposable fixtures.
-function Test-ProductionPrintRecorded($Fixture,$Other){
+function Test-ProductionPrintRecorded($Fixture,$Other,[switch]$GuideDiagnostic){
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
@@ -36,6 +36,7 @@ function Test-ProductionPrintRecorded($Fixture,$Other){
     $book=$null;$work=$null;$decoy=$null;$runs=@()
     try{
         SelectTarget $Fixture
+        if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @('frmActionPathGuide','','Count','')) -cne '0' -or -not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1'))){throw 'Print guide probe/author fixture unavailable; not product RED.'}
         $seed=[string](Run 'invSys.Admin.xlam' 'modAdmin.RunDemoInventoryActionCallbackForAutomation' @($Fixture.Warehouse,'S1','config-admin','SEED'))
         Check 'PrintRecorded.SeedCallback' ($seed.StartsWith('OK|'))
         if(-not $seed.StartsWith('OK|')){throw 'Seed prerequisite unavailable; not product RED.'}
@@ -77,10 +78,12 @@ function Test-ProductionPrintRecorded($Fixture,$Other){
         try{(Table $cfg 'tblEventTrackingPolicies').ListColumns.Item('SchemaVersion').DataBodyRange.Value2=999.0;$cfg.SaveCopyAs($invalid)}finally{$cfg.Close($false)}
         RestoreConfig $enabled
         $catalog=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.DeclaredCatalogVersionForTest')
-        foreach($kind in @('PolicyChanged','StoreUnavailable','PolicyUnreadable','SignedOut','Target','Permission','ClosedWorkbook','Recovery')){
+        $cases=if($GuideDiagnostic){@('PolicyChanged','Permission','Recovery','GuideRun')}else{@('PolicyChanged','StoreUnavailable','PolicyUnreadable','SignedOut','Target','Permission','ClosedWorkbook','Recovery','GuideRun')}
+        foreach($case in $cases){
+            $kind=if($case -ceq 'GuideRun'){'Recovery'}else{$case}
             $terminal=$kind -cin @('PolicyChanged','StoreUnavailable','PolicyUnreadable')
             $incomplete=$terminal -or $kind -cin @('SignedOut','Target')
-            $label='PrintRecorded.'+$kind;$workPath=Join-Path $runRoot ($label+'.xlsb')
+            $label='PrintRecorded.'+$case;$workPath=Join-Path $runRoot ($label+'.xlsb')
             if(Test-Path -LiteralPath $workPath){throw 'Preserve existing Print case workbook.'}
             RestoreConfig $enabled;SelectTarget $Fixture 'config-producer'
             $book.SaveCopyAs($workPath);$saved=Hash $workPath;$work=$excel.Workbooks.Open($workPath,0,$false)
@@ -154,7 +157,7 @@ function Test-ProductionPrintRecorded($Fixture,$Other){
             if($valid){$entry=$closed[0];$valid=$entry.Lifecycle -ceq $life -and $entry.ReasonCode -ceq $reason -and $entry.ActionCount -eq 1 -and $entry.CreatedByUserId -ceq 'config-producer' -and @($entry.Observations).Count -eq $expectedCount}
             Check ($label+'.ExactCaptureLifecycle') $valid
             Check ($label+'.ExactImmutableJournalChain') (JournalChain $starts[0].SequenceId ($expectedCount+2))
-            if($closed.Count -eq 1){$runs+=@{Label=$label;Journal=$closed[0];Incomplete=$incomplete;Success=($kind -ceq 'Recovery')}}
+            if($closed.Count -eq 1){$runs+=@{Label=$label;Journal=$closed[0];Original=$records;Incomplete=$incomplete;Success=($kind -ceq 'Recovery')}}
             CloseRecordingViewer;[void](Probe 'RunLocalSafeClose')
             if($null -ne $work){$work.Close($false);$work=$null}
             [IO.File]::WriteAllBytes($auth,$authBytes);RestoreConfig $enabled
@@ -168,7 +171,8 @@ function Test-ProductionPrintRecorded($Fixture,$Other){
         if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')){throw 'Actual Admin publication unavailable.'}
         SelectTarget $Fixture 'config-reader';OpenRecordingViewer
         $trainingPins=RestartPins (Join-Path $Fixture.Root 'Training')
-        foreach($run in $runs){
+        $diagnostics=if($GuideDiagnostic){@()}else{$runs}
+        foreach($run in $diagnostics){
             $label=$run.Label;$journal=$run.Journal
             if((Select-EvaluationRun $journal.ActionPathId) -cne 'SELECTED'){throw 'Actual recording selection unavailable.'}
             $ready=Set-EvaluationDraft @(,@('PRODUCTION_RUN_PRINT','PREVIEW_RETURNED','True')) 0 'CommandCompleted' -StopAtMissingChoice
@@ -186,7 +190,10 @@ function Test-ProductionPrintRecorded($Fixture,$Other){
             Check ($label+'.NoInventedCompletionOrBusinessSources') (@($result.Matches).Count -eq $(if($run.Success){1}else{0}) -and @($result.TerminalSources).Count -eq 0)
             CaptureOwnedFormByCaptionEvidence 'Action Paths' ($label.ToLowerInvariant()+'-diagnostic.png')
         }
-        Check 'PrintRecorded.AllEightRunsCaptured' ($runs.Count -eq 8)
+        if($GuideDiagnostic){Check 'PrintPathsDiagnostic.FourRequiredRunsCaptured' ($runs.Count -eq 4)}
+        else{Check 'PrintRecorded.AllEightRunsCaptured' (@($runs|Where-Object Label -CNE 'PrintRecorded.GuideRun').Count -eq 8)}
+        . (Join-Path $PSScriptRoot 'Slice4beProductionPrintPaths.ps1')
+        Test-ProductionPrintPaths $Fixture $runs
         $retained=$true;foreach($file in $trainingPins.Keys){$retained=$retained -and (Hash $file) -ceq $trainingPins[$file]}
         Check 'PrintRecorded.PriorTrainingImmutableThroughEvaluation' $retained
         Check 'PrintRecorded.AuthorityPreservedThroughPublication' (Same $pins (AuthorityPins))
