@@ -135,6 +135,7 @@ param(
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
     [switch]$CheckGuideTransfer,
+    [switch]$CheckGuideTransferRoundTrip,
     [switch]$RetryActionPathViewCountForTest,
     [switch]$RetryGuideObservationForTest,
     [switch]$WaitForExcelReadyForTest,
@@ -226,6 +227,7 @@ if($CheckGuideLayoutStabilityForTest -and -not $TraceGuideViewCallsForTest){thro
 if($CheckDetailScrollMovement -and (-not $CheckViewerEventDetail -or -not $CaptureEvidence -or $DetailScrollLockDiagnostic)){
     throw 'Native scrolling checks require the isolated visible detail gate without temporary unlocking.'
 }
+if($CheckGuideTransferRoundTrip -and -not $CheckGuideTransfer){throw 'Round trip requires the isolated guide transfer fixture.'}
 if($CheckGuideTransfer){
     if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Guide transfer requires its compiled saved-copy guide fixture.'}
     if($CheckReceivingReplay -or $GuideActionCurationOnly -or $PublishedGuideEditOnly -or $GuidePresentationRestartOnly){throw 'Guide transfer requires an isolated fixture.'}
@@ -1784,6 +1786,11 @@ End Function
             Initialize-GuideRestartFixture $a -ForPublishedEdit
             . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
             Test-GuideTransferEntry $a $b $guidePresentationRestartFixture.Guide
+            if($CheckGuideTransferRoundTrip){
+                $step='packaged guide transfer round trip and guards'
+                . (Join-Path $PSScriptRoot 'Slice4beGuideTransferRoundTrip.ps1')
+                Test-GuideTransferRoundTrip $a $b $guidePresentationRestartFixture.Guide
+            }
         } elseif($CheckReceivingReplay){
             $step='B0 actual Receiving recording and guide execution entry'
             Test-Slice4beReceivingReplay $a $b

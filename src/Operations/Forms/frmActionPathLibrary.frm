@@ -24,6 +24,9 @@ Private WithEvents mSearch As MSForms.TextBox
 Private WithEvents mGuides As MSForms.ListBox
 Private WithEvents mRefresh As MSForms.CommandButton
 Private WithEvents mClose As MSForms.CommandButton
+Private WithEvents mExport As MSForms.CommandButton
+Private WithEvents mImport As MSForms.CommandButton
+Private mTransferring As Boolean
 Private mInstructions As MSForms.TextBox
 Private mObservations As MSForms.TextBox
 Private mSource As MSForms.Label
@@ -47,15 +50,17 @@ Private Sub UserForm_Initialize()
     mLayout.ConfigureForForm Me, 760, 600
     For Each definition In Array( _
         Array("Label", "lblPublishedSearch", "Search name, tags or ID", 12, 12, 150, 20, 3), _
-        Array("TextBox", "txtGuideSearch", "", 170, 10, 600, 24, 7), _
+        Array("TextBox", "txtGuideSearch", "", 170, 10, 384, 24, 7), _
+        Array("CommandButton", "btnExportGuide", "Export", 566, 10, 98, 26, 6), _
+        Array("CommandButton", "btnImportGuide", "Import", 674, 10, 98, 26, 6), _
         Array("CommandButton", "btnRefreshGuides", "Refresh", 782, 10, 98, 26, 6), _
         Array("ListBox", "lstPublishedGuides", "", 12, 46, 868, 116, 7), _
-        Array("Label", "lblPublishedGuideSource", "", 12, 172, 868, 60, 7), _
-        Array("Label", "lblPublishedGuideStatus", "", 12, 236, 868, 24, 7), _
-        Array("Label", "lblPublishedAuthored", "Authored instructions - reviewed guide order", 12, 264, 350, 20, 3), _
-        Array("Label", "lblPublishedObserved", "Observed controls - original source order", 452, 264, 428, 20, 7), _
-        Array("TextBox", "txtPublishedInstructions", "", 12, 292, 426, 238, 11), _
-        Array("TextBox", "txtPublishedObservations", "", 452, 292, 428, 238, 15), _
+        Array("Label", "lblPublishedGuideSource", "", 12, 172, 868, 108, 7), _
+        Array("Label", "lblPublishedGuideStatus", "", 12, 284, 868, 24, 7), _
+        Array("Label", "lblPublishedAuthored", "Authored instructions - reviewed guide order", 12, 312, 350, 20, 3), _
+        Array("Label", "lblPublishedObserved", "Observed controls - original source order", 452, 312, 428, 20, 7), _
+        Array("TextBox", "txtPublishedInstructions", "", 12, 340, 426, 190, 11), _
+        Array("TextBox", "txtPublishedObservations", "", 452, 340, 428, 190, 15), _
         Array("Label", "lblGuideObservedRun", "", 12, 542, 650, 36, 13), _
         Array("CommandButton", "btnUseGuideForRun", "Use for selected run", 674, 546, 206, 28, 12), _
         Array("CommandButton", "btnEditPublishedGuide", "Edit guide", 614, 588, 150, 26, 12), _
@@ -70,6 +75,8 @@ Private Sub UserForm_Initialize()
     Next definition
     Set mSearch = Me.Controls("txtGuideSearch"): Set mGuides = Me.Controls("lstPublishedGuides")
     Set mRefresh = Me.Controls("btnRefreshGuides"): Set mClose = Me.Controls("btnCloseGuides")
+    Set mExport = Me.Controls("btnExportGuide"): Set mImport = Me.Controls("btnImportGuide")
+    mExport.Enabled = False: mImport.Enabled = False
     Set mInstructions = Me.Controls("txtPublishedInstructions"): Set mObservations = Me.Controls("txtPublishedObservations")
     Set mSource = Me.Controls("lblPublishedGuideSource"): Set mStatus = Me.Controls("lblPublishedGuideStatus")
     Set mObserved = Me.Controls("lblGuideObservedRun"): Set mUse = Me.Controls("btnUseGuideForRun")
@@ -105,6 +112,7 @@ End Sub
 Private Function ContextValid() As Boolean
     ContextValid = (mContext <> "" And mContext = modActivity.CaptureContext())
     If Not ContextValid Then
+        mImport.Enabled = False
         mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
         mLoading = True: mGuides.Clear: mLoading = False
         ClearSelection "Unavailable: the invSys session or warehouse changed. Reopen Viewer."
@@ -134,6 +142,7 @@ Public Sub ValidateSelection()
     mRunHowTo.Enabled = True
     mSource.Caption = provenance: mStatus.Caption = notice
     mEdit.Enabled = modActionGuideDraft.CanEditPublished(mContext, key, editNotice)
+    mExport.Enabled = mEdit.Enabled
     mConfigure.Enabled = mEdit.Enabled
     If Not mConfigure.Enabled Then CloseExecution
     If Not mEdit.Enabled Then modGuideEditor.ClosePublishedReader Me
@@ -150,6 +159,7 @@ Private Sub RefreshGuides()
     On Error GoTo Failed
     If mLoading Then Exit Sub
     If Not ContextValid() Then Exit Sub
+    mImport.Enabled = modGuideTransfer.CanImport(mContext, notice)
     If mGuides.ListIndex >= 0 Then selected = CStr(mGuides.Value)
     mLoading = True: mGuides.Clear
     ClearSelection "Loading published guides."
@@ -179,6 +189,7 @@ Failed:
 End Sub
 
 Private Sub ClearSelection(ByVal notice As String)
+    mExport.Enabled = False
     If Not mLoading Then CloseRunner
     mRunHowTo.Enabled = False
     If Not mLoading Then CloseExecution
@@ -186,6 +197,46 @@ Private Sub ClearSelection(ByVal notice As String)
     mUse.Enabled = False: mEdit.Enabled = False
     If Not mLoading Then modGuideEditor.ClosePublishedReader Me
     mInstructions.Value = "": mObservations.Value = "": mSource.Caption = "": mStatus.Caption = notice
+End Sub
+
+Private Sub mExport_Click()
+    TransferGuide True
+End Sub
+
+Private Sub mImport_Click()
+    TransferGuide False
+End Sub
+
+Private Sub TransferGuide(ByVal exporting As Boolean)
+    Dim key As String, notice As String, completed As Boolean, index As Long
+    On Error GoTo Failed
+    If mTransferring Or Not ContextValid() Then Exit Sub
+    If exporting Then
+        If mGuides.ListIndex < 0 Then Exit Sub
+        key = CStr(mGuides.Value)
+    End If
+    mTransferring = True
+    If exporting Then
+        completed = modGuideTransferUi.Export(mContext, key, notice)
+    Else
+        completed = modGuideTransferUi.Import(mContext, key, notice)
+    End If
+    If Not modOperationsFormLifetime.IsLoaded(Me) Then GoTo Done
+    If Not ContextValid() Then GoTo Done
+    If completed And Not exporting Then
+        RefreshGuides
+        For index = 0 To mGuides.ListCount - 1
+            If CStr(mGuides.List(index, 0)) = key Then mGuides.ListIndex = index: Exit For
+        Next index
+    End If
+    mStatus.Caption = notice
+Done:
+    mTransferring = False
+    Exit Sub
+Failed:
+    On Error Resume Next
+    If modOperationsFormLifetime.IsLoaded(Me) Then mStatus.Caption = "Unavailable: the guide transfer could not be completed."
+    mTransferring = False
 End Sub
 
 Public Sub ReleaseReader()

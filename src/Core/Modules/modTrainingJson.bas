@@ -66,6 +66,31 @@ Public Function DecodeObject(ByVal text As String) As Object
 Invalid:
 End Function
 
+' Retain original nested record bytes; equivalent escapes must not change its hash.
+Public Function MemberText(ByVal text As String, ByVal member As String) As String
+    Dim pos As Long, first As Long, key As String, value As Variant, found As String, keys As Object
+    On Error GoTo Invalid
+    If Len(text) = 0 Or Len(text) > 1048576 Then Exit Function
+    Set keys = CreateObject("Scripting.Dictionary")
+    pos = 1: Require text, pos, "{": SkipSpace text, pos
+    If Mid$(text, pos, 1) <> "}" Then
+        Do
+            key = ReadString(text, pos)
+            If keys.Exists(key) Then Exit Function
+            keys.Add key, True
+            Require text, pos, ":": SkipSpace text, pos: first = pos
+            ReadValue text, pos, 1, value
+            If key = member Then found = Mid$(text, first, pos - first)
+            SkipSpace text, pos
+            If Mid$(text, pos, 1) = "}" Then Exit Do
+            Require text, pos, ","
+        Loop
+    End If
+    Require text, pos, "}": SkipSpace text, pos
+    If pos = Len(text) + 1 Then MemberText = found
+Invalid:
+End Function
+
 ' Events are bounded by complete groups; do not relax the record/guide entry.
 Public Function DecodePublicationObject(ByVal text As String) As Object
     Dim pos As Long, result As Object

@@ -3,13 +3,14 @@ Option Explicit
 Option Private Module
 
 ' Shared internal chain validation; no object crosses an XLAM boundary.
-Public Function ReadChain(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long) As Object
+Public Function ReadChain(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long, Optional ByRef serialized As String = "") As Object
     Dim current As Object, previous As Object, identities As Object, index As Long
+    serialized = ""
     If Not modTrainingWire.ValidId(id) Or version < 1 Then Exit Function
     Set identities = CreateObject("Scripting.Dictionary")
     index = 1
     Do
-        Set current = ReadVersion(target, id, index)
+        Set current = ReadVersion(target, id, index, serialized)
         If current Is Nothing Then Exit Function
         If identities.Exists(current("RecordId")) Then Exit Function
         identities.Add current("RecordId"), True
@@ -66,10 +67,11 @@ Failed:
     End If
 End Function
 
-Public Function ReadVersion(ByVal target As WarehouseTarget, ByVal pathId As String, ByVal version As Long) As Object
+Public Function ReadVersion(ByVal target As WarehouseTarget, ByVal pathId As String, ByVal version As Long, Optional ByRef serialized As String = "") As Object
     Dim root As String, path As String, text As String, body As String, hash As String, marker As Long
     Dim fso As Object, model As Object
     On Error GoTo Invalid
+    serialized = ""
     If Not modTrainingWire.ValidId(pathId) Or version < 1 Then Exit Function
     root = modRecordingJournal.ChildRoot(target, "Guides", False)
     If root = "" Then Exit Function
@@ -89,6 +91,7 @@ Public Function ReadVersion(ByVal target As WarehouseTarget, ByVal pathId As Str
     If Not modGuideModel.Validate(target, model) Then Exit Function
     If model("ActionPathId") <> pathId Or model("Version") <> version Then Exit Function
     model.Add "ContentSha256", hash
+    serialized = text
     Set ReadVersion = model
 Invalid:
 End Function

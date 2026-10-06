@@ -43,19 +43,19 @@ Private Sub UserForm_Initialize()
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 760, 600
     For Each definition In Array( _
-        Array("Label", "lblGuideSource", "", 12, 10, 650, 48, 7), _
+        Array("Label", "lblGuideSource", "", 12, 10, 650, 96, 7), _
         Array("CommandButton", "btnGuideExpectedConclusion", "Expected conclusion", 672, 10, 208, 26, 6), _
         Array("Label", "lblGuideExpectationSummary", "Guide expectation: None", 672, 40, 208, 18, 6), _
-        Array("Label", "lblGuideName", "Guide name", 12, 66, 510, 18, 7), _
-        Array("TextBox", "txtGuideName", "", 12, 86, 510, 24, 7), _
-        Array("Label", "lblGuideTags", "Tags", 540, 66, 340, 18, 6), _
-        Array("TextBox", "txtGuideTags", "", 540, 86, 340, 24, 6), _
-        Array("Label", "lblGuideInstructions", "Authored instructions for this guide", 12, 120, 868, 18, 7), _
-        Array("TextBox", "txtGuideInstructions", "", 12, 140, 868, 64, 7), _
-        Array("Label", "lblGuideSteps", "Authored step order", 12, 214, 320, 18, 3), _
-        Array("ListBox", "lstGuideSteps", "", 12, 238, 320, 140, 11), _
-        Array("Label", "lblGuideEvidence", "Observed controls and original outcomes", 348, 214, 532, 18, 7), _
-        Array("TextBox", "txtGuideEvidence", "", 348, 238, 532, 276, 15), _
+        Array("Label", "lblGuideName", "Guide name", 12, 114, 510, 18, 7), _
+        Array("TextBox", "txtGuideName", "", 12, 134, 510, 24, 7), _
+        Array("Label", "lblGuideTags", "Tags", 540, 114, 340, 18, 6), _
+        Array("TextBox", "txtGuideTags", "", 540, 134, 340, 24, 6), _
+        Array("Label", "lblGuideInstructions", "Authored instructions for this guide", 12, 168, 868, 18, 7), _
+        Array("TextBox", "txtGuideInstructions", "", 12, 188, 868, 64, 7), _
+        Array("Label", "lblGuideSteps", "Authored step order", 12, 262, 320, 18, 3), _
+        Array("ListBox", "lstGuideSteps", "", 12, 286, 320, 92, 11), _
+        Array("Label", "lblGuideEvidence", "Observed controls and original outcomes", 348, 262, 532, 18, 7), _
+        Array("TextBox", "txtGuideEvidence", "", 348, 286, 532, 228, 15), _
         Array("CommandButton", "btnGuideStepUp", "Move up", 12, 388, 82, 26, 9), _
         Array("CommandButton", "btnGuideStepDown", "Move down", 102, 388, 96, 26, 9), _
         Array("CommandButton", "btnRemoveGuideStep", "Remove selected", 206, 388, 126, 26, 9), _

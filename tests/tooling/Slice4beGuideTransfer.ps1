@@ -39,7 +39,18 @@ End Function
     $body=[string]$module.Lines($start,$count)
     if($body -notmatch 'Private Function SelectFileForTransfer\(ByVal exporting As Boolean\) As String'){throw 'Transfer dialog seam changed; not product RED.'}
     $module.DeleteLines($start,$count)
-    $module.InsertLines($start,"Private Function SelectFileForTransfer(ByVal exporting As Boolean) As String`r`n    SelectFileForTransfer = vbNullString`r`nEnd Function")
+    $module.InsertLines($start,@'
+Private Function SelectFileForTransfer(ByVal exporting As Boolean) As String
+    If TransferSignOutForTest Then Application.Run "'invSys.Core.xlam'!modAuth.SignOut"
+    SelectFileForTransfer = TransferFileForTest
+End Function
+'@)
+    $module.InsertLines($module.CountOfDeclarationLines+1,"Private TransferFileForTest As String`r`nPrivate TransferSignOutForTest As Boolean")
+    $module.AddFromString(@'
+Public Sub SetTransferFileForTest(ByVal path As String, Optional ByVal signOut As Boolean = False)
+    TransferFileForTest = path: TransferSignOutForTest = signOut
+End Sub
+'@)
     $script:guideTransferDialogProbeInstalled=$true
 }
 

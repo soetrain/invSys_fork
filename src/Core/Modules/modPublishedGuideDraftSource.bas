@@ -5,11 +5,12 @@ Option Private Module
 ' Exact published source and current authorization; no observed run is consulted.
 Public Function Read(ByVal context As String, ByVal key As String, ByRef model As Object, _
                      ByRef records As Collection, ByRef visible As Object, ByRef policyHash As String, _
-                     ByRef notice As String, ByRef policyVersion As Long, Optional ByVal saved As Object = Nothing) As Boolean
+                     ByRef notice As String, ByRef policyVersion As Long, Optional ByVal saved As Object = Nothing, _
+                     Optional ByRef serialized As String = "") As Boolean
     Dim target As WarehouseTarget, policy As Object, parts As Variant, version As Long
     Dim item As Object, current As Object
     On Error GoTo Invalid
-    Set model = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = "": policyVersion = 0
+    Set model = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = "": policyVersion = 0: serialized = ""
     If Not modTrainingReadContext.Read(context, target, policy, notice, policyVersion) Then Exit Function
     notice = "Unavailable: editing a published guide requires ACTION_PATH_MAINT."
     If Not modAuth.CanPerform("ACTION_PATH_MAINT", modAuth.GetCurrentUserId(), target.WarehouseId, target.StationId) Then Exit Function
@@ -19,7 +20,7 @@ Public Function Read(ByVal context As String, ByVal key As String, ByRef model A
     If Not IsNumeric(parts(1)) Then Exit Function
     version = CLng(parts(1))
     If version < 1 Or CStr(version) <> CStr(parts(1)) Then Exit Function
-    Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version)
+    Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version, serialized)
     If model Is Nothing Then Exit Function
     If CStr(model("ContentSha256")) <> CStr(parts(2)) Then GoTo Invalid
     If Not saved Is Nothing Then
@@ -46,7 +47,7 @@ Public Function Read(ByVal context As String, ByVal key As String, ByRef model A
     notice = "": Read = True
     Exit Function
 Invalid:
-    Set model = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = ""
+    Set model = Nothing: Set records = Nothing: Set visible = Nothing: policyHash = "": serialized = ""
     If notice = "" Then notice = "Unavailable: the published guide could not be validated. Reopen Edit guide."
 End Function
 
@@ -59,5 +60,6 @@ Public Function SourceCaption(ByVal model As Object) As String
         SourceCaption = SourceCaption & vbCrLf & "Original source sequence: " & CStr(source("SequenceId")) & _
                         "; journal version: " & CStr(source("JournalVersion"))
     End If
+    If model("SchemaVersion") = 2 Then SourceCaption = SourceCaption & vbCrLf & modGuideOrigin.Caption(model)
     SourceCaption = SourceCaption & vbCrLf & "Authored instructions do not prove that a task ran."
 End Function

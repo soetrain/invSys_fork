@@ -70,22 +70,37 @@ End Function
 Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object) As Boolean
     Dim field As Variant, tag As Variant, step As Object, record As Object, definition As Object
     Dim identities As Object, actions As Object, stepIds As Object, source As Object, id As String
+    Dim imported As Boolean, observationTarget As WarehouseTarget
     On Error GoTo Invalid
-    If Not modEvaluationModel.HasFields(model, FIELDS) Then Exit Function
+    imported = model.Exists("TransferOrigin")
+    If imported Then
+        If Not modEvaluationModel.HasFields(model, FIELDS & "|TransferOrigin") Then Exit Function
+    Else
+        If Not modEvaluationModel.HasFields(model, FIELDS) Then Exit Function
+    End If
     For Each field In model.Keys
         Select Case CStr(field)
             Case "SchemaVersion", "Version", "CatalogVersion", "PolicyVersion"
                 If Not modEvaluationModel.IsInteger(model(field)) Then Exit Function
             Case "Tags", "Steps", "Observations"
                 If TypeName(model(field)) <> "Collection" Then Exit Function
-            Case "SourceRun", "ExpectedConclusion"
+            Case "SourceRun", "ExpectedConclusion", "TransferOrigin"
                 If TypeName(model(field)) <> "Dictionary" Then Exit Function
             Case Else
                 If VarType(model(field)) <> vbString Then Exit Function
         End Select
     Next field
-    If model("SchemaVersion") <> 1 Or model("RecordKind") <> "Guide" Or model("Lifecycle") <> "Published" Then Exit Function
-    If model("WarehouseId") <> target.WarehouseId Or model("OriginWarehouseId") <> target.WarehouseId Then Exit Function
+    If model("RecordKind") <> "Guide" Or model("Lifecycle") <> "Published" Then Exit Function
+    If model("WarehouseId") <> target.WarehouseId Then Exit Function
+    Set observationTarget = target
+    If imported Then
+        If model("SchemaVersion") <> 2 Or Not modGuideOrigin.Valid(model) Then Exit Function
+        Set observationTarget = New WarehouseTarget
+        observationTarget.WarehouseId = CStr(model("OriginWarehouseId"))
+    Else
+        If model("SchemaVersion") <> 1 Or model("OriginWarehouseId") <> target.WarehouseId Then Exit Function
+    End If
+    If model("Steps").Count > 256 Or model("Observations").Count > 512 Then Exit Function
     If model("Version") < 1 Or model("PolicyVersion") < 0 Then Exit Function
     If model("CatalogVersion") < 1 Or model("CatalogVersion") > modActivityCatalog.CATALOG_VERSION Then Exit Function
     For Each field In Array("CreatedByUserId", "PackageSetVersion", "BuildIdentity", "Name")
@@ -115,7 +130,7 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
     For Each record In model("Observations")
         id = CStr(record("RecordId"))
         If Not modTrainingWire.ValidId(id) Or identities.Exists(id) Then Exit Function
-        If Not modActivityStore.ValidBody(target, id, modTrainingJson.EncodeObject(record)) Then Exit Function
+        If Not modActivityStore.ValidBody(observationTarget, id, modTrainingJson.EncodeObject(record)) Then Exit Function
         identities.Add id, True
         If source.Count > 0 Then
             If record("SequenceId") <> source("SequenceId") Or record("UserId") <> source("RecordedByUserId") Then Exit Function

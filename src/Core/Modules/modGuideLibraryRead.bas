@@ -93,6 +93,7 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
             "; journal version: " & CStr(source("JournalVersion"))
         hidden = hidden + CLng(source("RestrictedObservationCount"))
     End If
+    If model("SchemaVersion") = 2 Then provenance = provenance & vbCrLf & modGuideOrigin.Caption(model)
     notice = "Published guide. Authored instructions are not an observed run or a diagnostic conclusion."
     If hidden > 0 Then notice = "Hidden by policy. Incomplete evidence: " & CStr(hidden) & " restricted observation(s)."
     If CLng(model("CatalogVersion")) < modActivityCatalog.CATALOG_VERSION Then
