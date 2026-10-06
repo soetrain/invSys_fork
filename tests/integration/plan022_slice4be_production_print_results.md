@@ -1,5 +1,36 @@
 # Slice 4be-A: Production Print Recall
 
+## Entry policy and storage proof, 2026-10-06 UTC
+
+GREEN986/986 retains all695 prior ordered checks and adds291 through the actual
+packaged Print handler. Off, ControlOff, UserOff, Older, Invalid, StoreUnavailable
+and Recovery each cover preview return, preview failure and permission denial.
+Owner entry/counts, guards and exact feedback remain correct; disabled/unavailable
+tracking creates no fallback records or policy repair. Recovery creates the exact
+REQUESTED/outcome pair. Prior evidence, Config bytes, canonical inventory/designs,
+System_Key/custom values, operator/decoy content and the other warehouse survive.
+
+This extends verification of existing D18 behavior: no runtime or architectural
+change, and no new product RED is claimed. The original observation RED620/75 ->
+GREEN695/695 remains below. Terminal-write faults, recorded interruptions,
+publication and independent guide presentations still require proof; Print and
+4be-A acceptance remain open.
+
+Candidate remains `deploy/validation-print-activity-03`. Controller
+`production-run-local-controller/6b2f412dbd834e0b97ac093802e44ae9`, worker
+`slice4be-production-print-baseline/1049e9bb4d004b47b818c8b65fe95fb3`,
+02:49:13-03:01:07 UTC. Five instrumented compiles, unassisted exit, restored
+settings, frozen package hashes and delayed zero Excel errors pass
+(`verification.json`). Six reviewed store-failure/recovery captures show the
+owner result plus the applicable notice, with no stale notice after recovery;
+see the worker's `print-policy-visible-review.json`.
+
+Regenerated static evidence `print-policy-static-01/ratchet-verification.json`
+preserves all runtime metrics and28 oversized caps; three schemas and431
+PowerShell parses pass. The same candidate's cold compiles, layout, Seed53,
+Check In631, smoke86 and chain32/live48/warehouse15 evidence below remains valid.
+All receipt paths are ignored local paths beneath `reports/runtime/`.
+
 ## Catalog29 observation baseline and Seed preservation, 2026-10-06 UTC
 
 Print RED620/75 -> GREEN695/695 retains all474 prior checks and exact ordered
@@ -8,7 +39,7 @@ nested entry is suppressed. Entry denial, missing sheet, preview failure,
 recovery, dismissal and disabled recording are covered. PREVIEW_RETURNED proves
 command completion only, never physical printing or fresh business results.
 Keys/custom values, canonical bytes, saved operator bytes and other-warehouse
-content remain intact. Policy/fault, recorded interruption, publication and
+content remain intact. Beyond the entry proof above, terminal faults, recorded interruption, publication and
 independent How-To/Diagnostic/Compare proof remain open; Print and 4be-A are not
 accepted by this checkpoint.
 
