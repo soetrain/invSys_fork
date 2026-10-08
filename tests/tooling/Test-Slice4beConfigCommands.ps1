@@ -95,6 +95,7 @@ param(
     [switch]$CaptureProductionDesignerPaths,
     [switch]$CheckSettingsEditorActivity,
     [switch]$GeneralSettingsOnly,
+    [switch]$GeneralSettingsPolicyOnly,
     [switch]$CheckSettingsDiagnostics,
     [switch]$SettingsSafetyOnly,
     [switch]$CheckAdminUomExpectationChoice,
@@ -319,6 +320,7 @@ if($CheckAdminUomActivity){
 }
 if($CheckSettingsDiagnostics){$CheckSettingsEditorActivity=$true}
 if($GeneralSettingsOnly -and (-not $CheckSettingsEditorActivity -or $CheckSettingsDiagnostics)){throw 'General Settings requires its separate compiled Settings callback gate.'}
+if($GeneralSettingsPolicyOnly -and (-not $GeneralSettingsOnly -or $Phase -cne 'RED')){throw 'Policy-only fixture diagnosis requires the General gate and RED; it is not full acceptance GREEN.'}
 if($CheckSettingsEditorActivity){
     if(-not $CompileEvaluationProbesForTest -or -not $CaptureEvidence -or $CheckAdminUomActivity -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Settings editor observations require their separate visible compiled gate.'}
     $CheckActivityEvidence=$true
@@ -1276,13 +1278,13 @@ Public Function RoundTrip(ByVal workbookName As String) As Boolean
     Unload frmProduction
 End Function
 '@)
-    if ($CheckGuideTransferActivity) { . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1') }
-    if ($CheckTrackingSettings -or $CheckGuideTransferActivity) { Install-Slice4beTrackingSettingsProbe $testModule }
+    if ($CheckGuideTransferActivity -or $GeneralSettingsOnly) { . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1') }
+    if ($CheckTrackingSettings -or $CheckGuideTransferActivity -or $GeneralSettingsOnly) { Install-Slice4beTrackingSettingsProbe $testModule }
     if ($CheckTrackingPolicy -or $CheckUserTrackingPolicy -or $CheckGuidePresentationAvailability -or $CheckGuideTransferActivity) {
         . (Join-Path $PSScriptRoot 'Slice4beTrackingPolicy.ps1')
         Install-Slice4beTrackingPolicyProbe $testModule $formCode
     }
-    if ($CheckUserTrackingPolicy -or $CheckGuideTransferActivity) {
+    if ($CheckUserTrackingPolicy -or $CheckGuideTransferActivity -or $GeneralSettingsOnly) {
         . (Join-Path $PSScriptRoot 'Slice4beUserTrackingPolicy.ps1')
         Install-UserTrackingPolicyProbe $testModule
     }
@@ -2128,7 +2130,11 @@ End Function
     }
     if($CheckSettingsEditorActivity){
         $step='Settings observations through actual packaged callbacks'
-        if($GeneralSettingsOnly){Test-GeneralSettings $a $b}else{Test-SettingsEditorActivity $a $b}
+        if($GeneralSettingsOnly){
+            if(-not $GeneralSettingsPolicyOnly){Test-GeneralSettings $a $b}
+            . (Join-Path $PSScriptRoot 'Slice4beGeneralSettingsPolicy.ps1')
+            Test-GeneralSettingsPolicy $a $b
+        }else{Test-SettingsEditorActivity $a $b}
     }
     if ($CheckShippingActivity) {
         $step='Shipping catalog and source-reference contract'
