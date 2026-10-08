@@ -13,6 +13,10 @@ candidate is `deploy/validation-guide-transfer-notice-01`; the preceding Print c
 is `deploy/validation-print-recorded-01`, code checkpoint `89674af1`.
 Do not equate control registration, a scoped GREEN or a diagnostic with full acceptance.
 
+Independent General recording/guide tests are staged but unreached: the initial
+trial stops at native baseline capture (17 passes/1 harness failure). Restore
+native input before retry; no new product RED/GREEN or contract change is claimed.
+
 Active next group: [General Settings](plan022_slice4be_general_settings_results.md)
 under the catalog31 specification refinement: full GREEN647 retains all191
 ordered initial checks and adds456 policy/storage/permission assertions. Five

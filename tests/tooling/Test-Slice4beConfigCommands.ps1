@@ -96,6 +96,9 @@ param(
     [switch]$CheckSettingsEditorActivity,
     [switch]$GeneralSettingsOnly,
     [switch]$GeneralSettingsPolicyOnly,
+    [switch]$CheckGeneralSettingsRecorded,
+    [switch]$GeneralSettingsRecordedOnly,
+    [string]$DesktopMonitorReport='',
     [switch]$CheckSettingsDiagnostics,
     [switch]$SettingsSafetyOnly,
     [switch]$CheckAdminUomExpectationChoice,
@@ -321,6 +324,8 @@ if($CheckAdminUomActivity){
 if($CheckSettingsDiagnostics){$CheckSettingsEditorActivity=$true}
 if($GeneralSettingsOnly -and (-not $CheckSettingsEditorActivity -or $CheckSettingsDiagnostics)){throw 'General Settings requires its separate compiled Settings callback gate.'}
 if($GeneralSettingsPolicyOnly -and (-not $GeneralSettingsOnly -or $Phase -cne 'RED')){throw 'Policy-only fixture diagnosis requires the General gate and RED; it is not full acceptance GREEN.'}
+if($CheckGeneralSettingsRecorded -and (-not $GeneralSettingsOnly -or $GeneralSettingsPolicyOnly)){throw 'General recordings require their General gate, separate from policy-only diagnosis.'}
+if($GeneralSettingsRecordedOnly -and (-not $CheckGeneralSettingsRecorded -or $Phase -cne 'RED')){throw 'Recorded-only diagnosis requires the recorded gate and RED.'}
 if($CheckSettingsEditorActivity){
     if(-not $CompileEvaluationProbesForTest -or -not $CaptureEvidence -or $CheckAdminUomActivity -or $CheckViewerPublishedRead -or $CheckTrackingSettings -or $CheckShippingActivity -or $CheckReceivingActivity -or $CheckActivityFoundation){throw 'Settings editor observations require their separate visible compiled gate.'}
     $CheckActivityEvidence=$true
@@ -1000,6 +1005,10 @@ function Wait-ExcelReadyForTest([string]$Macro) {
     throw 'Excel readiness remained unavailable or busy; macro was not dispatched.'
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
+    if($DesktopMonitorReport -and (Test-Path -LiteralPath $DesktopMonitorReport)){
+        $desktop=(Get-Content -LiteralPath $DesktopMonitorReport -Raw|ConvertFrom-Json)
+        if($desktop.Error5Samples -gt 0){throw 'Desktop Win32 error5 observed; user requires stopping this test.'}
+    }
     $resourceBoundary=$Macro
     if($TraceGuideResourcesForTest){
         if($Macro -ceq 'modInventoryViewer.GuideDraftControlForTest' -and $Values.Count -eq 4){
@@ -1153,7 +1162,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+    if($CheckGeneralSettingsRecorded -or $RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -1704,13 +1713,17 @@ End Function
         Install-Slice4beShippingCatalogProbe
         Install-SettingsActivityProbe
         if($GeneralSettingsOnly){Install-GeneralSettingsProbe}
-        if($CheckSettingsDiagnostics){
+        if($CheckSettingsDiagnostics -or $CheckGeneralSettingsRecorded){
             . (Join-Path $PSScriptRoot 'Slice4beRecordingReader.ps1')
             Test-Slice4beRecordingReader $null $null $true
             . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
             Install-RecordingEvaluationProbe
             . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
             . (Join-Path $PSScriptRoot 'Slice4beSettingsDiagnostics.ps1')
+        }
+        if($CheckGeneralSettingsRecorded){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
+            Install-GuideDraftProbe
         }
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
@@ -2131,9 +2144,15 @@ End Function
     if($CheckSettingsEditorActivity){
         $step='Settings observations through actual packaged callbacks'
         if($GeneralSettingsOnly){
-            if(-not $GeneralSettingsPolicyOnly){Test-GeneralSettings $a $b}
-            . (Join-Path $PSScriptRoot 'Slice4beGeneralSettingsPolicy.ps1')
-            Test-GeneralSettingsPolicy $a $b
+            if(-not $GeneralSettingsRecordedOnly){
+                if(-not $GeneralSettingsPolicyOnly){Test-GeneralSettings $a $b}
+                . (Join-Path $PSScriptRoot 'Slice4beGeneralSettingsPolicy.ps1')
+                Test-GeneralSettingsPolicy $a $b
+            }
+            if($CheckGeneralSettingsRecorded){
+                . (Join-Path $PSScriptRoot 'Slice4beGeneralSettingsRecorded.ps1')
+                Test-GeneralSettingsRecorded $a $b
+            }
         }else{Test-SettingsEditorActivity $a $b}
     }
     if ($CheckShippingActivity) {

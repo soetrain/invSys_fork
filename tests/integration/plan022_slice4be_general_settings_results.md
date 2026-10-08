@@ -130,6 +130,39 @@ native UOM Reset, two directly reviewed captures, settings/package preservation,
 unassisted closure and zero delayed Excel failures pass. The controller log's
 ordered check identities match this worker report exactly.
 
+## Independent recording proof: staged, blocked before new cases (2026-10-08)
+
+`Test-Slice4beGeneralSettings.ps1 -DeployRoot deploy/validation-general-settings-02
+-Phase RED -Recorded -RecordedOnlyDiagnostic` stages four independent actual
+recordings (source, successful observation, interruption and permission denial),
+nine exact CommandCompleted choices and one authored guide compared against the
+three observed runs. All three views must retain the same evidence; source-guide
+success cannot supply missing observed actions. This implements tests for the
+existing catalog31 contract, not new runtime behavior or an acceptance claim.
+The full `-Recorded -Phase GREEN` gate must retain all647 prior ordered checks.
+Recorded-only diagnosis is restricted to RED and cannot count as full GREEN.
+
+First trial: **17 PASS / 1 harness failure**, UTC21:39:13.9720003--21:40:05.4480496.
+Controller `general-settings-controller/85030cc2c0ed4d3bb66fb9059b0394d4`, worker
+`slice4be-general-settings/858abe276ffc4a3baca9de01ca400961`, under ignored
+`reports/runtime/`. Five instrumented compiles pass. The ordinary D5 baseline
+stops at `settings-save.png` because owned-form caption focus cannot position
+the cursor; **none of the new recording/guide cases ran**. Settings restoration,
+package preservation and unassisted Excel closure pass. This is not product RED.
+Delayed Application audit reports zero Excel failures. Static evidence at
+`general-settings-recorded-static-01/ratchet-verification.json` retains all prior
+runtime/dynamic/duplicate metrics and28 oversized caps; three schemas validate
+and451 PowerShell scripts parse. No runtime or packaged file changed.
+
+Desktop reads and pixel capture remained available after the reported console
+transfer. Separate native probes returned SetCursorPos=false/error0; SendInput
+reported a delivered movement but the cursor did not reach the verified disposable
+target, so no click was sent. No Windows or capture-helper settings were changed.
+Do not equate this native-input failure with Win32 error5 or claim the disconnection
+method fully supports UI testing. The existing capture geometry test passes4/4
+(`capture-geometry/d23f64ef0b4f41209c0da85152294a24`); it does not prove pointer input.
+Restore native input before retrying; retain the user's immediate error5 stop rule.
+
 ## Policy fixture diagnosis (2026-10-08)
 
 These are test-harness failures, not product RED. Runtime and the five frozen

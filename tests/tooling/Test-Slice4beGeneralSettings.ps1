@@ -1,9 +1,14 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-guide-transfer-notice-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$PolicyOnlyDiagnostic)
+param([string]$DeployRoot='deploy/validation-guide-transfer-notice-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$PolicyOnlyDiagnostic,[switch]$Recorded,[switch]$RecordedOnlyDiagnostic,[string]$DesktopMonitorReport='')
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if($PolicyOnlyDiagnostic -and $Phase -cne 'RED'){throw 'Policy-only diagnosis cannot claim full GREEN.'}
+if($RecordedOnlyDiagnostic -and (-not $Recorded -or $Phase -cne 'RED')){throw 'Recorded-only diagnosis requires Recorded and RED.'}
+if($Recorded -and $PolicyOnlyDiagnostic){throw 'Recording and policy-only diagnostics are separate.'}
 $diagnosticArgs=@()
 if($PolicyOnlyDiagnostic){$diagnosticArgs+='-GeneralSettingsPolicyOnly'}
+if($Recorded){$diagnosticArgs+='-CheckGeneralSettingsRecorded'}
+if($RecordedOnlyDiagnostic){$diagnosticArgs+='-GeneralSettingsRecordedOnly'}
+if($DesktopMonitorReport){$diagnosticArgs+=@('-DesktopMonitorReport',$DesktopMonitorReport)}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before General Settings validation.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $settings=Get-InvSysTestSettingsSnapshot
@@ -23,7 +28,7 @@ try {
     Wait-RecordingCleanup -Creator $null -Worker $null
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $same=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
-    [pscustomobject]@{Phase=$Phase;PolicyOnlyDiagnostic=[bool]$PolicyOnlyDiagnostic;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);Accepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
+    [pscustomobject]@{Phase=$Phase;PolicyOnlyDiagnostic=[bool]$PolicyOnlyDiagnostic;Recorded=[bool]$Recorded;RecordedOnlyDiagnostic=[bool]$RecordedOnlyDiagnostic;StartUTC=$start.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');ExitCode=$code;SettingsRestored=$restored;PackagesPreserved=$same;ExcelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0);Accepted=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
     if(-not $restored -or -not $same){throw 'General Settings preservation failed.'}
 }
 Get-Content (Join-Path $root 'worker.log') -Tail 12
