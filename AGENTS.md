@@ -84,6 +84,41 @@ review information must be verified.
 Do not infer the current specification, plan, or handoff from filesystem
 timestamps or the highest filename alone.
 
+## GitHub contribution workflow — this computer only
+
+The user confirmed this workflow on 2026-10-16 for **this computer only** (the
+current Windows laptop). It applies to both local repositories and persists
+across chats on this computer. Although this file is versioned, this section does
+not establish the GitHub workflow for another computer or clone. Other computers
+must use their own user-authorized workflow; do not automatically copy these
+remote, push or PR defaults to them.
+
+- `soetrain/invSys_fork` and `soetrain/invSys_docs`, branch `main`, are the
+  authoritative upstream repositories. Remote `origin` points to the matching
+  soetrain repository. Pull the latest from these repositories when resuming work.
+- The authenticated contributor is `justinwj`. Remote `fork` points to the
+  matching `justinwj/invSys_fork` or `justinwj/invSys_docs` repository. Publishing
+  feature branches there is authorized as part of submitting PRs to soetrain.
+- Preserve the active feature branch and local work. Fetch `origin`, then merge
+  `origin/main` into the feature branch when needed. Do not rebase published
+  history, force-push, discard changes, or replace newer local work with an older
+  upstream tree. Local `main` tracks `origin/main`; preserve divergent local-only
+  history before realigning a stale local `main`.
+- Push the feature branch to `fork`, then create or update its PR **in the
+  corresponding soetrain repository**, targeting `main`. Keep incomplete or
+  unqualified implementation as a draft PR with explicit remaining gates. Do not
+  stop at pushing a branch without checking that the upstream PR exists.
+- Set the GitHub CLI default repository to the matching soetrain repository.
+  Keep `remote.pushDefault=fork`, the feature branch's `pushRemote=fork`, and
+  `push.default=current`; feature branches may track their published fork branch.
+  Use explicit upstream fetch/merge commands rather than assuming an unqualified
+  `git pull` on a fork-tracking feature branch pulls from soetrain.
+- Soetrain reviews and merges the PR, then pulls from his soetrain account.
+  Do not merge PRs, enable auto-merge, or push directly to soetrain `main` without
+  a separate explicit instruction.
+- Before ending, verify both PR base repositories/branches, published head SHAs,
+  and local Git status. Report the PR links and any actual remaining sync blocker.
+
 ## Before changing implementation
 
 Before editing VBA, forms, RibbonX, build/deployment scripts, schemas, tests, or

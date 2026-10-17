@@ -12,6 +12,7 @@ $plan = Get-Content -LiteralPath (Join-Path $docs "expert guidance docs\022 Depl
 $controls = Get-Content -LiteralPath (Join-Path $docs "0 plan docs\xlam_invSys\invSys-Controls-v1.md") -Raw
 $form = Get-Content -LiteralPath (Join-Path $repo "src\Admin\Forms\frmAddInventoryItem.frm") -Raw
 $admin = Get-Content -LiteralPath (Join-Path $repo "src\Admin\Modules\modAdmin.bas") -Raw
+$catalogCompletion = Get-Content -LiteralPath (Join-Path $repo "src\Admin\Modules\modAdminInventoryCreate.bas") -Raw
 $apply = Get-Content -LiteralPath (Join-Path $repo "src\InventoryDomain\Modules\modInventoryApply.bas") -Raw
 $queries = Get-Content -LiteralPath (Join-Path $repo "src\InventoryDomain\Modules\modInventoryQueries.bas") -Raw
 $productionRun = Get-Content -LiteralPath (Join-Path $repo "src\Production\Modules\modProductionReusableRun.bas") -Raw
@@ -23,6 +24,9 @@ $addFunction = [regex]::Match(
 $setFunction = [regex]::Match(
     $admin,
     'Private Function SetInventoryQuantityForWarehouse(?s:.*?)End Function').Value
+$createPayload = [regex]::Match(
+    $admin,
+    'Private Function BuildInventoryCreatePayloadAdmin(?s:.*?)End Function').Value
 
 $checks = [ordered]@{}
 $checks["Docs.Slice4akContract"] =
@@ -31,13 +35,17 @@ $checks["Docs.Slice4akContract"] =
     $controls.Contains("Slice 4ak Admin-created inventory visibility and dropdowns")
 $checks["Admin.AddCreatesExactEntity"] =
     $addFunction.Contains('CreateSystemKey') -and
-    $addFunction.Contains('CreateInventoryEntityPayloadItem') -and
+    $addFunction.Contains('BuildInventoryCreatePayloadAdmin') -and
+    $createPayload.Contains('CreateInventoryEntityPayloadItem') -and
     $addFunction.Contains('QueueInventoryCreateEvent') -and
     -not $addFunction.Contains('QueueMigrationSeedEvent')
 $checks["Admin.CatalogOnlyExplicitCompletion"] =
     $admin.Contains("InventorySkuHasManagedEntityAdmin") -and
     $setFunction.Contains("CreateFirstInventoryEntityForCatalogItemAdmin") -and
-    $admin -match 'CreateFirstInventoryEntityForCatalogItemAdmin(?s).*?CreateInventoryEntityPayloadItem'
+    $admin.Contains('modAdminInventoryCreate.CompleteCatalogItem(') -and
+    $catalogCompletion.Contains('modRoleEventWriter.CreateSystemKey()') -and
+    $catalogCompletion.Contains('CreateInventoryEntityPayloadItem') -and
+    $catalogCompletion.Contains('modInventoryCommands.ConfirmCreate(context, eventId, report)')
 $checks["Form.LocationAndCategoryDropdowns"] =
     $form.Contains("Private mCmbLocation As MSForms.ComboBox") -and
     $form.Contains("Private mCmbCategory As MSForms.ComboBox") -and

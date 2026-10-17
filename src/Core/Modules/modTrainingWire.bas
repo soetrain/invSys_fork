@@ -13,6 +13,9 @@ Private Type SystemTime
 End Type
 
 Private Declare PtrSafe Sub GetSystemTime Lib "kernel32" (ByRef value As SystemTime)
+Private Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal name As LongPtr, ByVal access As Long, ByVal share As Long, ByVal security As LongPtr, ByVal creation As Long, ByVal flags As Long, ByVal template As LongPtr) As LongPtr
+Private Declare PtrSafe Function ReadFile Lib "kernel32" (ByVal file As LongPtr, ByRef buffer As Any, ByVal length As Long, ByRef read As Long, ByVal overlapped As LongPtr) As Long
+Private Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal handle As LongPtr) As Long
 Private Declare PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (ByRef algorithm As LongPtr, ByVal name As LongPtr, ByVal provider As LongPtr, ByVal flags As Long) As Long
 Private Declare PtrSafe Function BCryptCreateHash Lib "bcrypt" (ByVal algorithm As LongPtr, ByRef hash As LongPtr, ByVal buffer As LongPtr, ByVal bufferLength As Long, ByVal secret As LongPtr, ByVal secretLength As Long, ByVal flags As Long) As Long
 Private Declare PtrSafe Function BCryptHashData Lib "bcrypt" (ByVal hash As LongPtr, ByRef data As Any, ByVal length As Long, ByVal flags As Long) As Long
@@ -63,6 +66,37 @@ CleanExit:
 Failed:
     Sha256 = ""
     Resume CleanExit
+End Function
+
+' Fingerprint the exact binary snapshot bytes without changing the source.
+Public Function FileSha256(ByVal path As String) As String
+    Dim algorithm As LongPtr, hash As LongPtr, bytes(0 To 65535) As Byte
+    Dim digest(0 To 31) As Byte, i As Long, name As String
+    Dim file As LongPtr, count As Long
+    On Error GoTo Failed
+    ' OPEN_EXISTING with GENERIC_READ cannot create a missing/raced-away file.
+    file = CreateFileW(StrPtr(path), &H80000000, 7, 0, 3, &H8000000, 0)
+    If file = -1 Or file = 0 Then Exit Function
+    name = "SHA256"
+    If BCryptOpenAlgorithmProvider(algorithm, StrPtr(name), 0, 0) <> 0 Then GoTo Failed
+    If BCryptCreateHash(algorithm, hash, 0, 0, 0, 0, 0) <> 0 Then GoTo Failed
+    Do
+        If ReadFile(file, bytes(0), 65536, count, 0) = 0 Then GoTo Failed
+        If count = 0 Then Exit Do
+        If BCryptHashData(hash, bytes(0), count, 0) <> 0 Then GoTo Failed
+    Loop
+    If BCryptFinishHash(hash, digest(0), 32, 0) <> 0 Then GoTo Failed
+    For i = 0 To 31
+        FileSha256 = FileSha256 & LCase$(Right$("0" & Hex$(digest(i)), 2))
+    Next i
+Finished:
+    If file <> 0 And file <> -1 Then CloseHandle file
+    If hash <> 0 Then BCryptDestroyHash hash
+    If algorithm <> 0 Then BCryptCloseAlgorithmProvider algorithm, 0
+    Exit Function
+Failed:
+    FileSha256 = ""
+    Resume Finished
 End Function
 
 Public Function ValidId(ByVal value As String) As Boolean

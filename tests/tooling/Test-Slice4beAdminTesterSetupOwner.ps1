@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-create-recording-02',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckSetup,[switch]$CheckOwnership,[switch]$OwnershipOnly,[switch]$SetupEvidenceOnly,[switch]$CaptureEvidence,[switch]$CheckRecording,[switch]$RecordingOnly,[switch]$CheckGuides)
+param([string]$DeployRoot='deploy/validation-create-recording-02',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$CheckSetup,[switch]$CheckOwnership,[switch]$OwnershipOnly,[switch]$SetupEvidenceOnly,[switch]$CaptureEvidence,[switch]$CheckRecording,[switch]$RecordingOnly,[switch]$CheckGuides,[switch]$GuideOnly)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before the isolated Tester Setup owner gate.'}
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
@@ -19,9 +19,10 @@ try {
     if($OwnershipOnly -or $SetupEvidenceOnly){$extra+='-AdminTesterOwnershipOnly'}
     if($SetupEvidenceOnly){$extra+='-AdminTesterSetupEvidenceOnly'}
     if($CaptureEvidence){$extra+='-CaptureEvidence'}
-    if($CheckRecording -or $RecordingOnly -or $CheckGuides){$extra+='-AdminTesterRecording'}
-    if($RecordingOnly){$extra+='-AdminTesterRecordingOnly'}
-    if($CheckGuides){$extra+='-AdminTesterGuidePaths'}
+    if($CheckRecording -or $RecordingOnly -or $CheckGuides -or $GuideOnly){$extra+='-AdminTesterRecording'}
+    if($RecordingOnly -or $GuideOnly){$extra+='-AdminTesterRecordingOnly'}
+    if($CheckGuides -or $GuideOnly){$extra+='-AdminTesterGuidePaths'}
+    if($GuideOnly){$extra+='-AdminTesterGuideOnly'}
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Slice4beConfigCommands.ps1') -DeployRoot $DeployRoot -Phase $Phase -AdminTesterSetupOwnerOnly -CompileEvaluationProbesForTest -WaitForExcelReadyForTest -ExcelReadyReadLimitForTest 40 @extra *> (Join-Path $root 'worker.log')
     $code=$LASTEXITCODE
 } finally {

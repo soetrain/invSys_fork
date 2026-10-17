@@ -44,9 +44,11 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
                          Optional ByVal batchSize As Long = 0, _
                          Optional ByRef report As String = "", _
                          Optional ByVal receiptEventId As String = "", _
-                         Optional ByRef receiptApplied As Boolean = False) As Long
+                         Optional ByRef receiptApplied As Boolean = False, _
+                         Optional ByVal onlyReceiptEvent As Boolean = False) As Long
     On Error GoTo FailRun
     receiptApplied = False
+    If onlyReceiptEvent And receiptEventId = "" Then report = "An exact receipt event is required.": Exit Function
 
     Dim totalStart As Single
     Dim phaseStart As Single
@@ -155,6 +157,9 @@ Public Function RunBatch(Optional ByVal warehouseId As String = "", _
         For rowIndex = 1 To loInbox.ListRows.Count
             If RunBatch >= batchSize Then Exit For
             If Not IsProcessableInboxRow(loInbox, rowIndex, warehouseId) Then GoTo ContinueRow
+            If onlyReceiptEvent Then
+                If CStr(GetCellByColumnProcessor(loInbox, rowIndex, "EventID")) <> receiptEventId Then GoTo ContinueRow
+            End If
 
             Set evt = BuildInboxEvent(loInbox, rowIndex, target("Workbook").Name, CStr(target("TableName")), CStr(target("DefaultEventType")))
             If evt Is Nothing Then
@@ -1228,15 +1233,6 @@ Private Function GetDictionaryString(ByVal d As Object, ByVal key As String) As 
     On Error GoTo 0
 End Function
 
-Private Function ResolveWorkbookNameProcessor(ByVal wb As Workbook) As String
-    If wb Is Nothing Then
-        ResolveWorkbookNameProcessor = "<none>"
-    ElseIf Trim$(wb.Name) <> "" Then
-        ResolveWorkbookNameProcessor = wb.Name
-    Else
-        ResolveWorkbookNameProcessor = "<unnamed>"
-    End If
-End Function
 
 Private Function CaptureOpenWorkbookPathsProcessor() As Object
     Dim wb As Workbook

@@ -80,7 +80,9 @@ End Function
 ' owns source selection; this routine deliberately performs no folder scan.
 Public Function GenerateGlobalSnapshotFromFiles(ByVal sourceFilesText As String, _
                                                 ByVal outputPath As String, _
-                                                Optional ByRef report As String = "") As Boolean
+                                                Optional ByRef report As String = "", _
+                                                Optional ByVal commandContext As String = "", _
+                                                Optional ByVal exactIdentity As Boolean = False) As Boolean
     Dim sourceFiles As Collection
     Dim sourcePath As Variant
     Dim tempFolder As String
@@ -90,6 +92,12 @@ Public Function GenerateGlobalSnapshotFromFiles(ByVal sourceFilesText As String,
     Dim skipDetails As String
 
     On Error GoTo FailGenerate
+
+    If commandContext <> "" Then
+        If Not modAggregationCommands.CheckPhase(commandContext, outputPath) Then Exit Function
+    ElseIf modAggregationCommands.IsWriting() Then
+        Exit Function
+    End If
 
     Set sourceFiles = SplitSnapshotPathListHq(sourceFilesText)
     If sourceFiles.Count = 0 Then
@@ -102,7 +110,7 @@ Public Function GenerateGlobalSnapshotFromFiles(ByVal sourceFilesText As String,
     End If
 
     Set globalRows = CreateObject("Scripting.Dictionary")
-    globalRows.CompareMode = vbTextCompare
+    If exactIdentity Then globalRows.CompareMode = vbBinaryCompare Else globalRows.CompareMode = vbTextCompare
     tempFolder = CreateUniqueTempFolderHq()
     If tempFolder = "" Then
         report = "HQ temp folder could not be created."
@@ -110,13 +118,20 @@ Public Function GenerateGlobalSnapshotFromFiles(ByVal sourceFilesText As String,
     End If
 
     For Each sourcePath In sourceFiles
+        If commandContext <> "" Then
+            If Not modAggregationCommands.CheckPhase(commandContext, outputPath) Then GoTo FailGenerate
+        End If
         snapshotFileCount = snapshotFileCount + 1
         If Not TryMergeSnapshotPathHq(CStr(sourcePath), tempFolder, globalRows, skipDetails) Then
             skippedSnapshotFileCount = skippedSnapshotFileCount + 1
         End If
+        If commandContext <> "" Then
+            If Not modAggregationCommands.CheckPhase(commandContext, outputPath) Then GoTo FailGenerate
+        End If
     Next sourcePath
 
-    WriteGlobalSnapshotWorkbook outputPath, globalRows, "Explicit selected sources", snapshotFileCount, skippedSnapshotFileCount
+    If commandContext <> "" And skippedSnapshotFileCount <> 0 Then GoTo FailGenerate
+    WriteGlobalSnapshotWorkbook outputPath, globalRows, "Explicit selected sources", snapshotFileCount, skippedSnapshotFileCount, commandContext
     report = "Rows=" & CStr(globalRows.Count) & "; SnapshotFiles=" & CStr(snapshotFileCount) & _
              "; SkippedSnapshotFiles=" & CStr(skippedSnapshotFileCount)
     If skipDetails <> "" Then report = report & "; Skips=" & skipDetails
@@ -177,7 +192,8 @@ Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, _
                                         ByVal globalRows As Object, _
                                         ByVal snapshotsFolder As String, _
                                         ByVal snapshotFileCount As Long, _
-                                        ByVal skippedSnapshotFileCount As Long)
+                                        ByVal skippedSnapshotFileCount As Long, _
+                                        Optional ByVal commandContext As String = "")
     Dim wb As Workbook
     Dim wsSnap As Worksheet
     Dim wsStatus As Worksheet
@@ -190,30 +206,48 @@ Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, _
     Dim key As Variant
     Dim rowIndex As Long
     Dim generatedAt As Date
+    Dim extras As Object, existing As Boolean, validated As Object
 
-    EnsureFolderForFileHq outputPath
-    CloseWorkbookByFullNameHq outputPath
-    On Error Resume Next
-    Kill outputPath
-    On Error GoTo 0
-
-    Set wb = Application.Workbooks.Add
+    If commandContext <> "" Then
+        Set wb = modAggregationOutput.OpenCandidate(commandContext, outputPath)
+        If wb Is Nothing Then Err.Raise vbObjectError + 7510
+        Set loSnap = FindListObjectByNameHq(wb, TABLE_GLOBAL_SNAPSHOT)
+        existing = Not loSnap Is Nothing
+        If existing Then
+            Set extras = modAggregationOutput.CaptureExtras(loSnap)
+            Set wsSnap = loSnap.Parent
+        End If
+    Else
+        EnsureFolderForFileHq outputPath
+        CloseWorkbookByFullNameHq outputPath
+        On Error Resume Next
+        Kill outputPath
+        On Error GoTo 0
+        Set wb = Application.Workbooks.Add
+    End If
     generatedAt = Now
     snapHeaders = Array("WarehouseId", "System_Key", "SKU", "QtyOnHand", "LastAppliedAtUTC", "SourceSnapshot")
     statusHeaders = Array("Scope", "AuthorityLevel", "AuthoritativeStore", "VisibilityRule", "GeneratedAtUTC", _
                           "SnapshotsFolder", "SnapshotFileCount", "SkippedSnapshotFileCount", "WarehouseCount")
 
-    Set wsSnap = wb.Worksheets(1)
-    wsSnap.Name = SHEET_GLOBAL_SNAPSHOT
-    Set startCell = wsSnap.Range("A1")
-    For i = LBound(snapHeaders) To UBound(snapHeaders)
-        startCell.Offset(0, i - LBound(snapHeaders)).Value = snapHeaders(i)
-    Next i
-
-    Set loSnap = wsSnap.ListObjects.Add(xlSrcRange, wsSnap.Range(startCell, startCell.Offset(1, UBound(snapHeaders) - LBound(snapHeaders))), , xlYes)
-    loSnap.Name = TABLE_GLOBAL_SNAPSHOT
+    If Not existing Then
+        Set wsSnap = wb.Worksheets(1)
+        wsSnap.Name = SHEET_GLOBAL_SNAPSHOT
+        Set startCell = wsSnap.Range("A1")
+        For i = LBound(snapHeaders) To UBound(snapHeaders)
+            startCell.Offset(0, i - LBound(snapHeaders)).Value = snapHeaders(i)
+        Next i
+        Set loSnap = wsSnap.ListObjects.Add(xlSrcRange, wsSnap.Range(startCell, startCell.Offset(1, UBound(snapHeaders) - LBound(snapHeaders))), , xlYes)
+        loSnap.Name = TABLE_GLOBAL_SNAPSHOT
+    End If
     If loSnap.DataBodyRange Is Nothing Then loSnap.ListRows.Add
     DeleteAllRowsHq loSnap
+
+    If commandContext <> "" Then
+        For Each key In Array("WarehouseId", "System_Key", "SKU", "SourceSnapshot")
+            loSnap.ListColumns(GetColumnIndexHq(loSnap, CStr(key))).Range.NumberFormat = "@"
+        Next key
+    End If
 
     For Each key In globalRows.Keys
         loSnap.ListRows.Add
@@ -225,34 +259,46 @@ Private Sub WriteGlobalSnapshotWorkbook(ByVal outputPath As String, _
         SetTableRowValueHq loSnap, rowIndex, "LastAppliedAtUTC", globalRows(key)("LastAppliedAtUTC")
         SetTableRowValueHq loSnap, rowIndex, "SourceSnapshot", globalRows(key)("SourceSnapshot")
     Next key
+    If Not extras Is Nothing Then modAggregationOutput.RestoreExtras loSnap, extras
 
-    Set wsStatus = wb.Worksheets.Add(After:=wsSnap)
-    wsStatus.Name = SHEET_GLOBAL_STATUS
-    Set startCell = wsStatus.Range("A1")
-    For i = LBound(statusHeaders) To UBound(statusHeaders)
-        startCell.Offset(0, i - LBound(statusHeaders)).Value = statusHeaders(i)
-    Next i
-
-    Set loStatus = wsStatus.ListObjects.Add(xlSrcRange, wsStatus.Range(startCell, startCell.Offset(1, UBound(statusHeaders) - LBound(statusHeaders))), , xlYes)
-    loStatus.Name = TABLE_GLOBAL_STATUS
+    If existing Then
+        Set loStatus = FindListObjectByNameHq(wb, TABLE_GLOBAL_STATUS)
+        Set validated = modAggregationSources.RequiredColumns(loStatus, statusHeaders)
+        If validated Is Nothing Then Err.Raise vbObjectError + 7511
+        Set wsStatus = loStatus.Parent
+    Else
+        Set wsStatus = wb.Worksheets.Add(After:=wsSnap)
+        wsStatus.Name = SHEET_GLOBAL_STATUS
+        Set startCell = wsStatus.Range("A1")
+        For i = LBound(statusHeaders) To UBound(statusHeaders)
+            startCell.Offset(0, i - LBound(statusHeaders)).Value = statusHeaders(i)
+        Next i
+        Set loStatus = wsStatus.ListObjects.Add(xlSrcRange, wsStatus.Range(startCell, startCell.Offset(1, UBound(statusHeaders) - LBound(statusHeaders))), , xlYes)
+        loStatus.Name = TABLE_GLOBAL_STATUS
+    End If
     If loStatus.DataBodyRange Is Nothing Then loStatus.ListRows.Add
-    DeleteAllRowsHq loStatus
-    loStatus.ListRows.Add
+    If Not existing Then DeleteAllRowsHq loStatus: loStatus.ListRows.Add
     SetTableRowValueHq loStatus, 1, "Scope", "GLOBAL"
     SetTableRowValueHq loStatus, 1, "AuthorityLevel", "ADVISORY_ONLY"
     SetTableRowValueHq loStatus, 1, "AuthoritativeStore", "Warehouse-local WHx.invSys.Data.Inventory.xlsb"
     SetTableRowValueHq loStatus, 1, "VisibilityRule", "Never overrides warehouse-local authoritative balances"
     SetTableRowValueHq loStatus, 1, "GeneratedAtUTC", generatedAt
+    If commandContext <> "" Then SetTableRowValueHq loStatus, 1, "GeneratedAtUTC", modTrainingWire.UtcTimestamp()
     SetTableRowValueHq loStatus, 1, "SnapshotsFolder", NormalizeFolderPathHq(snapshotsFolder)
     SetTableRowValueHq loStatus, 1, "SnapshotFileCount", snapshotFileCount
     SetTableRowValueHq loStatus, 1, "SkippedSnapshotFileCount", skippedSnapshotFileCount
     SetTableRowValueHq loStatus, 1, "WarehouseCount", CountWarehouseIdsHq(globalRows)
 
-    wsSnap.Cells.EntireColumn.AutoFit
-    wsStatus.Cells.EntireColumn.AutoFit
+    If Not existing Then wsSnap.Cells.EntireColumn.AutoFit: wsStatus.Cells.EntireColumn.AutoFit
 
+    If commandContext <> "" Then
+        If Not modAggregationCommands.CheckPhase(commandContext, outputPath) Then wb.Close False: Err.Raise vbObjectError + 7512
+    End If
     wb.SaveAs Filename:=outputPath, FileFormat:=50
-    wb.Close SaveChanges:=True
+    If commandContext <> "" Then
+        If Not modAggregationCommands.CheckPhase(commandContext, outputPath) Then wb.Close False: Err.Raise vbObjectError + 7513
+    End If
+    wb.Close SaveChanges:=False
 End Sub
 
 Private Function TryMergeSnapshotFileHq(ByVal snapshotsFolder As String, _
@@ -394,7 +440,7 @@ Private Function GetColumnIndexHq(ByVal lo As ListObject, ByVal columnName As St
     Dim i As Long
     If lo Is Nothing Then Exit Function
     For i = 1 To lo.ListColumns.Count
-        If StrComp(lo.ListColumns(i).Name, columnName, vbTextCompare) = 0 Then
+        If StrComp(Trim$(lo.ListColumns(i).Name), columnName, vbTextCompare) = 0 Then
             GetColumnIndexHq = i
             Exit Function
         End If

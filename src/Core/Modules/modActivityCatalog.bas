@@ -2,10 +2,18 @@ Attribute VB_Name = "modActivityCatalog"
 Option Explicit
 Option Private Module
 
-Public Const CATALOG_VERSION As Long = 42
+Public Const CATALOG_VERSION As Long = 43
 
 Public Function ControlIds(Optional ByVal version As Long = CATALOG_VERSION) As Variant
     Dim ids As Variant, added As Variant, index As Long, offset As Long
+    If version = 43 Then
+        ids = ControlIds(42): added = Array("ADMIN_AGGREGATION_OPEN", "ADMIN_AGGREGATION_REFRESH", "ADMIN_AGGREGATION_ADD_SERVER", _
+            "ADMIN_AGGREGATION_CONNECT", "ADMIN_AGGREGATION_SELECT_SOURCE", "ADMIN_AGGREGATION_AGGREGATE", "ADMIN_AGGREGATION_CLOSE")
+        offset = UBound(ids) + 1
+        ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)
+        For index = LBound(added) To UBound(added): ids(offset + index) = added(index): Next index
+        ControlIds = ids: Exit Function
+    End If
     If version = 42 Then
         ids = ControlIds(41): added = modTesterActivityCodes.ControlIds(): offset = UBound(ids) + 1
         ReDim Preserve ids(LBound(ids) To UBound(ids) + UBound(added) + 1)
@@ -276,6 +284,10 @@ End Function
 Public Function Control(ByVal controlId As String, Optional ByVal version As Long = CATALOG_VERSION) As Object
     Dim record As Object
     If version < 1 Or version > CATALOG_VERSION Then Exit Function
+    If version >= 43 Then
+        Set record = modAggregationActivityCodes.Control(controlId)
+        If Not record Is Nothing Then Set Control = record: Exit Function
+    End If
     If version >= 42 Then
         Set record = modTesterActivityCodes.Control(controlId)
         If Not record Is Nothing Then Set Control = record: Exit Function
@@ -483,6 +495,9 @@ Public Function Outcome(ByVal controlId As String, ByVal outcomeCode As String) 
     Dim record As Object, definition As Object, message As String
     Set definition = Control(controlId)
     If definition Is Nothing Then Exit Function
+    If definition("OwnerId") = "ADMIN_HQ_AGGREGATION" Then
+        Set Outcome = modAggregationActivityCodes.Outcome(controlId, outcomeCode): Exit Function
+    End If
     If definition("OwnerId") = "ADMIN_TESTER_SETUP" Then
         Set Outcome = modTesterActivityCodes.Outcome(controlId, outcomeCode): Exit Function
     End If

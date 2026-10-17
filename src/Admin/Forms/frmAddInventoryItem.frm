@@ -76,7 +76,6 @@ Private mLstCustomFields As MSForms.ListBox
 
 Private mAccepted As Boolean
 Private mGeneratedSku As String
-Private mGeneratedRow As Long
 Private mWarehouseId As String
 Private mStationId As String
 Private mUserId As String
@@ -92,6 +91,7 @@ Private mInitStep As String
 Private mAllowUomPrompt As Boolean
 Private mImagePlaceholderActive As Boolean
 Private mOperatorWorkbook As Workbook
+Private mInteractiveContext As String
 Private mLastInventoryTableName As String
 Private mLastInventoryWorksheetReport As String
 Private mConfiguredDefaultLocation As String
@@ -119,10 +119,6 @@ Public Property Get GeneratedSku() As String
     Else
         GeneratedSku = mGeneratedSku
     End If
-End Property
-
-Public Property Get GeneratedRow() As Long
-    GeneratedRow = mGeneratedRow
 End Property
 
 Public Property Get EditMode() As Boolean
@@ -228,9 +224,9 @@ Public Function TestEditItemComboSelectionContract() As String
     Dim testStage As String
 
     testStage = "Configure"
-    Configure "WH-TEST", "S1", "admin", "NEW-SKU", 999, "CLEARVIEW"
+    Configure "WH-TEST", "S1", "admin", "NEW-SKU", "CLEARVIEW"
     testStage = "AddCatalogItem"
-    AddCatalogItem "DEMO-RAW-FILTERED-WATER", "7", "Filtered Water", "LB", _
+    AddCatalogItem "DEMO-RAW-FILTERED-WATER", "Filtered Water", "LB", _
         "Clearview", "clean double filtered water", "Utility", "", "UTILITY", _
         "", "", "TRUE", "INVENTORY", "19400"
     testStage = "EditMode"
@@ -280,11 +276,11 @@ Public Function TestAddItemVisibilityDropdownContract() As String
     Dim testStage As String
 
     testStage = "Configure"
-    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", 999, "CLEARVIEW"
+    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", "CLEARVIEW"
     testStage = "CatalogOptions"
-    AddCatalogItem "SKU-RAW", "1", "Raw Material", "LB", "SECONDARY", _
+    AddCatalogItem "SKU-RAW", "Raw Material", "LB", "SECONDARY", _
         "", "", "", "RAW", "", "", "TRUE", "INVENTORY", "10"
-    AddCatalogItem "SKU-FINISHED", "2", "Finished Good", "EA", "CLEARVIEW", _
+    AddCatalogItem "SKU-FINISHED", "Finished Good", "EA", "CLEARVIEW", _
         "", "", "", "FINISHED", "", "", "TRUE", "INVENTORY", "5"
 
     locationDropdown = (TypeName(mCmbLocation) = "ComboBox" And _
@@ -335,8 +331,8 @@ Public Function TestInventoryDeleteActionContract() As String
     Dim testStage As String
 
     testStage = "Configure"
-    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", 999, "CLEARVIEW"
-    AddCatalogItem "SKU-HONEY", "1", "Honey", "LB", "CLEARVIEW", _
+    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", "CLEARVIEW"
+    AddCatalogItem "SKU-HONEY", "Honey", "LB", "CLEARVIEW", _
         "", "", "", "RAW", "", "", "TRUE", "INVENTORY", "25"
     testStage = "EditMode"
     mEditMode = True
@@ -379,7 +375,7 @@ Public Function TestInventoryWorksheetActionContract(ByVal operatorWb As Workboo
     Dim testStage As String
 
     testStage = "Configure"
-    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", 999, "CLEARVIEW"
+    Configure "WH-TEST", "S1", "admin", "ITM-WHTE-000999", "CLEARVIEW"
     SetOperatorWorkbook operatorWb
     capturedWorkbook = Not mOperatorWorkbook Is Nothing
     modAdminInventoryWorksheet.BeginInventoryWorksheetAutomation "EXISTING-SKU"
@@ -427,11 +423,20 @@ Public Sub SetOperatorWorkbook(ByVal wb As Workbook)
 Unavailable:
 End Sub
 
+Public Sub SetInteractiveContext(ByVal context As String)
+    mInteractiveContext = context
+End Sub
+
+Private Function CurrentContextAllowed() As Boolean
+    Dim report As String
+    CurrentContextAllowed = modInventoryCommands.CheckForm(mInteractiveContext, report)
+    If Not CurrentContextAllowed Then mLblStatus.Caption = report
+End Function
+
 Public Sub Configure(ByVal warehouseId As Variant, _
                      ByVal stationId As Variant, _
                      ByVal userId As Variant, _
                      ByVal generatedSku As Variant, _
-                     ByVal generatedRow As Variant, _
                      ByVal defaultLocation As Variant)
     On Error GoTo FailConfigure
 
@@ -444,7 +449,6 @@ Public Sub Configure(ByVal warehouseId As Variant, _
     mStationId = SafeFormText(stationId)
     mUserId = SafeFormText(userId)
     mGeneratedSku = SafeFormText(generatedSku)
-    mGeneratedRow = CLng(Val(SafeFormText(generatedRow)))
     mDeleteRequested = False
     mDeleteReason = ""
     mConfiguredDefaultLocation = SafeFormText(defaultLocation)
@@ -498,7 +502,6 @@ Private Function SafeFormText(ByVal valueIn As Variant) As String
 End Function
 
 Public Sub AddCatalogItem(ByVal sku As String, _
-                          ByVal rowValue As String, _
                           ByVal itemName As String, _
                           ByVal uomValue As String, _
                           ByVal locationValue As String, _
@@ -523,7 +526,6 @@ Public Sub AddCatalogItem(ByVal sku As String, _
     Set item = CreateObject("Scripting.Dictionary")
     item.CompareMode = vbTextCompare
     item("SKU") = sku
-    item("ROW") = Trim$(rowValue)
     item("ITEM") = Trim$(itemName)
     item("UOM") = UCase$(Trim$(uomValue))
     item("LOCATION") = Trim$(locationValue)
@@ -732,7 +734,6 @@ Private Sub LoadEditItemOptions(Optional ByVal filterText As String = "")
     Dim rowIndex As Long
     Dim normalizedFilter As String
     Dim sku As String
-    Dim rowValue As String
     Dim itemName As String
 
     If mCmbEditItem Is Nothing Then Exit Sub
@@ -742,11 +743,10 @@ Private Sub LoadEditItemOptions(Optional ByVal filterText As String = "")
     normalizedFilter = AdminNormalizeSearchText(filterText)
     For Each item In mCatalogItems
         sku = CatalogField(item, "SKU")
-        rowValue = CatalogField(item, "ROW")
         itemName = CatalogField(item, "ITEM")
         If sku <> "" Then
             If normalizedFilter <> "" Then
-                If Not AdminAnyTextMatchesSearch(normalizedFilter, sku, rowValue, itemName, _
+                If Not AdminAnyTextMatchesSearch(normalizedFilter, sku, itemName, _
                                                  CatalogField(item, "UOM"), CatalogField(item, "LOCATION"), _
                                                  CatalogField(item, "DESCRIPTION"), CatalogField(item, "VENDOR(s)"), _
                                                  CatalogField(item, "VENDOR_CODE"), CatalogField(item, "CATEGORY"), _
@@ -846,56 +846,6 @@ Private Sub HideEditItemSearchResults()
     mLstEditItemResults.Clear
 End Sub
 
-Private Function MaxLongAdminForm(ByVal leftValue As Long, ByVal rightValue As Long) As Long
-    If leftValue >= rightValue Then
-        MaxLongAdminForm = leftValue
-    Else
-        MaxLongAdminForm = rightValue
-    End If
-End Function
-
-Private Function MinLongAdminForm(ByVal leftValue As Long, ByVal rightValue As Long) As Long
-    If leftValue <= rightValue Then
-        MinLongAdminForm = leftValue
-    Else
-        MinLongAdminForm = rightValue
-    End If
-End Function
-
-Private Function AdminNormalizeSearchText(ByVal valueIn As String) As String
-    Dim textOut As String
-
-    textOut = Trim$(CStr(valueIn))
-    textOut = Replace(textOut, vbTab, " ")
-    Do While InStr(1, textOut, "  ", vbBinaryCompare) > 0
-        textOut = Replace(textOut, "  ", " ")
-    Loop
-    AdminNormalizeSearchText = LCase$(textOut)
-End Function
-
-Private Function AdminTextMatchesSearch(ByVal candidate As String, ByVal searchTerm As String) As Boolean
-    If searchTerm = "" Then
-        AdminTextMatchesSearch = True
-    Else
-        AdminTextMatchesSearch = (InStr(1, AdminNormalizeSearchText(candidate), searchTerm, vbTextCompare) > 0)
-    End If
-End Function
-
-Private Function AdminAnyTextMatchesSearch(ByVal searchTerm As String, ParamArray candidates() As Variant) As Boolean
-    Dim i As Long
-
-    If searchTerm = "" Then
-        AdminAnyTextMatchesSearch = True
-        Exit Function
-    End If
-    For i = LBound(candidates) To UBound(candidates)
-        If AdminTextMatchesSearch(CStr(candidates(i)), searchTerm) Then
-            AdminAnyTextMatchesSearch = True
-            Exit Function
-        End If
-    Next i
-End Function
-
 Private Sub LoadQuantityOptions()
     If mTxtQty Is Nothing Then Exit Sub
     mTxtQty.Clear
@@ -908,13 +858,13 @@ End Sub
 Private Sub RefreshGeneratedLabel()
     If mEditMode Then
         If mSelectedEditSku <> "" Then
-            mLblGenerated.Caption = "Internal code: " & mSelectedEditSku & "    ROW: " & CStr(mGeneratedRow) & _
+            mLblGenerated.Caption = "Internal code: " & mSelectedEditSku & _
                                     "    Warehouse: " & mWarehouseId & " / " & mStationId
         Else
             mLblGenerated.Caption = "Choose an inventory item to edit. Warehouse: " & mWarehouseId & " / " & mStationId
         End If
     Else
-        mLblGenerated.Caption = "Internal code: " & mGeneratedSku & "    ROW: " & CStr(mGeneratedRow) & _
+        mLblGenerated.Caption = "Internal code: " & mGeneratedSku & _
                                 "    Warehouse: " & mWarehouseId & " / " & mStationId
     End If
 End Sub
@@ -1023,6 +973,7 @@ Private Sub mBtnCreateInventoryTable_Click()
     Dim tableName As String
 
     On Error GoTo Failed
+    If Not CurrentContextAllowed() Then Exit Sub
     If mOperatorWorkbook Is Nothing Then
         mLblStatus.Caption = "The captured Admin operator workbook is unavailable."
         Exit Sub
@@ -1050,12 +1001,13 @@ Private Sub mBtnUploadInventoryTable_Click()
     Dim succeeded As Boolean
 
     On Error GoTo Failed
+    If Not CurrentContextAllowed() Then Exit Sub
     If mOperatorWorkbook Is Nothing Then
         mLblStatus.Caption = "The captured Admin operator workbook is unavailable."
         Exit Sub
     End If
     succeeded = modAdminInventoryWorksheet.UploadSelectedInventoryWorksheetTable( _
-        mOperatorWorkbook, mWarehouseId, mStationId, mUserId, report)
+        mOperatorWorkbook, mWarehouseId, mStationId, mUserId, report, mInteractiveContext)
     mLastInventoryWorksheetReport = report
     mLblStatus.Caption = report
     If Not modAdminInventoryWorksheet.InventoryWorksheetAutomationEnabled() Then _
@@ -1071,10 +1023,12 @@ Failed:
 End Sub
 
 Private Sub mBtnOK_Click()
+    If Not CurrentContextAllowed() Then Exit Sub
     If Not ValidateForm Then Exit Sub
     If mEditMode Then
         If Not PromptForEditReason Then Exit Sub
     End If
+    If Not CurrentContextAllowed() Then Exit Sub
     mDeleteRequested = False
     mDeleteReason = ""
     mAccepted = True
@@ -1113,6 +1067,7 @@ Private Sub mBtnDeleteItem_Click()
     Dim answer As VbMsgBoxResult
     Dim reason As String
 
+    If Not CurrentContextAllowed() Then Exit Sub
     If Not mEditMode Or mSelectedEditSku = "" Then
         mLblStatus.Caption = "Choose an inventory item to delete."
         Exit Sub
@@ -1127,6 +1082,7 @@ Private Sub mBtnDeleteItem_Click()
             "Catalog and event history will be retained.", _
             vbQuestion Or vbYesNo Or vbDefaultButton2, "invSys Admin - Delete Item")
         If answer <> vbYes Then Exit Sub
+        If Not CurrentContextAllowed() Then Exit Sub
         reason = Trim$(InputBox("Why is this item being deleted from managed inventory?", _
             "invSys Admin - Delete Item"))
     End If
@@ -1134,6 +1090,7 @@ Private Sub mBtnDeleteItem_Click()
         mLblStatus.Caption = "Why the deletion is required."
         Exit Sub
     End If
+    If Not CurrentContextAllowed() Then Exit Sub
 
     mDeleteReason = Trim$(reason)
     mDeleteRequested = True
@@ -1240,6 +1197,7 @@ Private Sub mCmbUom_Change()
     End If
 
     newUom = UCase$(Trim$(InputBox("New UOM:", "invSys Admin - Add UOM")))
+    If Not CurrentContextAllowed() Then Exit Sub
     If newUom = "" Then
         If mPreviousUom <> "" Then
             mCmbUom.Value = mPreviousUom
@@ -1372,7 +1330,6 @@ Private Sub ApplyModeLayout()
         mSelectedEditSku = ""
         mDeleteRequested = False
         mDeleteReason = ""
-        If mGeneratedRow < 0 Then mGeneratedRow = 0
     ElseIf mCmbEditItem.ListIndex < 0 Then
         ClearEditableFields
     End If
@@ -1411,14 +1368,17 @@ End Sub
 
 Private Sub LoadSelectedEditItemBySku(ByVal sku As String)
     Dim item As Object
+    Dim report As String
 
     sku = Trim$(sku)
     If sku = "" Then Exit Sub
     Set item = FindCatalogItemBySku(sku)
     If item Is Nothing Then Exit Sub
+    If mInteractiveContext <> "" Then
+        If Not modInventoryCommands.SelectSku(mInteractiveContext, sku, report) Then mLblStatus.Caption = report: Exit Sub
+    End If
 
     mSelectedEditSku = sku
-    mGeneratedRow = CLng(Val(CatalogField(item, "ROW")))
     mTxtItemName.Value = CatalogField(item, "ITEM")
     If CatalogField(item, "UOM") <> "" Then
         InsertUomBeforeAddOption CatalogField(item, "UOM")
@@ -1469,10 +1429,6 @@ Private Function ValidateForm() As Boolean
     End If
     If mEditMode And mSelectedEditSku = "" Then
         mLblStatus.Caption = "Choose an inventory item to edit."
-        Exit Function
-    End If
-    If (Not mEditMode) And mGeneratedRow <= 0 Then
-        mLblStatus.Caption = "Generated ROW id is missing."
         Exit Function
     End If
     If ItemName = "" Then
@@ -1565,7 +1521,7 @@ End Function
 
 Private Function IsReservedCustomField(ByVal fieldName As String) As Boolean
     Select Case UCase$(Trim$(fieldName))
-        Case "SKU", "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "QTY", "TOTAL INV", _
+        Case "SYSTEM_KEY", "SYSTEMKEY", "SYSTEM KEY", "SYSTEM-KEY", "CONDITION", "SKU", "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "QTY", "TOTAL INV", _
              "QTYAVAILABLE", "DESCRIPTION", "VENDOR(S)", "VENDOR_CODE", "CATEGORY", _
              "EXTERNAL_CODE", "IMAGE_PATH", "TRACK_QTY", "ITEM_KIND", "NOTE", "IOTYPE"
             IsReservedCustomField = True

@@ -159,6 +159,11 @@ function Test-AdminTesterRecording($Fixture,$Other) {
         $book.Windows.Item(1).Visible=$true;$excel.Visible=$true
         SelectTarget $Fixture
         if(-not [bool](Probe 'SetPolicy')){throw 'Tester recording policy prerequisite unavailable.'}
+        if($AdminTesterGuideOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beAdminTesterGuide.ps1')
+            Test-AdminTesterGuide $Fixture $book
+            return
+        }
         $sourceHash=(Get-FileHash -LiteralPath $Fixture.Config).Hash
         foreach($suffix in @('OPEN','SETUP','DELETE','OPEN_WORKBOOK','BROWSE_HUB','FIND_SHAREPOINT','CLOSE')){
             $wire=[string](Probe 'Definition' @(('ADMIN_TESTER_'+$suffix),42));$d=if($wire){$wire|ConvertFrom-Json}else{$null}

@@ -138,6 +138,37 @@ param(
     [switch]$AdminCreateWarehouseOwnerOnly,
     [switch]$AdminTesterSetupOwnerOnly,
     [switch]$AdminAggregationOnly,
+    [switch]$AdminInventoryEntryOnly,
+    [switch]$AdminInventoryExactQuantityOnly,
+    [switch]$AdminInventoryManagedFieldsOnly,
+    [switch]$AdminInventoryQuantityRetryOnly,
+    [switch]$AdminInventoryBaselineOnly,
+    [switch]$AdminInventoryInputsOnly,
+    [switch]$AdminInventoryCatalogOnly,
+    [switch]$AdminInventoryCatalogRealOnly,
+    [switch]$AdminInventorySourceOverlayForTest,
+    [string]$AdminInventoryOverlaySourceRootForTest='',
+    [switch]$AdminInventoryOwnResultsOnly,
+    [switch]$AdminInventoryAddResultsOnly,
+    [switch]$AdminInventoryDeleteResultsOnly,
+    [switch]$AdminInventoryWorksheetResultsOnly,
+    [switch]$AdminInventoryImportedRowsOnly,
+    [switch]$AdminInventoryReadOnlyOperatorsOnly,
+    [switch]$AdminInventoryHeadlessWorksheetOnly,
+    [switch]$AdminAggregationPathComparison,
+    [switch]$AdminAggregationBoundaryMatrix,
+    [ValidateSet('All','Inspection','Write','Ownership')][string]$AdminAggregationBoundaryGroup='All',
+    [ValidateSet('All','UnknownOutputColumn')][string]$AdminAggregationBoundaryCase='All',
+    [ValidateSet('','RedFocus','PhaseRedFocus','FeedReopen','ConnectionFailed','ConnectionSucceeded','Confirmation','ConfirmationCancelled','ResultCompleted','ResultCompletedSelectionChanged','ResultFailed','BeforeSave','AfterSave','AfterPromotion')][string]$AdminAggregationYieldGroup='',
+    [switch]$AdminAggregationSuppressPhaseRechecksForTest,
+    [switch]$AdminAggregationWriteBoundariesOnly,
+    [switch]$AdminAggregationRestartOnly,
+    [switch]$AdminAggregationCompletionOnly,
+    [switch]$AdminAggregationRecording,
+    [switch]$AdminAggregationGuideOnly,
+    [switch]$AdminAggregationOutcomeOnly,
+    [string]$AggregationOwnedFixtureRootForTest='',
+    [string]$ReceivingOwnedFixtureRootForTest='',
     [switch]$AdminTesterSetupPaths,
     [switch]$AdminTesterOwnershipPaths,
     [switch]$AdminTesterOwnershipOnly,
@@ -145,6 +176,7 @@ param(
     [switch]$AdminTesterRecording,
     [switch]$AdminTesterRecordingOnly,
     [switch]$AdminTesterGuidePaths,
+    [switch]$AdminTesterGuideOnly,
     [switch]$AdminCreateRecording,
     [switch]$AdminCreateOpeningOnly,
     [switch]$AdminCreateRecordingOnly,
@@ -348,10 +380,11 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
     $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
     $savedSeed=$AdminSeedGuideTimingOnly -and $AdminSeedGuidePaths -and $AdminSeedRecordingBoundaries -and $AdminSeedOutcomeOnly
+    $savedAggregation=$AdminAggregationRestartOnly -and $AdminAggregationOnly -and $AdminAggregationBoundaryMatrix
     $savedPrint=$RunPrintBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and $PrintSeedBoundaryForTest -cne 'BareSeed'
     $savedCheckIn=$RunCheckInActivityOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
     $savedComplete=$RunCompleteBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $RunNextBaselineOnly -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
-    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint -or $savedCheckIn -or $savedSeed)){
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint -or $savedCheckIn -or $savedSeed -or $savedAggregation)){
         throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion/Print/Check In gate.'
     }
 }
@@ -467,7 +500,7 @@ if($CheckProductionDesignerActivity){
 }
 if($CheckProductionDesignerPaths -and -not $CheckProductionDesignerActivity){throw 'Production paths require the designer gate.'}
 if($CaptureProductionDesignerPaths -and -not $CheckProductionDesignerPaths){throw 'Production captures require the path gate.'}
-if($CompileEvaluationProbesForTest -and -not ($AdminAggregationOnly -or $AdminTesterSetupOwnerOnly -or $AdminCreateWarehouseOwnerOnly -or $AdminSeedOutcomeOnly -or $AdminDirectoryColumnsOnly -or $AdminConsoleOnly -or $AdminVerifyAddinsOnly -or $AdminReconcileIdentityOnly -or $CheckAuthReadOnly -or $RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
+if($CompileEvaluationProbesForTest -and -not ($AdminInventoryEntryOnly -or $AdminAggregationOnly -or $AdminTesterSetupOwnerOnly -or $AdminCreateWarehouseOwnerOnly -or $AdminSeedOutcomeOnly -or $AdminDirectoryColumnsOnly -or $AdminConsoleOnly -or $AdminVerifyAddinsOnly -or $AdminReconcileIdentityOnly -or $CheckAuthReadOnly -or $RecordingEvaluationDiagnostic -or $CheckEvaluationVisualEvidence -or $CheckViewerPublishedRead -or $CheckAdminUomActivity -or $CheckSettingsEditorActivity -or $CheckTrackingSettings -or $CheckProductionDesignerActivity)){
     throw 'Instrumented project compilation requires a supported focused gate.'
 }
 if($TraceSettingsOpenForTest -and ($Phase -ne 'RED' -or -not $CheckTrackingSettings)) {
@@ -560,6 +593,24 @@ if($RecordingContinuationPipeName -ne ''){
     $recordingHandoff.Connect(10000)
 }
 $runRoot = Join-Path ([IO.Path]::GetTempPath()) ('invsys-config-command-' + [guid]::NewGuid().ToString('N'))
+$parentOwnedFixtureRootForTest=$AggregationOwnedFixtureRootForTest
+if($ReceivingOwnedFixtureRootForTest){
+    if($AggregationOwnedFixtureRootForTest -or -not $CheckReceivingReplay -or $AdminAggregationOnly -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){
+        throw 'Receiving parent-owned cleanup requires the isolated saved-copy B0 gate.'
+    }
+    $parentOwnedFixtureRootForTest=$ReceivingOwnedFixtureRootForTest
+}
+if($parentOwnedFixtureRootForTest){
+    if($AggregationOwnedFixtureRootForTest -and (-not $AdminAggregationOnly -or -not $AdminAggregationRestartOnly -or -not $AdminAggregationBoundaryMatrix -or $ViewerStartupPackageStateForTest -ne 'SavedCopies')){throw 'Parent-owned fixture root is restricted to the isolated saved-copy Aggregation restart gate.'}
+    $ownedRoot=[IO.Path]::GetFullPath($parentOwnedFixtureRootForTest)
+    $tempRoot=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+    if(-not [string]::Equals((Split-Path $ownedRoot -Parent),$tempRoot,[StringComparison]::OrdinalIgnoreCase) -or
+        (Split-Path $ownedRoot -Leaf) -cnotmatch '^invsys-config-command-[0-9a-f]{32}$' -or
+        -not(Test-Path -LiteralPath $ownedRoot -PathType Container) -or
+        ((Get-Item -LiteralPath $ownedRoot).Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        @(Get-ChildItem -LiteralPath $ownedRoot -Force).Count){throw 'Parent-owned restart fixture must be the exact new empty disposable folder.'}
+    $runRoot=$ownedRoot
+}
 $reportRoot = Join-Path $repo 'reports/runtime/config-commands'
 if ($CheckActivityEvidence) {
     $reportRoot = Join-Path $repo 'reports/runtime/slice4be-activity'
@@ -763,6 +814,14 @@ if($AdminAuthWriteDiagnostic -and -not $CheckAdminAuthRefresh){throw 'Auth write
 if($RequireAdminAuthWriteAuthority -and -not $AdminAuthWriteDiagnostic){throw 'Write authority assertions require the existing diagnostic cases.'}
 if($CheckAdminUsersAuthority -and -not $RequireAdminAuthWriteAuthority){throw 'Direct Core authority tests require the handler authority gate.'}
 if($CheckAdminUsersRecording -and -not $CheckAdminUsersAuthority){throw 'Recording requires the authority probe.'}
+if($AdminAggregationBoundaryGroup -ne 'All' -and (-not $AdminAggregationOnly -or -not $AdminAggregationBoundaryMatrix -or $AdminAggregationWriteBoundariesOnly -or $AdminAggregationRestartOnly -or $AdminAggregationCompletionOnly -or $AdminAggregationPathComparison)){throw 'A focused Aggregation boundary group requires its matrix and excludes other focused modes.'}
+if($AdminAggregationBoundaryCase -ne 'All' -and $AdminAggregationBoundaryGroup -ne 'Write'){throw 'The focused unknown-column case requires the Write boundary group.'}
+if($AdminAggregationYieldGroup -and (-not $AdminAggregationOnly -or -not $AdminAggregationBoundaryMatrix -or $AdminAggregationBoundaryGroup -ne 'All' -or $AdminAggregationBoundaryCase -ne 'All' -or $AdminAggregationPathComparison -or $AdminAggregationWriteBoundariesOnly -or $AdminAggregationRestartOnly -or $AdminAggregationCompletionOnly)){throw 'Named Aggregation yields require their matrix and exclude other focused modes.'}
+if($AdminAggregationSuppressPhaseRechecksForTest -and ($Phase -ne 'RED' -or $AdminAggregationYieldGroup -notin @('PhaseRedFocus','BeforeSave','AfterSave','AfterPromotion'))){throw 'The isolated missing-phase-check seam is restricted to its RED phase tests.'}
+if($AdminAggregationGuideOnly -and (-not $AdminAggregationOnly -or -not $AdminAggregationRecording)){throw 'Aggregation guides require their actual owner and recording probes.'}
+if($AdminAggregationOutcomeOnly -and (-not $AdminAggregationOnly -or -not $AdminAggregationRecording -or $AdminAggregationGuideOnly)){throw 'Aggregation outcome recording requires its owner/probes and excludes guide mode.'}
+if($AdminAggregationRecording -and (-not $AdminAggregationOnly -or $AdminAggregationYieldGroup -or $AdminAggregationBoundaryMatrix -or $AdminAggregationPathComparison -or $AdminAggregationRestartOnly -or $AdminAggregationCompletionOnly)){throw 'Aggregation recording excludes other focused modes.'}
+if($AdminTesterGuideOnly -and (-not $AdminTesterSetupOwnerOnly -or -not $AdminTesterRecording -or -not $AdminTesterRecordingOnly -or -not $AdminTesterGuidePaths)){throw 'Focused Tester guide selection requires its owner, recording-only and guide probes.'}
 if($AdminUsersRecordingOnly -and -not $CheckAdminUsersRecording){throw 'Focused recording requires its probe.'}
 if($AdminUsersGuideOnly -and (-not $CheckAdminUsersRecording -or $AdminUsersRecordingOnly)){throw 'Focused guide requires Users recording and excludes recording-only mode.'}
 if($CheckAuthReadOnly){
@@ -798,8 +857,32 @@ if($AdminTesterSetupOwnerOnly){
 }
 if($AdminAggregationOnly){
     if(-not $CompileEvaluationProbesForTest -or $AdminTesterSetupOwnerOnly -or $AdminConsoleOnly -or $CheckTrackingSettings){throw 'Aggregation requires its isolated compiled diagnostic.'}
+    if($AdminAggregationRestartOnly -and (-not $AdminAggregationBoundaryMatrix -or $ViewerStartupPackageStateForTest -ne 'SavedCopies')){throw 'Aggregation restart requires compiled saved disposable copies and actual boundary probes.'}
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-aggregation/'+[guid]::NewGuid().ToString('N'))
     Write-Output ('Aggregation evidence: '+$reportRoot)
+}
+if($AdminInventoryExactQuantityOnly -and -not $AdminInventoryEntryOnly){throw 'Exact quantity requires the isolated Inventory gate.'}
+if($AdminInventoryManagedFieldsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryExactQuantityOnly)){throw 'Managed fields require the separate isolated Inventory gate.'}
+if($AdminInventoryQuantityRetryOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly)){throw 'Quantity retry requires the separate isolated Inventory gate.'}
+if($AdminInventoryBaselineOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Baseline requires the separate isolated Inventory gate.'}
+if($AdminInventoryInputsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Input boundaries require the separate isolated Inventory gate.'}
+if($AdminInventoryCatalogOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Catalog component requires its separate Inventory gate.'}
+if($AdminInventoryCatalogRealOnly -and -not $AdminInventoryCatalogOnly){throw 'Real catalog source requires the catalog component gate.'}
+if($AdminInventorySourceOverlayForTest -and (-not $AdminInventoryEntryOnly -or $AdminInventoryCatalogOnly)){throw 'Inventory source overlays require the separate non-catalog Inventory gate.'}
+if($AdminInventoryOwnResultsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Inventory own results require their separate entry gate.'}
+if($AdminInventoryAddResultsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Add results require their separate Inventory entry gate.'}
+if($AdminInventoryDeleteResultsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Delete results require their separate Inventory entry gate.'}
+if($AdminInventoryWorksheetResultsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Worksheet results require their separate Inventory entry gate.'}
+if($AdminInventoryReadOnlyOperatorsOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryWorksheetResultsOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Readonly operator checks require their separate Inventory entry gate.'}
+if($AdminInventoryHeadlessWorksheetOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryReadOnlyOperatorsOnly -or $AdminInventoryWorksheetResultsOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Provisioned headless checks require their separate Inventory entry gate.'}
+if($AdminInventoryOverlaySourceRootForTest -and (-not $AdminInventorySourceOverlayForTest -or -not $AdminInventoryEntryOnly)){throw 'An explicit exported source root requires the isolated Inventory source-overlay gate.'}
+if($AdminInventoryImportedRowsOnly -and (-not $AdminInventoryWorksheetResultsOnly -or -not $AdminInventorySourceOverlayForTest)){throw 'Imported-row proof requires the isolated source-overlay worksheet gate.'}
+if($AdminInventoryEntryOnly){
+    if(-not $CompileEvaluationProbesForTest -or $AdminAggregationOnly -or $AdminTesterSetupOwnerOnly -or $AdminCreateWarehouseOwnerOnly -or $CheckViewerPublishedRead -or $CheckActionRecording -or $CheckTrackingSettings -or $CheckAuthReadOnly -or $CheckReceivingReplay){throw 'Inventory entry audit requires its separate compiled Ribbon/modal gate.'}
+    $reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-inventory-entry/'+[guid]::NewGuid().ToString('N'))
+    Write-Output ('Inventory entry evidence: '+$reportRoot)
+    . (Join-Path $PSScriptRoot 'Slice4beAdminInventoryEntry.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beInventoryCommandBoundaries.ps1')
 }
 if($AdminConsoleOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-console/'+[guid]::NewGuid().ToString('N'));Write-Output ('Admin Console evidence: '+$reportRoot)}
 if($AdminSeedOutcomeOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-seed-outcome/'+[guid]::NewGuid().ToString('N'));Write-Output ('Admin Seed outcome evidence: '+$reportRoot)}
@@ -862,6 +945,7 @@ public static class InvSysSettingsCapture {
     public static string[] CaptionFacts() { return captionFacts.ToArray(); }
     public delegate bool WindowCallback(IntPtr hwnd, IntPtr state);
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct MonitorInfo { public int Size; public Rect Monitor,Work; public uint Flags; }
     [StructLayout(LayoutKind.Sequential)] public struct Point { public int X,Y; }
     [StructLayout(LayoutKind.Sequential)] public struct Mouse { public int X,Y; public uint Data,Flags,Time; public UIntPtr Extra; }
     [StructLayout(LayoutKind.Sequential)] public struct Input { public uint Type; public Mouse Mouse; }
@@ -879,6 +963,9 @@ public static class InvSysSettingsCapture {
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hwnd);
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr hwnd,uint flags);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr monitor,ref MonitorInfo info);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point point);
     [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(Point point,uint flags);
     [DllImport("user32.dll",SetLastError=true)] static extern bool GetCursorPos(out Point point);
@@ -1072,6 +1159,33 @@ public static class InvSysSettingsCapture {
         }
         }
     }
+    public static bool PositionOwnedCaptureInWorkArea(IntPtr form,IntPtr excel) {
+        using(var pixels=new PhysicalPixels()) {
+        uint owner,expected;GetWindowThreadProcessId(form,out owner);GetWindowThreadProcessId(excel,out expected);
+        if(owner==0 || owner!=expected || !IsWindowVisible(form) || IsIconic(form))
+            throw new Exception("Work-area positioning requires the owned visible capture fixture.");
+        if(IsZoomed(form))return false; // Native maximize/restore is independently tested.
+        IntPtr monitor=MonitorFromWindow(form,0);
+        var info=new MonitorInfo {Size=Marshal.SizeOf(typeof(MonitorInfo))};Rect before;
+        if(monitor==IntPtr.Zero || !GetMonitorInfo(monitor,ref info) || !GetWindowRect(form,out before))
+            throw new Exception("Owned capture fixture is outside its monitor.");
+        int width=before.Right-before.Left,height=before.Bottom-before.Top;
+        if(width>info.Work.Right-info.Work.Left || height>info.Work.Bottom-info.Work.Top)
+            throw new Exception("Owned capture fixture exceeds the available work area.");
+        int left=Math.Max(info.Work.Left,Math.Min(before.Left,info.Work.Right-width));
+        int top=Math.Max(info.Work.Top,Math.Min(before.Top,info.Work.Bottom-height));
+        if(left==before.Left && top==before.Top)return false;
+        bool topmost=IsTopmost(form);
+        // Position only: preserve size, activation, owner order and topmost state.
+        if(!SetWindowPos(form,IntPtr.Zero,left,top,0,0,0x215))
+            throw new Exception("Owned capture fixture could not be positioned in its work area.");
+        Rect after;
+        if(!GetWindowRect(form,out after) || after.Right-after.Left!=width || after.Bottom-after.Top!=height ||
+           after.Left<info.Work.Left || after.Top<info.Work.Top || after.Right>info.Work.Right || after.Bottom>info.Work.Bottom || IsTopmost(form)!=topmost)
+            throw new Exception("Owned capture fixture position or size was not preserved.");
+        return true;
+        }
+    }
     public static void SaveVisibleWindow(IntPtr hwnd, string path) {
         using(var pixels=new PhysicalPixels()) {
         Rect r;
@@ -1150,6 +1264,13 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
     for($attempt=1;$attempt -le 3;$attempt++){
         $owned=[InvSysSettingsCapture]::OwnedVisibleForm($Title,[IntPtr]$excel.Hwnd).ToInt64()
         if($WindowHandle -eq 0 -or $owned -ne $WindowHandle){throw 'Requested capture does not identify a unique owned visible form.'}
+        if((Get-Variable CheckReceivingReplay -ValueOnly -ErrorAction SilentlyContinue) -eq $true){
+            $positioned=[InvSysSettingsCapture]::PositionOwnedCaptureInWorkArea([IntPtr]$WindowHandle,[IntPtr]$excel.Hwnd)
+            if($positioned){
+                [pscustomobject]@{Image=$FileName;Attempt=$attempt;PositionAdjusted=$true;SizePreserved=$true}|
+                    ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'capture-work-area-position.jsonl')
+            }
+        }
         if($GuideCaptureVisibleExcelForTest){
             $captureVisible=$excel.Visible
             if($captureVisible -isnot [bool]){throw 'Capture-time application visibility is unavailable.'}
@@ -1175,6 +1296,16 @@ function CaptureOwnedFormEvidence([string]$Title,[string]$FileName,[long]$Window
         if($clicked){Start-Sleep -Milliseconds 200}
         try {CaptureFormEvidence $Title $FileName $WindowHandle; return}
         catch {
+            if($_.Exception.GetBaseException().Message -ceq 'Requested form content is obscured.'){
+                $captureFailure=$_
+                try {
+                    # Existing native facts contain identifiers/classes/geometry only.
+                    # Preserve refusal; never publish covered pixels or retry the action.
+                    [pscustomobject]@{Image=$FileName;Attempt=$attempt;PhysicalCaptionFacts=[InvSysSettingsCapture]::CaptionFacts()}|
+                        ConvertTo-Json -Depth 3 -Compress|Add-Content (Join-Path $reportRoot 'capture-obscured-failure.jsonl')
+                }catch{}
+                throw $captureFailure
+            }
             if($_.Exception.GetBaseException().Message -cne 'Requested form is not in the foreground.'){throw}
             # Window/process identifiers and classes only; never captions or workbook values.
             $activationResult=if($null -eq $activated){'Unavailable'}else{[string]$activated}
@@ -1204,9 +1335,27 @@ function Wait-ExcelReadyForTest([string]$Macro) {
     throw 'Excel readiness remained unavailable or busy; macro was not dispatched.'
 }
 function Run([string]$Package,[string]$Macro,[object[]]$Values=@()) {
-    if($DesktopMonitorReport -and (Test-Path -LiteralPath $DesktopMonitorReport)){
-        $desktop=(Get-Content -LiteralPath $DesktopMonitorReport -Raw|ConvertFrom-Json)
+    if($DesktopMonitorReport){
+        # Only the report read may retry during atomic replacement; the requested
+        # macro remains undispatched until a fresh complete snapshot is checked.
+        $desktop=$null
+        for($monitorRead=1;$monitorRead -le 5;$monitorRead++){
+            try{
+                $monitorStream=[IO.File]::Open($DesktopMonitorReport,[IO.FileMode]::Open,[IO.FileAccess]::Read,([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+                $monitorReader=[IO.StreamReader]::new($monitorStream)
+                try{$desktop=($monitorReader.ReadToEnd()|ConvertFrom-Json)}finally{$monitorReader.Dispose()}
+                break
+            }catch{
+                $native=$_.Exception.GetBaseException()
+                if($native -isnot [IO.IOException] -or $monitorRead -eq 5){throw 'Desktop monitor could not be read; no further macro was dispatched.'}
+                Start-Sleep -Milliseconds 20
+            }
+        }
+        if($desktop.PSObject.Properties['UTC'] -and ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($desktop.UTC)).TotalSeconds -gt 10){throw 'Desktop monitor heartbeat is stale; no further macro was dispatched.'}
         if($desktop.Error5Samples -gt 0){throw 'Desktop Win32 error5 observed; user requires stopping this test.'}
+        foreach($stopField in @('LockSamples','MouseLockSamples')){
+            if($desktop.PSObject.Properties[$stopField] -and $desktop.$stopField -gt 0){throw 'The interactive desktop stopped receiving input or the mouse is confined; no further macro was dispatched.'}
+        }
     }
     $resourceBoundary=$Macro
     if($TraceGuideResourcesForTest){
@@ -1361,7 +1510,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($AdminTesterGuidePaths -or $AdminCreateGuidePaths -or $AdminWarehouseRootGuidePaths -or $AdminDirectoryGuidePaths -or $AdminReconcileLocalDiagnostic -or $AdminSeedGuidePaths -or $AdminUsersGuideOnly -or $AdminConsoleGuidePaths -or $AdminVerifyGuidePaths -or $AdminReconcileGuidePaths -or $RunScalePathsForTest -or $CheckGeneralSettingsRecorded -or $RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+    if($AdminAggregationGuideOnly -or $AdminTesterGuidePaths -or $AdminCreateGuidePaths -or $AdminWarehouseRootGuidePaths -or $AdminDirectoryGuidePaths -or $AdminReconcileLocalDiagnostic -or $AdminSeedGuidePaths -or $AdminUsersGuideOnly -or $AdminConsoleGuidePaths -or $AdminVerifyGuidePaths -or $AdminReconcileGuidePaths -or $RunScalePathsForTest -or $CheckGeneralSettingsRecorded -or $RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -2057,10 +2206,87 @@ End Function
     if($AdminAggregationOnly){
         . (Join-Path $PSScriptRoot 'Slice4beAdminAggregation.ps1')
         Install-AdminAggregationProbe
+        if($AdminAggregationRecording){
+            . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationRecording.ps1')
+            Install-AggregationRecordingProbe
+            if($AdminAggregationGuideOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beAdminVerifyGuide.ps1')
+                Install-AdminVerifyGuideProbe
+            }
+        }
+        if($AdminAggregationBoundaryMatrix){
+            . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationBoundaries.ps1')
+            Install-AggregationBoundaryProbe
+        }
+        if($AdminAggregationYieldGroup){
+            . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationYields.ps1')
+            Install-AggregationYieldProbe
+            if($AdminAggregationYieldGroup -eq 'FeedReopen'){
+                . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationFeedReopen.ps1')
+                Install-AggregationFeedReopenProbe
+            }
+        }
         . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
         Compile-Slice4beEvaluationProbes
     }
+    if($AdminInventoryEntryOnly){
+        if($AdminInventorySourceOverlayForTest){
+            . (Join-Path $PSScriptRoot 'Slice4beInventorySourceOverlay.ps1')
+            Install-InventorySourceOverlay
+        }
+        Install-AdminInventoryEntryProbe
+        if($AdminInventoryHeadlessWorksheetOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryHeadlessWorksheet.ps1')
+            Install-InventoryHeadlessWorksheetProbe
+        }
+        if($AdminInventoryReadOnlyOperatorsOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryReadOnlyOperators.ps1')
+            Install-InventoryReadOnlyOperatorProbe
+        }
+        if($AdminInventoryWorksheetResultsOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryWorksheetResults.ps1')
+            Install-InventoryWorksheetResultProbe
+            if($AdminInventoryImportedRowsOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryImportedRows.ps1')
+                Install-InventoryImportedRowsProbe
+            }
+        }
+        if($AdminInventoryDeleteResultsOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryDeleteResults.ps1')
+            Install-InventoryDeleteResultProbe
+        }
+        if($AdminInventoryAddResultsOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryAddResults.ps1')
+            Install-InventoryAddResultProbe
+        }
+        if($AdminInventoryOwnResultsOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryOwnResults.ps1')
+            Install-InventoryOwnResultProbe
+        }
+        if($AdminInventoryCatalogOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryCatalogPhase.ps1')
+            Install-InventoryCatalogPhaseProbe
+            if($AdminInventoryCatalogRealOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryCatalogReal.ps1')
+                Install-InventoryCatalogRealProbe
+            }
+        }
+        . (Join-Path $PSScriptRoot 'Slice4beEvaluationNativeTrace.ps1')
+        Compile-Slice4beEvaluationProbes
+        $noForms=[long](Run 'invSys.Admin.xlam' 'TestD5Commands.LoadedFormsForTest') -eq 0
+        Check 'Harness.InventoryEntryProbesInstalledBeforeForms' $noForms
+        if(-not $noForms){throw 'Inventory entry probes must precede forms; not product RED.'}
+    }
     $templateRoot=Join-Path $repo 'deploy/current/templates'
+    if($AdminAggregationRestartOnly){
+        . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationRestart.ps1')
+        . (Join-Path $PSScriptRoot 'Slice4beProbePackages.ps1')
+        Save-DisposableStartupProbes $packages $probeDeploy 'SavedCopies'
+    }
+    if($AdminAggregationCompletionOnly){
+        . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationCompletion.ps1')
+        . (Join-Path $PSScriptRoot 'Slice4beAdminAggregationIntegrity.ps1')
+    }
     if($CheckReceivingReplay){$templateRoot=Join-Path $inputDeploy 'templates'}
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @($templateRoot))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
@@ -2259,7 +2485,59 @@ End Function
         if($AdminTesterRecording){Test-AdminTesterRecording $a $b}
     }
     if($AdminAggregationOnly){$step='packaged Aggregation authority and workbook diagnostic'; Test-AdminAggregation $a $b}
-    if(-not $AdminAggregationOnly -and -not $AdminTesterSetupOwnerOnly -and -not $AdminCreateWarehouseOwnerOnly -and -not $AdminSeedOutcomeOnly -and -not $AdminDirectoryColumnsOnly -and -not $AdminConsoleOnly -and -not $AdminVerifyAddinsOnly -and -not $AdminReconcileIdentityOnly -and -not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead -and $PrintSeedBoundaryForTest -notin @('FreshSeed','BareSeed')) {
+    if($AdminInventoryEntryOnly){
+        if($AdminInventoryHeadlessWorksheetOnly){
+            $step='explicit provisioned headless worksheet service authorization'
+            Test-InventoryHeadlessWorksheet $a $b
+        }elseif($AdminInventoryReadOnlyOperatorsOnly){
+            $step='actual readonly operator refusal before buffer mutation'
+            Test-InventoryReadOnlyOperators $a $b
+        }elseif($AdminInventoryWorksheetResultsOnly){
+            $step='actual worksheet Upload source and result save retry boundaries'
+            if($AdminInventoryImportedRowsOnly){
+                $step='actual Upload independent imported ADD receipt proof and whole-selection refusal'
+                Test-InventoryImportedRows $a $b
+            }else{Test-InventoryWorksheetResults $a $b}
+        }elseif($AdminInventoryDeleteResultsOnly){
+            $step='actual Delete handler exact all-active retirement and processor return'
+            Test-InventoryDeleteResults $a $b
+        }elseif($AdminInventoryAddResultsOnly){
+            $step='actual Add handler exact saved result and processor return'
+            Test-InventoryAddResults $a $b
+        }elseif($AdminInventoryOwnResultsOnly){
+            $step='actual Edit handler own-result continuation and processor return'
+            Test-InventoryOwnResults $a $b
+        }elseif($AdminInventoryCatalogOnly){
+            $step='source catalog component on generated fixture; no XLAM build'
+            if($AdminInventoryCatalogRealOnly){Test-InventoryCatalogReal $a}else{Test-InventoryCatalogPhase $a}
+        }elseif($AdminInventoryInputsOnly){
+            $step='Inventory captured inputs and authorized controls'
+            SelectTarget $a
+            $seed=[string](Run 'invSys.Admin.xlam' 'modAdminConsole.SeedDemoInventoryForAutomation' @($a.Warehouse,'S1','config-admin'))
+            Check 'InventoryInputs.GeneratedFixtureSeedApplied' $seed.StartsWith('OK|')
+            if(-not $seed.StartsWith('OK|')){throw 'Input boundary fixture unavailable; not product RED.'}
+            Test-InventoryCommandBoundaries $a $b -InputCasesOnly
+            Test-InventoryReplacementBoundaries $a $b
+        }elseif($AdminInventoryBaselineOnly){
+            $step='retained Inventory Ribbon modal entry and Config diagnosis'; Test-AdminInventoryEntry $a $b
+            Test-InventoryConfigDiagnosticPreservation
+        }elseif($AdminInventoryQuantityRetryOnly){
+            $step='Inventory exact queued quantity retry'; Test-InventoryExactQuantity $a $b -RetryQueued
+        }elseif($AdminInventoryManagedFieldsOnly){
+            $step='Inventory reserved managed fields through real handlers'; Test-InventoryManagedFields $a $b
+        }else{
+        if(-not $AdminInventoryExactQuantityOnly){
+            $step='packaged Add/Edit Inventory Ribbon and modal entry audit'; Test-AdminInventoryEntry $a $b
+            $step='approved Inventory modal and worksheet authority boundaries'; Test-InventoryCommandBoundaries $a $b
+            $step='read-only Config diagnosis preservation'; Test-InventoryConfigDiagnosticPreservation
+            $step='Inventory source catalog entity table replacement and remaining prompts'; Test-InventoryReplacementBoundaries $a $b
+        }
+        $step='exact generated entity Edit target quantity'; Test-InventoryExactQuantity $a $b
+        if(-not $AdminInventoryExactQuantityOnly){$step='Inventory reserved managed fields through real handlers'; Test-InventoryManagedFields $a $b}
+        if(-not $AdminInventoryExactQuantityOnly){$step='Inventory exact queued quantity retry'; Test-InventoryExactQuantity $a $b -RetryQueued}
+        }
+    }
+    if(-not $AdminInventoryEntryOnly -and -not $AdminAggregationOnly -and -not $AdminTesterSetupOwnerOnly -and -not $AdminCreateWarehouseOwnerOnly -and -not $AdminSeedOutcomeOnly -and -not $AdminDirectoryColumnsOnly -and -not $AdminConsoleOnly -and -not $AdminVerifyAddinsOnly -and -not $AdminReconcileIdentityOnly -and -not $AdminSettingsCloseOnly -and -not $CheckViewerRefreshFailure -and -not $CheckViewerEventDetail -and -not $CheckViewerEventGroups -and -not $CheckViewerPublishedRead -and $PrintSeedBoundaryForTest -notin @('FreshSeed','BareSeed')) {
     $step='unauthenticated command'
     [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
     $before=(Get-FileHash -LiteralPath $a.Config).Hash
@@ -2649,6 +2927,9 @@ finally {
     if($RecordingEvaluationDiagnostic){$reportName='diagnostic-evaluation-'+$reportName}
     Complete-ResultEvidence (Join-Path $reportRoot $reportName) {
         # Runtime credentials stay only in disposable generated authority fixtures.
+        # Restart package references can retain file locks until this worker exits;
+        # the parent removes only its exact pre-created folder after confirmed exit.
+        if($parentOwnedFixtureRootForTest){return}
         $resolved=[IO.Path]::GetFullPath($runRoot)
         $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
         if(-not $recordingFixtureTransferred -and $resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {

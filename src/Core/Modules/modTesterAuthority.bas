@@ -2,7 +2,7 @@ Attribute VB_Name = "modTesterAuthority"
 Option Explicit
 Option Private Module
 
-Private mForms As Object
+Private mTesterForms As cCapturedFormStore
 
 ' A primitive handle retains the actual source workbook in its owning Core project.
 Public Function Capture(Optional ByVal workbookName As String = "") As String
@@ -21,21 +21,21 @@ Public Function Capture(Optional ByVal workbookName As String = "") As String
     entry.Add "SourceRoot", target.RuntimeRoot
     entry.Add "CreatorUser", modAuth.GetCurrentUserId()
     entry.Add "CreatorGeneration", modAuthSession.Version()
-    If mForms Is Nothing Then Set mForms = CreateObject("Scripting.Dictionary")
+    If mTesterForms Is Nothing Then Set mTesterForms = New cCapturedFormStore
     key = modSystemIdentity.NewId()
-    mForms.Add key, entry
+    mTesterForms.Add key, entry
     Capture = key
 Failed:
 End Function
 
 Public Sub Release(ByVal key As String)
-    If mForms Is Nothing Then Exit Sub
-    If mForms.Exists(key) Then mForms.Remove key
+    If mTesterForms Is Nothing Then Exit Sub
+    mTesterForms.Remove key
 End Sub
 
 Public Function Entry(ByVal key As String) As Object
-    If mForms Is Nothing Then Exit Function
-    If mForms.Exists(key) Then Set Entry = mForms(key)
+    If mTesterForms Is Nothing Then Exit Function
+    Set Entry = mTesterForms.Item(key)
 End Function
 
 Public Function Check(ByVal key As String, Optional ByVal provisioningRoot As String = "") As Boolean

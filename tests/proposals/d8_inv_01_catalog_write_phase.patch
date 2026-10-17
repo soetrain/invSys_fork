@@ -1,0 +1,198 @@
+--- a/src/Admin/Modules/modAdmin.bas
++++ b/src/Admin/Modules/modAdmin.bas
+@@ -566,7 +566,7 @@
+                                                                      formDescription, formVendorName, _
+                                                                      formVendorCode, formCategory, _
+                                                                      formExternalCode, formImagePath, _
+-                                                                     formCustomFields, report)
++                                                                     formCustomFields, report, interactiveContext)
+             If actionSucceeded And Not IsNonCountedCustomFieldsAdmin(formCustomFields) Then
+                 Dim qtyReport As String
+                 If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, formSku, _
+@@ -1054,13 +1054,15 @@
+                                                        Optional ByVal externalCode As String = "", _
+                                                        Optional ByVal imagePath As String = "", _
+                                                        Optional ByVal customFields As Object = Nothing, _
+-                                                       Optional ByRef report As String = "") As Boolean
++                                                       Optional ByRef report As String = "", _
++                                                       Optional ByVal interactiveContext As String = "") As Boolean
+     Dim path As String
+     Dim wb As Workbook
+     Dim openedHere As Boolean
+     Dim lo As ListObject
+     Dim rowIndex As Long
+     Dim customKey As Variant
++    Dim cleanupReport As String, catalogConfirmed As Boolean
+ 
+     On Error GoTo FailUpdate
+ 
+@@ -1073,6 +1075,10 @@
+     If sku = "" Then report = "SKU is required.": Exit Function
+     If itemName = "" Then report = "Item name is required.": Exit Function
+     If uom = "" Then report = "UOM is required.": Exit Function
++
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.BeginCatalog(interactiveContext, sku, report) Then Exit Function
++    End If
+ 
+     path = modProcessor.ResolveInventoryWorkbookPathForAutomation(warehouseId)
+     If path = "" Then report = "Inventory workbook path could not be resolved for " & warehouseId & ".": Exit Function
+@@ -1086,6 +1092,9 @@
+         Set wb = Application.Workbooks.Open(path, UpdateLinks:=False, ReadOnly:=False, AddToMru:=False)
+         openedHere = True
+     End If
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.BindCatalogWriter(interactiveContext, wb.Name, report) Then GoTo CleanExit
++    End If
+     If wb.ReadOnly Then
+         report = "Inventory workbook is open read-only. Close other copies and try again."
+         GoTo CleanExit
+@@ -1102,30 +1111,43 @@
+         GoTo CleanExit
+     End If
+ 
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
++    End If
+     SetSheetProtectionAdminLocal lo.Parent, False
+-    SetCatalogValueAdmin lo, rowIndex, "ITEM_CODE", sku
+-    SetCatalogValueAdmin lo, rowIndex, "ITEM", itemName
+-    SetCatalogValueAdmin lo, rowIndex, "UOM", uom
+-    SetCatalogValueAdmin lo, rowIndex, "LOCATION", locationVal
+-    SetCatalogValueAdmin lo, rowIndex, "DESCRIPTION", description
+-    SetCatalogValueAdmin lo, rowIndex, "VENDOR(s)", vendorName
+-    SetCatalogValueAdmin lo, rowIndex, "VENDOR_CODE", vendorCode
+-    SetCatalogValueAdmin lo, rowIndex, "CATEGORY", category
+-    SetCatalogValueAdmin lo, rowIndex, "EXTERNAL_CODE", externalCode
+-    SetPictureReferencesInCatalogAdmin lo, rowIndex, imagePath
++    SetCatalogValueAdmin lo, rowIndex, "ITEM_CODE", sku, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "ITEM", itemName, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "UOM", uom, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "LOCATION", locationVal, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "DESCRIPTION", description, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "VENDOR(s)", vendorName, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "VENDOR_CODE", vendorCode, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "CATEGORY", category, interactiveContext
++    SetCatalogValueAdmin lo, rowIndex, "EXTERNAL_CODE", externalCode, interactiveContext
++    SetPictureReferencesInCatalogAdmin lo, rowIndex, imagePath, interactiveContext
+     If Not customFields Is Nothing Then
+         For Each customKey In customFields.Keys
+             If Trim$(CStr(customKey)) <> "" Then
+                 If StrComp(Trim$(CStr(customKey)), "EDIT_HISTORY_APPEND", vbTextCompare) = 0 Then
+-                    AppendCatalogEditHistoryAdmin lo, rowIndex, CStr(customFields(customKey))
++                    AppendCatalogEditHistoryAdmin lo, rowIndex, CStr(customFields(customKey)), interactiveContext
+                 Else
+-                    SetCatalogValueAdmin lo, rowIndex, Trim$(CStr(customKey)), customFields(customKey)
++                    SetCatalogValueAdmin lo, rowIndex, Trim$(CStr(customKey)), customFields(customKey), interactiveContext
+                 End If
+             End If
+         Next customKey
+     End If
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
++    End If
+     SetSheetProtectionAdminLocal lo.Parent, True
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.BeginCatalogSave(interactiveContext, report) Then GoTo CleanExit
++    End If
+     wb.Save
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.ConfirmCatalog(interactiveContext, report) Then GoTo CleanExit
++    End If
++    catalogConfirmed = True
+ 
+     report = "Inventory item updated." & vbCrLf & _
+              "Warehouse: " & warehouseId & vbCrLf & _
+@@ -1136,7 +1158,13 @@
+ 
+ CleanExit:
+     On Error Resume Next
+-    If Not lo Is Nothing Then SetSheetProtectionAdminLocal lo.Parent, True
++    If Not lo Is Nothing And Not catalogConfirmed Then
++        If interactiveContext = "" Then
++            SetSheetProtectionAdminLocal lo.Parent, True
++        ElseIf modInventoryCommands.CheckForm(interactiveContext, cleanupReport) Then
++            SetSheetProtectionAdminLocal lo.Parent, True
++        End If
++    End If
+     If openedHere And Not wb Is Nothing Then wb.Close SaveChanges:=False
+     On Error GoTo 0
+     Exit Function
+@@ -1146,7 +1174,8 @@
+     Resume CleanExit
+ End Function
+ 
+-Private Sub AppendCatalogEditHistoryAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal entryText As String)
++Private Sub AppendCatalogEditHistoryAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal entryText As String, _
++                                                Optional ByVal interactiveContext As String = "")
+     Dim existingText As String
+ 
+     entryText = Trim$(entryText)
+@@ -1154,9 +1183,9 @@
+ 
+     existingText = CatalogCellAdmin(lo, rowIndex, "EDIT_HISTORY")
+     If existingText <> "" Then
+-        SetCatalogValueAdmin lo, rowIndex, "EDIT_HISTORY", existingText & vbLf & entryText
++        SetCatalogValueAdmin lo, rowIndex, "EDIT_HISTORY", existingText & vbLf & entryText, interactiveContext
+     Else
+-        SetCatalogValueAdmin lo, rowIndex, "EDIT_HISTORY", entryText
++        SetCatalogValueAdmin lo, rowIndex, "EDIT_HISTORY", entryText, interactiveContext
+     End If
+ End Sub
+ 
+@@ -1626,15 +1655,23 @@
+     CatalogCellAdmin = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, idx).Value))
+ End Function
+ 
+-Private Sub SetCatalogValueAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant)
+-    Dim idx As Long
++Private Sub SetCatalogValueAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal valueIn As Variant, _
++                                 Optional ByVal interactiveContext As String = "")
++    Dim idx As Long, report As String
+ 
+     If lo Is Nothing Then Exit Sub
+     If rowIndex <= 0 Then Exit Sub
+     columnName = NormalizeCatalogColumnNameAdmin(columnName)
+     If columnName = "" Then Exit Sub
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.PlanCatalogField(interactiveContext, CatalogCellAdmin(lo, rowIndex, "SKU"), _
++                columnName, CStr(valueIn), report) Then Err.Raise vbObjectError + 2214, , report
++    End If
+     idx = EnsureCatalogColumnAdmin(lo, columnName)
+     If idx = 0 Then Exit Sub
++    If interactiveContext <> "" Then
++        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Err.Raise vbObjectError + 2214, , report
++    End If
+     lo.DataBodyRange.Cells(rowIndex, idx).Value = valueIn
+ End Sub
+ 
+@@ -1689,23 +1726,24 @@
+     Next i
+ End Sub
+ 
+-Private Sub SetPictureReferencesInCatalogAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal imagePath As String)
++Private Sub SetPictureReferencesInCatalogAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal imagePath As String, _
++                                                Optional ByVal interactiveContext As String = "")
+     Dim refs As Collection
+     Dim i As Long
+     Dim columnName As String
+ 
+     Set refs = ParsePictureReferencesAdmin(imagePath)
+     If refs.Count > 0 Then
+-        SetCatalogValueAdmin lo, rowIndex, "IMAGE_PATH", refs(1)
++        SetCatalogValueAdmin lo, rowIndex, "IMAGE_PATH", refs(1), interactiveContext
+     Else
+-        SetCatalogValueAdmin lo, rowIndex, "IMAGE_PATH", ""
++        SetCatalogValueAdmin lo, rowIndex, "IMAGE_PATH", "", interactiveContext
+     End If
+     For i = 2 To 12
+         columnName = "IMAGE_PATH_" & CStr(i)
+         If i <= refs.Count Then
+-            SetCatalogValueAdmin lo, rowIndex, columnName, refs(i)
++            SetCatalogValueAdmin lo, rowIndex, columnName, refs(i), interactiveContext
+         ElseIf ColumnIndexAdminLocal(lo, columnName) > 0 Then
+-            SetCatalogValueAdmin lo, rowIndex, columnName, ""
++            SetCatalogValueAdmin lo, rowIndex, columnName, "", interactiveContext
+         End If
+     Next i
+ End Sub

@@ -1,5 +1,25 @@
 # Slice 4be.4 recording lifecycle
 
+## Current recording02 regression qualified
+
+Last verified2026-10-15 Pacific. Unchanged source1c9bff87/recording02 passes80/80
+with two original-size reviewed captures. Published reads, malformed publication
+handling, recording policy/control gates, start/stop/cancel, immutable sequence
+history, incomplete closure on policy/viewer/sign-out changes, storage-failure
+honesty and ordinary-user ownership pass. Five packages/all484 tooling pins,
+settings/fixture cleanup and normal worker/Excel/controller/monitor closure pass;
+delayed native audit through23:44:34.0908423Z finds zero Excel failures. No desktop
+stop occurs. This is a current shared regression, not comprehensive4be-A acceptance.
+
+Controller `shared-recording02-current-controller/a0a0b0d34f2945d1a13c060a857c55d4`,
+worker `slice4be-viewer-published-read/871d6ed6b60b42a3b32ebf319739bb92`, owned
+entry `resume-d8-agg-01/lifecycle-recording02-published-entry-112`, test commita990b687.
+Initial entry99 refuses the compile-option combination before Excel or any
+behavioral check. Fresh112 explicitly supplies `-CheckViewerPublishedRead`, which
+recording already implies later in setup; no product or assertion changes. Entry99
+is invocation-precondition evidence, not RED. Tester127/Settings202/Receiving121
+stand; Release1 fixture conformance and remaining control coverage keep4be-A open.
+
 Last verified 2026-09-14. Architecture v4.11 D18 and Plan022 govern the explicit
 actor/warehouse sequence, immutable observations and advisory conclusions.
 Slice4be and full Release1 acceptance remain open.

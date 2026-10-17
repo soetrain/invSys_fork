@@ -869,66 +869,40 @@ Public Function RunHQAggregationFromAdmin(Optional ByVal adminUserId As String =
                                           Optional ByVal warehouseId As String = "", _
                                           Optional ByVal adminWb As Workbook = Nothing, _
                                           Optional ByRef report As String = "") As Boolean
-    On Error GoTo FailAggregate
-
-    Dim resolvedUser As String
-    Dim resolvedWh As String
-    Dim resolvedSt As String
-    Dim sharePointRoot As String
-    Dim outputPath As String
-    Dim aggregateReport As String
-    Dim refreshReport As String
-    Dim snapshotCount As Long
-    Dim auditWb As Workbook
-
+    Dim auditWb As Workbook, context As String, identity() As String
+    Dim roots As Collection, records As Collection, selected As New Collection
+    Dim root As Variant, item As Variant, fields() As String, discoveryReport As String, feed As String
+    On Error GoTo Failed
     Set auditWb = ResolveAdminWorkbook(adminWb)
-    If auditWb Is Nothing Then
-        report = "Admin workbook not resolved."
-        Exit Function
-    End If
-    If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
-    If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
-
-    sharePointRoot = SafeTrimAdmin(modConfig.GetString("PathSharePointRoot", ""))
-    If sharePointRoot = "" Then
-        report = "Aggregator setup is incomplete: PathSharePointRoot is blank for warehouse " & resolvedWh & "."
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", "", "PathSharePointRoot required", report, "SKIP"
-        Exit Function
-    End If
-
-    snapshotCount = CountPublishedInventorySnapshotsAdmin(sharePointRoot)
-    If snapshotCount = 0 Then
-        report = "No published warehouse inventory snapshots were found under " & _
-                 sharePointRoot & "\\Snapshots."
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", sharePointRoot, "Published snapshots required", report, "SKIP"
-        Exit Function
-    End If
-
-    outputPath = sharePointRoot & "\\Global\\invSys.Global.InventorySnapshot.xlsb"
-    If modHqAggregator.RunHQAggregation(sharePointRoot, outputPath, aggregateReport) Then
-        report = "Published snapshots read: " & CStr(snapshotCount) & ". " & _
-                 "Advisory global snapshot: " & outputPath & ". " & aggregateReport
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Manual Admin command", report, "OK"
-        Call RefreshAdminConsole(auditWb, refreshReport)
-        RunHQAggregationFromAdmin = True
-    Else
-        report = "Aggregator failed. " & aggregateReport
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Manual Admin command", report, "FAIL"
-    End If
+    If auditWb Is Nothing Then GoTo Failed
+    context = modAggregationCommands.CaptureForm(auditWb.Name)
+    If context = "" Then GoTo Failed
+    identity = Split(modAggregationCommands.AuditIdentity(context), vbTab)
+    If UBound(identity) <> 2 Then GoTo Failed
+    If adminUserId <> "" And adminUserId <> identity(0) Then GoTo Failed
+    If warehouseId <> "" And warehouseId <> identity(1) Then GoTo Failed
+    feed = NormalizePathAdmin(modConfig.GetString("PathSharePointRoot", ""))
+    Set roots = modNasConnection.GetKnownWarehouseTargetRoots()
+    For Each root In roots
+        If Not modAggregationCommands.CheckForm(context) Then GoTo Failed
+        If Not DiscoverAggregationSourcesForAdmin(CStr(root), records, discoveryReport) Then GoTo Failed
+        If Not modAggregationCommands.CheckForm(context) Then GoTo Failed
+        For Each item In records
+            fields = Split(CStr(item), vbTab)
+            If UBound(fields) < 5 Then GoTo Failed
+            If StrComp(NormalizePathAdmin(CreateObject("Scripting.FileSystemObject").GetParentFolderName(fields(2))), feed & "\Snapshots", vbTextCompare) = 0 Then
+                If modAggregationCommands.RegisterSource(context, fields(0), fields(5), fields(2)) = "" Then GoTo Failed
+                selected.Add fields(2)
+            End If
+        Next item
+    Next root
+    If selected.Count <> CountPublishedInventorySnapshotsAdmin(feed) Then GoTo Failed
+    RunHQAggregationFromAdmin = RunHQAggregationFromSourceSet(selected, adminUserId, warehouseId, auditWb, report, context)
+    modAggregationCommands.ReleaseForm context
     Exit Function
-
-FailAggregate:
-    report = "RunHQAggregationFromAdmin failed: " & Err.Description
-    On Error Resume Next
-    If Not auditWb Is Nothing Then
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", "", "Manual Admin command", report, "FAIL"
-    End If
-    On Error GoTo 0
+Failed:
+    report = "Manual aggregation was refused. Sign in to the source warehouse and refresh the published source selection."
+    modAggregationCommands.ReleaseForm context
 End Function
 
 ' Discovers published inventory snapshots below one already authenticated NAS
@@ -985,7 +959,7 @@ Public Function DiscoverAggregationSourcesForAdmin(ByVal serverRoot As String, _
                 seenWarehouse.Add warehouseId, sourcePath
                 freshness = Format$(fso.GetFile(sourcePath).DateLastModified, "yyyy-mm-dd hh:nn:ss")
                 fingerprint = SnapshotFingerprintAdmin(fso.GetFile(sourcePath))
-                sourceRecords.Add warehouseId & vbTab & serverRoot & vbTab & sourcePath & vbTab & freshness & vbTab & fingerprint
+                sourceRecords.Add warehouseId & vbTab & serverRoot & vbTab & sourcePath & vbTab & freshness & vbTab & fingerprint & vbTab & CStr(configPath)
             End If
         End If
     Next configPath
@@ -1024,54 +998,37 @@ Public Function RunHQAggregationFromSourceSet(ByVal sourceFiles As Collection, _
                                               Optional ByVal adminUserId As String = "", _
                                               Optional ByVal warehouseId As String = "", _
                                               Optional ByVal adminWb As Workbook = Nothing, _
-                                              Optional ByRef report As String = "") As Boolean
-    Dim resolvedUser As String
-    Dim resolvedWh As String
-    Dim resolvedSt As String
-    Dim sharePointRoot As String
-    Dim outputPath As String
-    Dim aggregateReport As String
-    Dim refreshReport As String
-    Dim auditWb As Workbook
-    Dim validatedFiles As Collection
-    Dim validationReport As String
-
-    On Error GoTo FailAggregate
-
+                                              Optional ByRef report As String = "", _
+                                              Optional ByVal sourceContext As String = "", Optional ByRef outcome As String = "") As Boolean
+    Dim auditWb As Workbook, identity() As String, paths As String, savedOutput As Boolean
+    On Error GoTo Failed
+    report = "Source context changed. Reopen Aggregation and refresh the selected sources.": outcome = "DENIED"
+    If adminWb Is Nothing Or sourceContext = "" Then Exit Function
+    paths = SerializeAggregationSourceFilesAdmin(sourceFiles)
+    If Not modAggregationCommands.CheckForm(sourceContext, paths) Then Exit Function
+    If adminWb.Name <> modAggregationCommands.BoundWorkbookName(sourceContext) Then Exit Function
     Set auditWb = ResolveAdminWorkbook(adminWb)
-    If auditWb Is Nothing Then
-        report = "Admin workbook not resolved."
-        Exit Function
-    End If
-    If Not EnsureAdminContext(adminUserId, warehouseId, resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
-    If Not RequireAdminMaintenance(resolvedUser, resolvedWh, resolvedSt, report) Then Exit Function
-    If Not ValidateAggregationSourceFilesAdmin(sourceFiles, validatedFiles, validationReport) Then
-        report = validationReport
-        Exit Function
-    End If
-
-    sharePointRoot = SafeTrimAdmin(modConfig.GetString("PathSharePointRoot", ""))
-    If sharePointRoot = "" Then
-        report = "Aggregator setup is incomplete: PathSharePointRoot is blank for warehouse " & resolvedWh & "."
-        Exit Function
-    End If
-    outputPath = sharePointRoot & "\\Global\\invSys.Global.InventorySnapshot.xlsb"
-
-    If modHqAggregator.GenerateGlobalSnapshotFromFiles(SerializeAggregationSourceFilesAdmin(validatedFiles), outputPath, aggregateReport) Then
-        report = "Selected sources read: " & CStr(validatedFiles.Count) & ". Advisory global snapshot: " & outputPath & ". " & aggregateReport
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Explicit source set count=" & CStr(validatedFiles.Count), "Aggregation completed", "OK"
-        Call RefreshAdminConsole(auditWb, refreshReport)
+    identity = Split(modAggregationCommands.AuditIdentity(sourceContext), vbTab)
+    If UBound(identity) <> 2 Then Exit Function
+    If adminUserId <> "" And adminUserId <> identity(0) Then Exit Function
+    If warehouseId <> "" And warehouseId <> identity(1) Then Exit Function
+    savedOutput = modAggregationCommands.Aggregate(sourceContext, paths, report, outcome)
+    If savedOutput Then
+        If Not modAggregationCommands.CheckForm(sourceContext, paths) Then
+            report = "Complete output was saved. Source context changed; reopen Aggregation.": outcome = "COMPLETED_STOPPED"
+            Exit Function
+        End If
+        AppendAuditEntry auditWb, "HQ_AGGREGATE", identity(0), identity(1), identity(2), _
+                         "ADVISORY_GLOBAL_SNAPSHOT", "", "Selected source count=" & CStr(sourceFiles.Count), "Complete output saved", "OK"
         RunHQAggregationFromSourceSet = True
-    Else
-        report = "Aggregator failed. " & aggregateReport
-        AppendAuditEntry auditWb, "HQ_AGGREGATE", resolvedUser, resolvedWh, resolvedSt, _
-                         "ADVISORY_GLOBAL_SNAPSHOT", outputPath, "Explicit source set count=" & CStr(validatedFiles.Count), "Aggregation failed", "FAIL"
     End If
     Exit Function
-
-FailAggregate:
-    report = "RunHQAggregationFromSourceSet failed: " & Err.Description
+Failed:
+    If savedOutput Then
+        report = "Complete output was saved, but the workbook audit could not be updated.": outcome = "COMPLETED_STOPPED"
+    Else
+        report = "Aggregation did not complete. Review the output and retained attempt before retrying.": outcome = "FAILED"
+    End If
 End Function
 
 Private Function ValidateAggregationSourceFilesAdmin(ByVal sourceFiles As Collection, _

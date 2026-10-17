@@ -1,5 +1,63 @@
 # Slice 4be.2 Event Tracking Settings
 
+## Current recording02 shared regression qualified
+
+Last verified2026-10-15 Pacific. Unchanged source1c9bff87/recording02 passes202/202
+in trial110 with ten images reviewed at original size, including Operations native
+maximize/restore. Exact retention preserves the28 original catalog-attempt checks
+and all190 passing capture-attempt checks in order. Earlier98 remains27/2 and109
+remains190/1; neither is relabeled GREEN. Test commita990b687 adds only the explicit
+catalog43/186 expectation alongside retained41/172 and42/179 mappings.
+
+Controller `shared-recording02-current-controller/9a4ef0a823d847638047736ad8472a14`,
+worker `slice4be-tracking-settings/7ff57c2dc58f4d5c800485522d79e3b4`, owned entry
+`resume-d8-agg-01/settings-recording02-taskbar-entry-110`. Policy/detail-profile
+validation and versioning, real save/reload/reset actions, cancelled save,
+authorization/context refusal, Config/unknown-column preservation, personal
+preference restart/isolation, Operations-only Settings and Admin close pass.
+All five packages/all484 tooling pins, settings and fixture cleanup are preserved.
+Normal worker/Excel/controller/monitor closure and zero delayed native failures
+qualify through23:34:52.4228054Z, without a desktop stop. The temporary taskbar
+scope restores original state1 and records exit0. Product and capture guards are
+unchanged. Ignored trial110 `qualification.json` records exact verification.
+
+Receiving121 and Tester127 remain qualified; recording lifecycle is running.
+Release1 fixture conformance, uncovered controls and comprehensive4be-A/B0/human
+acceptance remain open. No current/NAS deployment or new approval occurs.
+
+## Current recording02 catalog expectation correction
+
+Fresh corrected trial109 passes190 checks, then ends with one capture harness
+exception at Operations Settings native maximize. Controller
+`shared-recording02-current-controller/d84986fc437d4834956c82c8ae6b69c9`, worker
+`slice4be-tracking-settings/ca4ba4e3e6314dc19ec3481337a10a14`. No product assertion
+fails. Failure-only native facts identify the auto-hidden system taskbar over the
+maximized client edge; no maximized image is published. Settings, five packages,
+all484 tooling, fixture cleanup and normal owned closure pass; delayed native
+audit through23:26:48.7732553Z finds zero Excel failures, without a desktop stop.
+Trial109 remains190/1, not complete Settings GREEN. Unchanged full trial110 uses
+the previously proven reversible auto-hide-off capture scope; its completed proof
+and original-state restoration are qualified above. Capture refusal/foreground
+guards, product, callbacks and all assertion identities remain unchanged.
+
+Last verified2026-10-15 Pacific. Source1c9bff87/candidate
+`validation-aggregation-recording-02` initially ends27 PASS/2 FAIL in controller
+`shared-recording02-current-controller/e16408e487e548ddb082067cbfcf3c19`, worker
+`slice4be-tracking-settings/bffb62eb362548c1854581439ed45399`, owned entry98.
+The policy-editor assertion accepts only catalog41/172 and42/179; the approved
+seven Aggregation controls make the candidate43/186. The explicit assertion fails,
+then its intentional terminal harness exception prevents later Settings checks.
+This is a stale test expectation, not established product RED or Settings GREEN.
+
+Settings/package/all484 tooling/fixture preservation and normal owned closure pass;
+delayed native audit through23:17:47.6081021Z finds zero Excel failures. No desktop
+stop occurs. The test mapping now retains41/172 and42/179 and adds exact43/186;
+no product, callback, policy rule or assertion identity changes. All484 tooling
+files plus four fresh trial scripts parse. Full unchanged-candidate rerun109 is
+prepared and must retain the original prefix and complete the remaining matrix.
+Receiving121/15 reviewed captures and Tester127/eight reviewed captures remain
+qualified; lifecycle, Release1 fixture conformance and4be-A remain open.
+
 ## Catalog-9 Boxing regression
 
 The isolated `deploy/validation-boxing-activity-visible` candidate passes **191/191**

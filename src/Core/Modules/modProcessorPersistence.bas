@@ -19,3 +19,13 @@ Public Sub CloseTransient(ByVal wb As Workbook)
     wb.Close SaveChanges:=False
     On Error GoTo 0
 End Sub
+
+Public Function ResolveWorkbookNameProcessor(ByVal wb As Workbook) As String
+    If wb Is Nothing Then
+        ResolveWorkbookNameProcessor = "<none>"
+    ElseIf Trim$(wb.Name) <> "" Then
+        ResolveWorkbookNameProcessor = wb.Name
+    Else
+        ResolveWorkbookNameProcessor = "<unnamed>"
+    End If
+End Function

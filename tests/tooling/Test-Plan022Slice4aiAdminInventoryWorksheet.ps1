@@ -48,7 +48,7 @@ $checks["Worksheet.ManagedShapeAndValidation"] =
 $checks["Worksheet.IdentityAndCustomHeaders"] =
     $worksheet.Contains("ValidateInventoryWorksheetHeaders") -and
     $worksheet.Contains('Chr$(82) & Chr$(79) & Chr$(87)') -and
-    $worksheet.Contains('"SYSTEM_KEY"') -and
+    $worksheet.Contains('normalized = "SYSTEMKEY"') -and
     $worksheet.Contains("AppendInventoryWorksheetCustomFields") -and
     $worksheet.Contains("GenerateInventoryItemCodeForWorksheet")
 $checks["Worksheet.WholeTablePreflightAndStatus"] =

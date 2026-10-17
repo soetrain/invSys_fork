@@ -68,7 +68,8 @@ Public Function Choices(ByVal context As String, ByVal draftId As String, ByVal 
                              "CONFIRMED", "VERIFIED", "SAVED", "APPLIED", "PENDING", "STAGED", "REFRESHED", "STALE", "CLEARED", "EMPTY", _
                              "OPENED", "REUSED", "CLOSED", "SELECTED", "CANCELLED", "VALIDATED", "PRESENTED", "PREVIEW_RETURNED", _
                              "REMEMBERED_REFRESHED", "REMEMBERED_REFRESH_FAILED", "UNCONFIRMED_REFRESHED", "UNCONFIRMED_REFRESH_FAILED", _
-                             "CREATED_LOCAL", "CREATED_PUBLISHED", "CREATED_PUBLISH_FAILED", "CREATED_PUBLISH_DENIED", "PUBLISHED", "UNAVAILABLE")
+                             "CREATED_LOCAL", "CREATED_PUBLISHED", "CREATED_PUBLISH_FAILED", "CREATED_PUBLISH_DENIED", "PUBLISHED", "UNAVAILABLE", _
+                             "DISCOVERED", "CONNECTED", "INDETERMINATE", "COMPLETED_STOPPED")
             Set definition = modActivityCatalog.Outcome(controlId, CStr(id))
             If Not definition Is Nothing Then
                 caption = StrConv(LCase$(CStr(id)), vbProperCase)

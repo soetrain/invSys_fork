@@ -1,14 +1,22 @@
 # Developer-only calibration of the existing capture helper with an empty fixture.
 # This script opens no invSys package and changes none; this is not product RED/GREEN.
 [CmdletBinding()]
-param([string]$RepoRoot='.',[ValidateRange(0,200)][int]$WorkbookLifecycleIterations=0,[switch]$CoveredForeground)
+param([string]$RepoRoot='.',[ValidateRange(0,200)][int]$WorkbookLifecycleIterations=0,[switch]$CoveredForeground,[switch]$WorkAreaPositioning,[string]$DesktopMonitorReport='')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 # Imported capture helpers leave packaged guide diagnostics disabled here.
 $GuideCaptureVisibleExcelForTest=$false
 $GuideCaptureSavedWorkbookForTest=$false
 $TraceGuideResourcesForTest=$false
+$CheckReceivingReplay=[bool]$WorkAreaPositioning
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
+function Assert-CaptureDesktop {
+    if(-not $DesktopMonitorReport){return}
+    $stream=[IO.FileStream]::new($DesktopMonitorReport,[IO.FileMode]::Open,[IO.FileAccess]::Read,([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+    try{$reader=[IO.StreamReader]::new($stream);$state=$reader.ReadToEnd()|ConvertFrom-Json}finally{$stream.Dispose()}
+    if($state.Stopped -or ([DateTimeOffset]::UtcNow-[DateTimeOffset]::Parse($state.UTC)).TotalSeconds -gt 15){throw 'Desktop stop or stale monitor; no capture dispatch.'}
+}
+Assert-CaptureDesktop
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Excel must be closed before disposable capture calibration.'}
 $reportRoot=Join-Path $repo ('reports/runtime/capture-foreground-calibration/'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $reportRoot|Out-Null
@@ -32,6 +40,9 @@ public static class ForegroundFixtureOwner {
  [DllImport("user32.dll",EntryPoint="GetWindowLongW")] static extern int GetLong32(IntPtr window,int index);
  public static bool Topmost(IntPtr window){return ((IntPtr.Size==8 ? GetLong64(window,-20).ToInt64() : GetLong32(window,-20)) & 8)!=0;}
  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window,out Rect rect);
+ [StructLayout(LayoutKind.Sequential)] public struct MonitorInfo {public int Size;public Rect Monitor,Work;public uint Flags;}
+ [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr window,uint flags);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr monitor,ref MonitorInfo info);
  [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(Point point);
  [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr window,uint flags);
  [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window,IntPtr after,int x,int y,int width,int height,uint flags);
@@ -49,6 +60,23 @@ public static class ForegroundFixtureOwner {
   }finally{SetThreadDpiAwarenessContext(prior);}
  }
  public static bool RaiseTopmost(IntPtr cover){return SetWindowPos(cover,new IntPtr(-1),0,0,0,0,0x13);}
+ public static Rect Bounds(IntPtr window){
+  IntPtr prior=SetThreadDpiAwarenessContext(new IntPtr(-4));if(prior==IntPtr.Zero)throw new Exception("Fixture physical coordinates unavailable.");
+  try {Rect bounds;if(!GetWindowRect(window,out bounds))throw new Exception("Fixture bounds unavailable.");return bounds;}
+  finally{SetThreadDpiAwarenessContext(prior);}
+ }
+ public static Rect WorkArea(IntPtr window){
+  IntPtr prior=SetThreadDpiAwarenessContext(new IntPtr(-4));if(prior==IntPtr.Zero)throw new Exception("Fixture physical coordinates unavailable.");
+  try {var info=new MonitorInfo{Size=Marshal.SizeOf(typeof(MonitorInfo))};if(!GetMonitorInfo(MonitorFromWindow(window,0),ref info))throw new Exception("Fixture monitor unavailable.");
+   if(info.Monitor.Bottom-info.Work.Bottom<40)throw new Exception("Fixture requires a visible bottom taskbar; not tooling RED.");return info.Work;}
+  finally{SetThreadDpiAwarenessContext(prior);}
+ }
+ public static bool PositionAtWorkAreaEdge(IntPtr window){
+  var bounds=Bounds(window);var work=WorkArea(window);
+  IntPtr prior=SetThreadDpiAwarenessContext(new IntPtr(-4));if(prior==IntPtr.Zero)throw new Exception("Fixture physical coordinates unavailable.");
+  try{return SetWindowPos(window,IntPtr.Zero,work.Left+40,work.Bottom-(bounds.Bottom-bounds.Top)+36,0,0,0x215);}
+  finally{SetThreadDpiAwarenessContext(prior);}
+ }
 }
 '@
 $excel=$null;$books=$null;$book=$null;$components=$null;$form=$null;$cover=$null;$module=$null;$process=$null
@@ -56,6 +84,7 @@ $observations=[Collections.Generic.List[object]]::new()
 $started=[DateTimeOffset]::UtcNow.ToString('o')
 $failure='';$normalQuit=$false
 function Observe-CoveredForeground([switch]$TopmostCover) {
+    Assert-CaptureDesktop
     [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.ShowFixture"))
     [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.ShowCover"))
     $target=[InvSysSettingsCapture]::OwnedVisibleForm('invSys disposable capture fixture',[IntPtr]$excel.Hwnd)
@@ -82,6 +111,7 @@ function Observe-CoveredForeground([switch]$TopmostCover) {
     [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.CloseCover"))
 }
 function Observe-Capture([string]$Case,[bool]$Visible,[bool]$RequireVisibility=$true,[bool]$ExpectCaptionRejection=$false,[bool]$DirectCaptionInput=$false){
+    Assert-CaptureDesktop
     $excel.Visible=$Visible
     $actual=$excel.Visible
     if($RequireVisibility -and ($actual -isnot [bool] -or $actual -ne $Visible)){throw 'Fixture Excel visibility was not verified.'}
@@ -200,6 +230,25 @@ End Sub
         Observe-CoveredForeground
         Observe-CoveredForeground -TopmostCover
         if(@($observations|Where-Object {$null -ne $_.PSObject.Properties['Passed'] -and -not $_.Passed}).Count){throw 'Capture returned covered content or changed topmost state.'}
+    }
+    if($WorkAreaPositioning){
+        Assert-CaptureDesktop
+        [void]$excel.Run(("'"+$book.Name+"'!modForegroundFixture.ShowFixture"))
+        $window=[InvSysSettingsCapture]::OwnedVisibleForm('invSys disposable capture fixture',[IntPtr]$excel.Hwnd)
+        if(-not [ForegroundFixtureOwner]::PositionAtWorkAreaEdge($window)){throw 'Work-area fixture placement unavailable; not tooling RED.'}
+        $before=[ForegroundFixtureOwner]::Bounds($window);$work=[ForegroundFixtureOwner]::WorkArea($window)
+        if($before.Bottom -le $work.Bottom -or $before.Top -le $work.Top){throw 'Partially covered work-area fixture was not established; not tooling RED.'}
+        $wasTopmost=[ForegroundFixtureOwner]::Topmost($window);$captured=$false;$obscured=$false
+        try{CaptureOwnedFormEvidence 'invSys disposable capture fixture' 'work-area-position.png' $window.ToInt64();$captured=$true}
+        catch{if($_.Exception.GetBaseException().Message -cne 'Requested form content is obscured.'){throw};$obscured=$true}
+        $after=[ForegroundFixtureOwner]::Bounds($window)
+        $sameSize=($before.Right-$before.Left -eq $after.Right-$after.Left -and $before.Bottom-$before.Top -eq $after.Bottom-$after.Top)
+        $inside=$after.Left -ge $work.Left -and $after.Top -ge $work.Top -and $after.Right -le $work.Right -and $after.Bottom -le $work.Bottom
+        $preserved=[ForegroundFixtureOwner]::Topmost($window) -eq $wasTopmost
+        $passed=$captured -and $sameSize -and $inside -and $preserved
+        $observations.Add([pscustomobject]@{Case='work-area-position';PartialCoverEstablished=$true;Captured=$captured;ObscuredRefusal=$obscured;SameSize=$sameSize;InsideWorkArea=$inside;TopmostRestored=$preserved;Passed=$passed})
+        Write-Output ('work-area-position: '+$(if($passed){'PASS'}else{'FAIL'}))
+        if(-not $passed){throw 'Owned capture did not preserve size while moving inside the work area; tooling RED.'}
     }
     if($WorkbookLifecycleIterations -gt 0){
         # Simulate closing the previous visible workbook/form while an add-in

@@ -5,6 +5,101 @@ D8-TESTER-01. Controls1.580 records catalog42/179, preserving catalog41/172.
 **Scoped-qualified on unpromoted tester-recording-02.** No Training-purpose or
 replay change is introduced; overall4be-A is incomplete.
 
+## Current recording02 shared-store regression
+
+Last verified2026-10-15 Pacific. Unchanged source1c9bff87/candidate
+`validation-aggregation-recording-02` passes127/127 with eight directly reviewed
+captures. Controller `shared-recording02-current-controller/6c32d771f2094663892ab6b12957f3d2`,
+worker `slice4be-admin-tester-owner/2ebf0401ac3f4cd2897404a9fb00457f`, owned entry
+`resume-d8-agg-01/tester-guide-recording02-entry-97`. The exact127 check names
+are unique; all five package and484 tooling pins are verified before later tooling
+changes. Test commit1da478c8 identifies this cohort.
+
+Independent Source/Observed/Interrupted/Unconfirmed recordings, exact publication,
+reader-authoring refusal and honest saved successful/Incomplete/Failed results
+pass. All three views preserve evidence and source inventory is unchanged.
+Settings/owned fixture/pins and normal worker/Excel/controller/monitor closure pass;
+delayed native audit through22:57:36.4777226Z finds zero Excel failure events.
+No desktop stop occurs. The launcher observation ends143, but the separately
+launched owned runner finishes normally with both original orchestration exit
+codes0; do not confuse that observation with a stopped native gate. This qualifies
+the current shared Tester guide regression, not comprehensive4be-A/B0 acceptance.
+
+## Owner-07 regression qualified by retained evidence and fresh guide GREEN127
+
+Last verified2026-10-14 Pacific, delayed audit2026-10-15T04:25:31.7165189Z.
+Frozen `deploy/validation-aggregation-owner-07` passes **127/127** with the focused
+`-GuideOnly` selector. Controller `admin-tester-guides-controller/1b8736ea5a164d6bb838371b5b9f194d`,
+worker `slice4be-admin-tester-owner/77f96317772042a08c1e37b8ab82e95e`.
+The wrapper exposes `Test-Slice4beAdminTesterSetupOwner.ps1 -DeployRoot
+deploy/validation-aggregation-owner-07 -Phase GREEN -GuideOnly`; ignored owned
+orchestration is `resume-d8-agg-01/tester-guide-only-green-entry-32/`.
+
+Fresh Source/Observed/Interrupted/Unconfirmed recordings, exact publication,
+authoring/Reader refusal and saved Concluded/Incomplete/Failed conclusions pass.
+All three views preserve exact evidence; all eight fresh captures were reviewed
+and are readable through the conclusions' final line. No Domain application,
+Training designation or replay eligibility is inferred. Five instrumented compiles,
+settings/package/tooling pins, owned fixture removal, normal Excel closure and zero
+delayed Excel events pass. Both owned monitor/controller exit normally with code0.
+
+`reports/runtime/tester-guide-retention-07/retention.json` and its `verify.py`
+prove **444 distinct passing checks** on identical five-package hashes: the prior
+164 owner-prefix checks (including five compiles),158 recording/boundary checks,
+and the fresh127 guide checks, with shared checks counted once. All88 previously
+passing guide assertions are retained; none is missing. Only three harness files
+change, adding selector plumbing and an early branch to the unchanged guide suite.
+The focused run dispatches no unrelated owner/recording-boundary suite and creates
+all four fresh recordings. The prior owner and recording probe sets are identical.
+All three controllers have preserved settings/pins/cleanup and zero delayed events.
+Earlier355/1 and251/1 runs remain partial; their passing checks are reused under
+this explicit proof, not relabeled as whole-run GREEN.
+
+This qualifies the Tester regression on owner-07, including the shared private
+captured-form store. It does not complete Aggregation's remaining gates or4be-A.
+The selector changes no product contract, so D13 behavioral RED is inapplicable;
+all three changed PowerShell files parse and their diff is reviewed.
+
+## Owner-07 regression interrupted by desktop error5
+
+Last verified2026-10-14 Pacific. The existing RecordingOnly/CheckGuides selection
+runs against frozen unpromoted `deploy/validation-aggregation-owner-07`, controller
+`admin-tester-guides-controller/f29a462bc1c646299c05bbf2f7e6e8bf`, worker
+`slice4be-admin-tester-owner/4a527555d88046d39cb37db58a96d004`.
+It ends **251 PASS/1 stop-related harness failure**, not completed GREEN or product
+RED. This run supplements, rather than adds totals to, the prior passing164 owner
+prefix on owner-07. Earlier qualified tester-recording-02 evidence below keeps its
+original scope; it does not complete this candidate's regression.
+
+All five instrumented compiles pass. Actual-handler recording, redaction,
+policy/control/user suppression, workbook/session/target changes and actual
+activity-store failure checks pass. Four independent Source/Observed/Interrupted/
+Unconfirmed recordings preserve exact journal chains and prior activity;
+publication preserves exact record references. Guide authoring and Reader refusal
+pass. The successful observed run concludes correctly in How-To, Diagnostic and
+Compare both views, preserving evidence; its four captures were reviewed and are
+readable. Interrupted evaluation's publication, no-Domain-claim and exact unmatched
+step assertions pass before the stop; its rendering tail and the unconfirmed
+evaluation/rendering remain unverified. Do not infer their success.
+
+At **2026-10-15T02:58:24.8356015Z (19:58:24 Pacific)** the passive monitor records
+1546 samples, one inactive-input sample, one actual Win32 error5, Other desktop and
+running screensaver. LockSamples and MouseLockSamples remain zero; the early
+error5 does not prove later mouse checks could run. The exact failing native API,
+Windows lock and screensaver causality are unproved. Inactivity alone was allowed
+to continue under the user's clarification; actual error5 stopped the monitor,
+followed by the macro guard's stale-heartbeat refusal. No desktop rebind, security
+bypass, mouse nudge or OLED setting change was attempted.
+
+Controller closure proves settings/package/tooling preservation, owned fixture
+removal and normal Excel closure. Delayed Application1000/1001/1002 audit has zero
+Excel events through **02:59:32.8303505Z**. A later CIM check finds no Excel or matching
+controller processes. The outer tool session returned143 and no orchestration
+closure receipt exists; do not claim verified normal wrapper closure. Its ignored
+orchestration/monitor files are under `resume-d8-agg-01/tester-guides-green-entry-30/`.
+Stop per the user's error5 rule; Handoff183 contains continuation, without changing
+the permission to work under inactive input when access remains available.
+
 ## Focused evidence
 
 All controller paths are under ignored `reports/runtime/admin-tester-owner-controller/`.

@@ -363,18 +363,17 @@ Failed:
     On Error GoTo 0
 End Function
 
-Public Function NextInventoryRowForWorksheet(ByVal warehouseId As String) As Long
-    NextInventoryRowForWorksheet = NextInventoryRowSuggestionAdmin(warehouseId)
+Public Function NextInventoryCodeOrdinalForWorksheet(ByVal warehouseId As String) As Long
+    NextInventoryCodeOrdinalForWorksheet = NextInventoryCodeOrdinalAdmin(warehouseId)
 End Function
 
 Public Function GenerateInventoryItemCodeForWorksheet(ByVal warehouseId As String, _
-                                                      ByVal rowVal As Long) As String
-    GenerateInventoryItemCodeForWorksheet = GenerateInventorySkuAdmin(warehouseId, rowVal)
+                                                      ByVal codeOrdinal As Long) As String
+    GenerateInventoryItemCodeForWorksheet = GenerateInventorySkuAdmin(warehouseId, codeOrdinal)
 End Function
 
 Public Function InventoryItemCatalogContainsForWorksheet(ByVal warehouseId As String, _
-                                                         ByVal sku As String, _
-                                                         ByRef rowVal As Long) As Boolean
+                                                         ByVal sku As String) As Boolean
     Dim catalogItems As Collection
     Dim item As Variant
 
@@ -383,7 +382,6 @@ Public Function InventoryItemCatalogContainsForWorksheet(ByVal warehouseId As St
     Set catalogItems = LoadInventoryCatalogItemsAdmin(warehouseId)
     For Each item In catalogItems
         If StrComp(CatalogItemTextAdmin(item, "SKU"), sku, vbTextCompare) = 0 Then
-            rowVal = CLng(Val(CatalogItemTextAdmin(item, "ROW")))
             InventoryItemCatalogContainsForWorksheet = True
             Exit Function
         End If
@@ -394,7 +392,8 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
                                                           ByVal stationId As String, _
                                                           ByVal userId As String, _
                                                           ByVal record As Object, _
-                                                          ByRef report As String) As Boolean
+                                                          ByRef report As String, _
+                                                          Optional ByVal interactiveContext As String = "") As Boolean
     Dim customFields As Object
     Dim actionName As String
     Dim sku As String
@@ -407,7 +406,7 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
     Dim editReason As String
     Dim actionSucceeded As Boolean
     Dim qtyReport As String
-    Dim editStamp As String
+    Dim editStamp As String, receiptRow As Long
 
     On Error GoTo Failed
     If record Is Nothing Then report = "Inventory worksheet record is unavailable.": Exit Function
@@ -427,11 +426,13 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
     End If
 
     If actionName = "ADD" Then
+        If interactiveContext <> "" Then receiptRow = CLng(record("TableRow"))
         ApplyInventoryWorksheetRecordForWarehouse = AddInventoryItemForWarehouse( _
-            warehouseId, stationId, userId, CLng(record("RowVal")), sku, itemName, _
+            warehouseId, stationId, userId, sku, itemName, _
             uom, locationValue, qty, CStr(record("Description")), vendorValue, _
             CStr(record("VendorCode")), categoryValue, CStr(record("ExternalCode")), _
-            CStr(record("Picture")), customFields, report)
+            CStr(record("Picture")), customFields, report, interactiveContext, _
+            CStr(record("CreateEventId")), receiptRow)
         Exit Function
     End If
     If actionName <> "EDIT" Then report = "Inventory worksheet Action must be ADD or EDIT.": Exit Function
@@ -445,12 +446,12 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
     actionSucceeded = UpdateInventoryItemCatalogForWarehouse(warehouseId, sku, itemName, _
         uom, locationValue, CStr(record("Description")), vendorValue, _
         CStr(record("VendorCode")), categoryValue, CStr(record("ExternalCode")), _
-        CStr(record("Picture")), customFields, report)
+        CStr(record("Picture")), customFields, report, interactiveContext, userId, stationId)
     If actionSucceeded And Not IsNonCountedCustomFieldsAdmin(customFields) And _
             CBool(record("HasQuantity")) Then
         If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, _
-                CLng(record("RowVal")), sku, itemName, uom, locationValue, qty, _
-                editReason, qtyReport) Then
+                sku, itemName, uom, locationValue, qty, _
+                editReason, qtyReport, interactiveContext) Then
             report = report & vbCrLf & vbCrLf & qtyReport
         Else
             report = "Inventory item catalog fields were updated, but set qty failed." & vbCrLf & qtyReport
@@ -471,7 +472,7 @@ Sub Add_InventoryItem()
     Dim report As String
     Dim targetWb As Workbook
     Dim sku As String
-    Dim rowVal As Long
+    Dim codeOrdinal As Long
     Dim defaultLocation As String
     Dim catalogItems As Object
     Dim addForm As frmAddInventoryItem
@@ -480,7 +481,6 @@ Sub Add_InventoryItem()
     Dim deleteRequested As Boolean
     Dim deleteReason As String
     Dim formSku As String
-    Dim formRow As Long
     Dim formItemName As String
     Dim formUom As String
     Dim formLocation As String
@@ -495,11 +495,7 @@ Sub Add_InventoryItem()
     Dim formCustomFields As Object
     Dim editStamp As String
     Dim actionSucceeded As Boolean
-
-    If Not ResolveAdminCurrentTargetContext(warehouseId, stationId, userId, report) Then
-        MsgBox report, vbExclamation, "invSys Admin"
-        Exit Sub
-    End If
+    Dim interactiveContext As String, sourceValues As Variant
 
     Set targetWb = ResolveInteractiveAdminWorkbook(False)
     If targetWb Is Nothing Then
@@ -508,14 +504,25 @@ Sub Add_InventoryItem()
         Exit Sub
     End If
 
-    rowVal = NextInventoryRowSuggestionAdmin(warehouseId)
-    sku = GenerateInventorySkuAdmin(warehouseId, rowVal)
+    interactiveContext = modInventoryCommands.Capture(targetWb.Name)
+    sourceValues = modInventoryCommands.SourceValues(interactiveContext)
+    If Not IsArray(sourceValues) Then
+        MsgBox "Sign in to the current source warehouse as an authorized Admin and reopen Add/Edit Inventory.", vbExclamation, "invSys Admin"
+        modInventoryCommands.Release interactiveContext
+        Exit Sub
+    End If
+    warehouseId = CStr(sourceValues(0)): stationId = CStr(sourceValues(1)): userId = CStr(sourceValues(2))
+
+    codeOrdinal = NextInventoryCodeOrdinalAdmin(warehouseId)
+    sku = GenerateInventorySkuAdmin(warehouseId, codeOrdinal)
     defaultLocation = Trim$(modConfig.GetString("DefaultLocation", ""))
     Set catalogItems = LoadInventoryCatalogItemsAdmin(warehouseId)
 
+    If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
     Set addForm = New frmAddInventoryItem
-    addForm.Configure warehouseId, stationId, userId, sku, rowVal, defaultLocation
+    addForm.Configure warehouseId, stationId, userId, sku, defaultLocation
     addForm.SetOperatorWorkbook targetWb
+    addForm.SetInteractiveContext interactiveContext
     LoadCatalogItemsIntoAddInventoryForm addForm, catalogItems
 
     Do
@@ -525,13 +532,13 @@ Sub Add_InventoryItem()
         accepted = addForm.Accepted
         On Error GoTo 0
         If Not accepted Then Exit Do
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Do
 
         On Error GoTo FormUnavailable
         isEdit = addForm.EditMode
         deleteRequested = addForm.DeleteRequested
         deleteReason = addForm.DeleteReason
         formSku = addForm.GeneratedSku
-        formRow = addForm.GeneratedRow
         formItemName = addForm.ItemName
         formUom = addForm.Uom
         formLocation = addForm.LocationValue
@@ -550,7 +557,7 @@ Sub Add_InventoryItem()
         actionSucceeded = False
         If deleteRequested Then
             actionSucceeded = RetireInventoryItemForWarehouse(warehouseId, stationId, userId, _
-                formSku, formItemName, deleteReason, report)
+                formSku, formItemName, deleteReason, report, interactiveContext)
         ElseIf isEdit Then
             editStamp = Format$(Now, "yyyy-mm-dd hh:nn:ss")
             formCustomFields("LAST_EDIT_REASON") = formEditReason
@@ -562,11 +569,11 @@ Sub Add_InventoryItem()
                                                                      formDescription, formVendorName, _
                                                                      formVendorCode, formCategory, _
                                                                      formExternalCode, formImagePath, _
-                                                                     formCustomFields, report)
+                                                                     formCustomFields, report, interactiveContext)
             If actionSucceeded And Not IsNonCountedCustomFieldsAdmin(formCustomFields) Then
                 Dim qtyReport As String
-                If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, formRow, formSku, _
-                                                    formItemName, formUom, formLocation, formQty, formEditReason, qtyReport) Then
+                If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, formSku, _
+                                                    formItemName, formUom, formLocation, formQty, formEditReason, qtyReport, interactiveContext) Then
                     report = report & vbCrLf & vbCrLf & qtyReport
                 Else
                     report = "Inventory item catalog fields were updated, but set qty failed." & vbCrLf & qtyReport
@@ -574,31 +581,36 @@ Sub Add_InventoryItem()
                 End If
             End If
         Else
-            actionSucceeded = AddInventoryItemForWarehouse(warehouseId, stationId, userId, formRow, _
+            actionSucceeded = AddInventoryItemForWarehouse(warehouseId, stationId, userId, _
                                                            formSku, formItemName, _
                                                            formUom, formLocation, _
                                                            formQty, formDescription, _
                                                            formVendorName, formVendorCode, _
                                                            formCategory, formExternalCode, _
-                                                           formImagePath, formCustomFields, report)
+                                                           formImagePath, formCustomFields, report, interactiveContext)
         End If
 
         If actionSucceeded Then
             MsgBox report, vbInformation, "invSys Admin"
-            rowVal = NextInventoryRowSuggestionAdmin(warehouseId)
-            sku = GenerateInventorySkuAdmin(warehouseId, rowVal)
+            If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Do
+            codeOrdinal = NextInventoryCodeOrdinalAdmin(warehouseId)
+            sku = GenerateInventorySkuAdmin(warehouseId, codeOrdinal)
             Set catalogItems = LoadInventoryCatalogItemsAdmin(warehouseId)
-            addForm.Configure warehouseId, stationId, userId, sku, rowVal, defaultLocation
+            If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Do
+            addForm.Configure warehouseId, stationId, userId, sku, defaultLocation
             addForm.SetOperatorWorkbook targetWb
+            addForm.SetInteractiveContext interactiveContext
             LoadCatalogItemsIntoAddInventoryForm addForm, catalogItems
         Else
             MsgBox report, vbExclamation, "invSys Admin"
+            If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Do
         End If
     Loop
 
 CleanExit:
     On Error Resume Next
     Unload addForm
+    modInventoryCommands.Release interactiveContext
     On Error GoTo 0
     Exit Sub
 
@@ -617,7 +629,6 @@ End Sub
 Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
                                              ByVal stationId As String, _
                                              ByVal userId As String, _
-                                             ByVal rowVal As Long, _
                                              ByVal sku As String, _
                                              ByVal itemName As String, _
                                              ByVal uom As String, _
@@ -630,10 +641,10 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
                                              Optional ByVal externalCode As String = "", _
                                              Optional ByVal imagePath As String = "", _
                                              Optional ByVal customFields As Object = Nothing, _
-                                             Optional ByRef report As String = "") As Boolean
-    Dim payloadItems As Collection
-    Dim item As Object
-    Dim customKey As Variant
+                                             Optional ByRef report As String = "", _
+                                             Optional ByVal interactiveContext As String = "", _
+                                             Optional ByVal creationEventId As String = "", _
+                                             Optional ByVal stagingRow As Long = 0) As Boolean
     Dim payloadJson As String
     Dim eventIdOut As String
     Dim queueError As String
@@ -641,7 +652,9 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     Dim processedCount As Long
     Dim inboxReport As String
     Dim systemKey As String
-    Dim nonCounted As Boolean
+    Dim nonCounted As Boolean, applied As Boolean
+    Dim sourceValues As Variant
+    Dim receiptFound As Boolean, receiptApplied As Boolean, receiptPayload As String, receiptKey As String
 
     On Error GoTo FailAdd
 
@@ -659,7 +672,6 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     If sku = "" Then report = "SKU is required.": Exit Function
     If itemName = "" Then itemName = sku
     If uom = "" Then report = "UOM is required.": Exit Function
-    If rowVal <= 0 Then report = "Inventory ROW id must be positive.": Exit Function
     nonCounted = IsNonCountedCustomFieldsAdmin(customFields)
     If nonCounted Then
         qty = 0#
@@ -668,16 +680,120 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         Exit Function
     End If
 
+    If interactiveContext <> "" Then
+        sourceValues = modInventoryCommands.SourceValues(interactiveContext)
+        If Not IsArray(sourceValues) Then Exit Function
+        If sourceValues(0) <> warehouseId Or sourceValues(1) <> stationId Or sourceValues(2) <> userId Then
+            report = "The captured inventory command source differs. Reopen Add/Edit Inventory.": Exit Function
+        End If
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Function
+    Else
+        If Not modAuth.LoadAuth(warehouseId) Then report = "Provisioned authority could not be loaded.": Exit Function
+        If Not modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", userId, warehouseId, stationId) Then
+            report = "The provisioned user lacks ADMIN_MAINT for this warehouse and station.": Exit Function
+        End If
+    End If
+    eventIdOut = creationEventId
+    If creationEventId <> "" Then
+        If interactiveContext = "" Or stagingRow < 1 Then report = "A captured worksheet command is required for receipt retry.": Exit Function
+        If Not modInventoryCreateReceipts.Resolve(interactiveContext, warehouseId, stationId, userId, _
+                eventIdOut, receiptFound, receiptKey, receiptPayload, receiptApplied, report) Then Exit Function
+    End If
+    If Not receiptApplied Then
     If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then
         report = inboxReport
         Exit Function
     End If
+    End If
 
-    Set payloadItems = New Collection
-    systemKey = modRoleEventWriter.CreateSystemKey()
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Function
+    End If
+    If Not receiptFound Then
+        systemKey = modRoleEventWriter.CreateSystemKey()
+    Else
+        systemKey = receiptKey
+    End If
+    payloadJson = BuildInventoryCreatePayloadAdmin(systemKey, sku, itemName, uom, locationVal, qty, _
+        description, vendorName, vendorCode, category, externalCode, imagePath, customFields)
+    If payloadJson = "" Or payloadJson = "[]" Then
+        report = "Inventory item payload was empty."
+        Exit Function
+    End If
+
+    If receiptFound Then
+        If Not modInventoryCreateReceipts.PayloadMatches(payloadJson, receiptPayload) Then
+            report = "The pending row differs from its exact queued create. Reconcile it before retrying.": Exit Function
+        End If
+        If receiptApplied Then
+            batchReport = "Exact previously saved event independently reconciled."
+            GoTo CreateSaved
+        End If
+    End If
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCreate(interactiveContext, payloadJson, report) Then Exit Function
+    End If
+    If Not receiptFound Then
+    If Not modRoleEventWriter.QueueInventoryCreateEvent(warehouseId, stationId, userId, payloadJson, _
+                                                        "Admin add inventory item " & sku, _
+                                                        0, Nothing, eventIdOut, queueError, "") Then
+        If interactiveContext <> "" Then modInventoryCommands.Release interactiveContext
+        report = "Inventory item event could not be queued: " & queueError & vbCrLf & _
+                 "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
+        Exit Function
+    End If
+    End If
+    If stagingRow > 0 Then
+        If Not modAdminInventoryWorksheet.StoreQueuedCreateReceipt(interactiveContext, stagingRow, sku, _
+                eventIdOut, systemKey, report) Then GoTo Unconfirmed
+    End If
+
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCreateSave(interactiveContext, report) Then GoTo Unconfirmed
+    End If
+    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport, eventIdOut, applied, True)
+    If Not applied Then
+        report = "Inventory item event queued; exact saved application is unconfirmed." & vbCrLf & batchReport
+        GoTo Unconfirmed
+    End If
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.ConfirmCreate(interactiveContext, eventIdOut, report) Then
+            report = "Partial result: exact event application was saved, but command confirmation failed." & _
+                     vbCrLf & "Event: " & eventIdOut & vbCrLf & report
+            Exit Function
+        End If
+    End If
+
+CreateSaved:
+    report = "Inventory item added. Exact event application was saved." & vbCrLf & _
+             "Event: " & eventIdOut & vbCrLf & _
+             "Warehouse: " & warehouseId & vbCrLf & _
+             "SKU: " & sku & vbCrLf & _
+             "Item: " & itemName & vbCrLf & _
+             "System_Key: " & systemKey & vbCrLf & _
+             "Starting quantity: " & IIf(nonCounted, "not counted", CStr(qty)) & vbCrLf & _
+             "Processor: " & batchReport & vbCrLf & _
+             "Refresh inventory in any open role workbook to see the new item."
+    AddInventoryItemForWarehouse = True
+    Exit Function
+
+Unconfirmed:
+    If interactiveContext <> "" Then modInventoryCommands.Release interactiveContext
+    If eventIdOut <> "" Then report = report & vbCrLf & "Event: " & eventIdOut & ". Application is unconfirmed."
+    Exit Function
+FailAdd:
+    report = "AddInventoryItem failed: " & Err.Description
+    GoTo Unconfirmed
+End Function
+
+Private Function BuildInventoryCreatePayloadAdmin(ByVal systemKey As String, ByVal sku As String, _
+        ByVal itemName As String, ByVal uom As String, ByVal locationVal As String, ByVal qty As Double, _
+        ByVal description As String, ByVal vendorName As String, ByVal vendorCode As String, _
+        ByVal category As String, ByVal externalCode As String, ByVal imagePath As String, ByVal customFields As Object) As String
+    Dim payloadItems As New Collection, item As Object, customKey As Variant, nonCounted As Boolean
+    nonCounted = IsNonCountedCustomFieldsAdmin(customFields)
     Set item = modRoleEventWriter.CreateInventoryEntityPayloadItem( _
         systemKey, sku, qty, locationVal, "GOOD", "", "Admin add inventory item")
-    item("ROW") = rowVal
     item("ITEM_CODE") = sku
     item("ITEM") = itemName
     item("UOM") = uom
@@ -701,163 +817,85 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         Next customKey
     End If
     payloadItems.Add item
+    BuildInventoryCreatePayloadAdmin = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
+End Function
 
-    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
-    If payloadJson = "" Or payloadJson = "[]" Then
-        report = "Inventory item payload was empty."
-        Exit Function
+Public Function ValidateWorksheetCreateReceipt(ByVal record As Object, ByVal context As String, _
+        ByVal eventId As String, ByRef report As String) As Boolean
+    Dim values As Variant, found As Boolean, applied As Boolean, systemKey As String, payload As String
+    Dim expected As String, category As String, vendor As String, customFields As Object
+    values = modInventoryCommands.SourceValues(context)
+    If Not IsArray(values) Then Exit Function
+    If Not modInventoryCreateReceipts.Resolve(context, CStr(values(0)), CStr(values(1)), CStr(values(2)), _
+            eventId, found, systemKey, payload, applied, report) Then Exit Function
+    If Not found Then
+        If InventoryItemCatalogContainsForWorksheet(CStr(values(0)), CStr(record("ItemCode"))) Then
+            report = "The prepared Item Code now exists without its exact create receipt.": Exit Function
+        End If
+        ValidateWorksheetCreateReceipt = True: Exit Function
     End If
-
-    If Not modRoleEventWriter.QueueInventoryCreateEvent(warehouseId, stationId, userId, payloadJson, _
-                                                        "Admin add inventory item " & sku, _
-                                                        0, Nothing, eventIdOut, queueError, "") Then
-        report = "Inventory item event could not be queued: " & queueError & vbCrLf & _
-                 "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
-        Exit Function
+    category = CStr(record("Category")): vendor = CStr(record("Vendors"))
+    Set customFields = record("CustomFields")
+    If IsNonCountedCustomFieldsAdmin(customFields) Then
+        If category = "" Then category = NonCountedItemKindAdmin(customFields)
+        If vendor = "" And NonCountedItemKindAdmin(customFields) = "UTILITY" Then vendor = "Utility"
     End If
-
-    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
-    If processedCount < 1 Then
-        report = "Inventory item event was queued but not applied. " & batchReport
-        Exit Function
-    End If
-
-    report = "Inventory item added." & vbCrLf & _
-             "Warehouse: " & warehouseId & vbCrLf & _
-             "SKU: " & sku & vbCrLf & _
-             "Item: " & itemName & vbCrLf & _
-             "System_Key: " & systemKey & vbCrLf & _
-             "Starting quantity: " & IIf(nonCounted, "not counted", CStr(qty)) & vbCrLf & _
-             "Processor: " & batchReport & vbCrLf & _
-             "Refresh inventory in any open role workbook to see the new item."
-    AddInventoryItemForWarehouse = True
-    Exit Function
-
-FailAdd:
-    report = "AddInventoryItem failed: " & Err.Description
+    expected = BuildInventoryCreatePayloadAdmin(systemKey, CStr(record("ItemCode")), CStr(record("ItemName")), _
+        CStr(record("UOM")), CStr(record("Location")), CDbl(record("Quantity")), CStr(record("Description")), _
+        vendor, CStr(record("VendorCode")), category, CStr(record("ExternalCode")), CStr(record("Picture")), customFields)
+    ValidateWorksheetCreateReceipt = modInventoryCreateReceipts.PayloadMatches(expected, payload)
+    If Not ValidateWorksheetCreateReceipt Then report = "The pending row differs from its exact saved create receipt."
 End Function
 
 Public Function RetireInventoryItemForWarehouse(ByVal warehouseId As String, _
-                                                 ByVal stationId As String, _
-                                                 ByVal userId As String, _
-                                                 ByVal sku As String, _
-                                                 ByVal itemName As String, _
-                                                 ByVal reason As String, _
-                                                 Optional ByRef report As String = "") As Boolean
-    Dim path As String
-    Dim wb As Workbook
-    Dim openedHere As Boolean
-    Dim loEntities As ListObject
-    Dim payloadItems As Collection
-    Dim payloadJson As String
-    Dim eventIdOut As String
-    Dim queueError As String
-    Dim batchReport As String
-    Dim inboxReport As String
-    Dim processedCount As Long
-    Dim rowIndex As Long
-    Dim systemKey As String
-    Dim entitySku As String
-    Dim locationValue As String
-    Dim conditionValue As String
-    Dim attributesJson As String
-    Dim inventoryState As String
-    Dim qtyOnHand As Double
-    Dim retiredCount As Long
-    Dim catalogReport As String
-    Dim item As Object
-
+        ByVal stationId As String, ByVal userId As String, ByVal sku As String, _
+        ByVal itemName As String, ByVal reason As String, Optional ByRef report As String = "", _
+        Optional ByVal interactiveContext As String = "") As Boolean
+    Dim path As String, wb As Workbook, openedHere As Boolean, retiredCount As Long
+    Dim eventId As String, retirementReport As String, catalogReport As String
     On Error GoTo Failed
-    warehouseId = Trim$(warehouseId)
-    stationId = Trim$(stationId)
-    userId = Trim$(userId)
-    sku = Trim$(sku)
-    itemName = Trim$(itemName)
-    reason = Trim$(reason)
-    If warehouseId = "" Then report = "WarehouseId is required.": Exit Function
+    warehouseId = Trim$(warehouseId): stationId = Trim$(stationId): userId = Trim$(userId)
+    sku = Trim$(sku): reason = Trim$(reason)
+    If warehouseId = "" Or userId = "" Or sku = "" Or reason = "" Then
+        report = "Warehouse, provisioned user, exact Item Code and deletion reason are required.": Exit Function
+    End If
     If stationId = "" Then stationId = modStationIdentity.CurrentComputerStationId()
-    If userId = "" Then report = "Admin user is required.": Exit Function
-    If sku = "" Then report = "Choose an inventory item to delete.": Exit Function
-    If reason = "" Then report = "Why the deletion is required.": Exit Function
-
+    If Not modInventoryRetirementCommands.RetireActiveEntities(warehouseId, stationId, userId, _
+            sku, reason, retiredCount, eventId, retirementReport, interactiveContext) Then
+        report = retirementReport: Exit Function
+    End If
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo Partial
+    Else
+        If Not modAuth.LoadAuth(warehouseId) Then GoTo Partial
+        If Not modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", userId, warehouseId, stationId) Then GoTo Partial
+    End If
     path = modProcessor.ResolveInventoryWorkbookPathForAutomation(warehouseId)
-    If path = "" Then report = "Inventory workbook path could not be resolved for " & warehouseId & ".": Exit Function
     Set wb = FindOpenWorkbookByFullNameAdmin(path)
     If wb Is Nothing Then
-        If Len(Dir$(path, vbNormal)) = 0 Then report = "Inventory workbook was not found: " & path: Exit Function
         Set wb = Application.Workbooks.Open(path, UpdateLinks:=False, ReadOnly:=False, AddToMru:=False)
         openedHere = True
     End If
-    If wb.ReadOnly Then report = "Inventory workbook is open read-only. Close other copies and try again.": GoTo CleanExit
-
-    Set loEntities = FindListObjectByNameAdminLocal(wb, "tblInventoryEntities")
-    Set payloadItems = New Collection
-    If Not loEntities Is Nothing Then
-        If Not loEntities.DataBodyRange Is Nothing Then
-            For rowIndex = 1 To loEntities.ListRows.Count
-                entitySku = CatalogCellAdmin(loEntities, rowIndex, "SKU")
-                inventoryState = UCase$(CatalogCellAdmin(loEntities, rowIndex, "InventoryState"))
-                If StrComp(entitySku, sku, vbTextCompare) = 0 And _
-                        (inventoryState = "ACTIVE" Or inventoryState = "") Then
-                    systemKey = CatalogCellAdmin(loEntities, rowIndex, "System_Key")
-                    If systemKey = "" Then
-                        report = "Active inventory is missing System_Key identity."
-                        GoTo CleanExit
-                    End If
-                    qtyOnHand = CDbl(Val(CatalogCellAdmin(loEntities, rowIndex, "QtyOnHand")))
-                    locationValue = CatalogCellAdmin(loEntities, rowIndex, "Location")
-                    conditionValue = UCase$(CatalogCellAdmin(loEntities, rowIndex, "Condition"))
-                    If conditionValue = "" Then conditionValue = "GOOD"
-                    attributesJson = CatalogCellAdmin(loEntities, rowIndex, "AttributesJson")
-                    Set item = BuildInventoryRetirementPayloadItemAdmin(systemKey, sku, qtyOnHand, _
-                        locationValue, conditionValue, attributesJson, reason)
-                    payloadItems.Add item
-                End If
-            Next rowIndex
-        End If
-    End If
-
-    retiredCount = payloadItems.Count
-    If retiredCount > 0 Then
-        If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then report = inboxReport: GoTo CleanExit
-        payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
-        If payloadJson = "" Or payloadJson = "[]" Then report = "Inventory retirement payload was empty.": GoTo CleanExit
-        If Not modRoleEventWriter.QueueAdminInventoryAdjustEvent(warehouseId, stationId, userId, _
-                payloadJson, "Admin delete inventory item " & sku & ". Reason: " & reason, _
-                0, eventIdOut, queueError, "") Then
-            report = "Inventory deletion event could not be queued: " & queueError
-            GoTo CleanExit
-        End If
-        processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
-        If processedCount < 1 Then
-            report = "Inventory deletion event was queued but not applied. " & batchReport
-            GoTo CleanExit
-        End If
-    End If
-
-    If Not MarkInventoryCatalogRetiredAdmin(wb, sku, userId, reason, catalogReport) Then
-        report = "Managed entities were retired, but the retained catalog item could not be marked retired. " & catalogReport
-        GoTo CleanExit
+    If wb.ReadOnly Or Not wb.Saved Then report = "Inventory workbook is read-only or has unsaved changes.": GoTo Partial
+    If Not MarkInventoryCatalogRetiredAdmin(wb, sku, userId, reason, catalogReport, interactiveContext) Then
+        report = catalogReport: GoTo Partial
     End If
     report = "Inventory item deleted from managed inventory." & vbCrLf & _
-             "Warehouse: " & warehouseId & vbCrLf & _
-             "SKU: " & sku & vbCrLf & _
-             "Item: " & itemName & vbCrLf & _
-             "Exact entities retired: " & CStr(retiredCount) & vbCrLf & _
-             "Reason: " & reason & vbCrLf & _
-             "Catalog and event history were retained." & vbCrLf & _
-             "Refresh open role workbooks to remove the item from managed inventory and pickers."
+        "Exact entities retired: " & CStr(retiredCount) & vbCrLf & "Catalog and event history were retained."
+    If eventId <> "" Then report = report & vbCrLf & "Event: " & eventId
     RetireInventoryItemForWarehouse = True
-
+    GoTo CleanExit
+Partial:
+    If eventId <> "" Then report = "Partial result: exact retirement event application was saved; catalog confirmation is incomplete." & _
+        vbCrLf & "Event: " & eventId & vbCrLf & report
 CleanExit:
     On Error Resume Next
     If openedHere And Not wb Is Nothing Then wb.Close SaveChanges:=False
     On Error GoTo 0
     Exit Function
-
 Failed:
-    report = "Delete inventory item failed: " & Err.Description
-    Resume CleanExit
+    report = "Inventory retirement failed: " & Err.Description
+    GoTo Partial
 End Function
 
 Private Function BuildInventoryRetirementPayloadItemAdmin(ByVal systemKey As String, _
@@ -885,314 +923,107 @@ Private Function BuildInventoryRetirementPayloadItemAdmin(ByVal systemKey As Str
     Set BuildInventoryRetirementPayloadItemAdmin = item
 End Function
 
-Private Function MarkInventoryCatalogRetiredAdmin(ByVal wb As Workbook, _
-                                                  ByVal sku As String, _
-                                                  ByVal userId As String, _
-                                                  ByVal reason As String, _
-                                                  ByRef report As String) As Boolean
-    Dim lo As ListObject
-    Dim rowIndex As Long
-    Dim stamp As String
-
+Private Function MarkInventoryCatalogRetiredAdmin(ByVal wb As Workbook, ByVal sku As String, _
+        ByVal userId As String, ByVal reason As String, ByRef report As String, _
+        Optional ByVal interactiveContext As String = "") As Boolean
+    Dim lo As ListObject, rowIndex As Long, stamp As String, fields As Object, field As Variant
+    Dim history As String, attempted As Boolean
     On Error GoTo Failed
+    If wb.ReadOnly Or Not wb.Saved Then report = "Catalog source is read-only or has unsaved changes.": Exit Function
     Set lo = FindListObjectByNameAdminLocal(wb, "tblSkuCatalog")
     If lo Is Nothing Then report = "tblSkuCatalog was not found.": Exit Function
     rowIndex = FindCatalogRowBySkuAdmin(lo, sku)
-    If rowIndex = 0 Then report = "Catalog item was not found: " & sku: Exit Function
+    If rowIndex = 0 Then report = "The captured catalog selection is unavailable.": Exit Function
     stamp = Format$(Now, "yyyy-mm-dd hh:nn:ss")
-    SetSheetProtectionAdminLocal lo.Parent, False
-    SetCatalogValueAdmin lo, rowIndex, "CATALOG_STATE", "RETIRED"
-    SetCatalogValueAdmin lo, rowIndex, "RETIRED_AT", stamp
-    SetCatalogValueAdmin lo, rowIndex, "RETIRED_BY", userId
-    SetCatalogValueAdmin lo, rowIndex, "RETIRE_REASON", reason
-    AppendCatalogEditHistoryAdmin lo, rowIndex, stamp & " | User=" & userId & _
-        " | SKU=" & sku & " | Delete reason=" & reason
-    SetSheetProtectionAdminLocal lo.Parent, True
-    wb.Save
+    Set fields = CreateObject("Scripting.Dictionary")
+    fields.Add "CATALOG_STATE", "RETIRED": fields.Add "RETIRED_AT", stamp
+    fields.Add "RETIRED_BY", userId: fields.Add "RETIRE_REASON", reason
+    history = CatalogCellAdmin(lo, rowIndex, "EDIT_HISTORY")
+    If history <> "" Then history = history & vbLf
+    fields.Add "EDIT_HISTORY", history & stamp & " | User=" & userId & " | SKU=" & sku & " | Delete reason=" & reason
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCatalog(interactiveContext, sku, report) Then Exit Function
+        If Not modInventoryCommands.BindCatalogWriter(interactiveContext, wb.Name, report) Then Exit Function
+        For Each field In fields.Keys
+            If Not modInventoryCommands.PlanCatalogField(interactiveContext, sku, CStr(field), CStr(fields(field)), report) Then Exit Function
+        Next field
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Function
+    End If
+    WriteInventoryCatalogFieldsAdmin lo, rowIndex, fields
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCatalogSave(interactiveContext, report) Then Exit Function
+    End If
+    attempted = True: wb.Save
+    If Not wb.Saved Then GoTo Unconfirmed
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.ConfirmCatalog(interactiveContext, report) Then GoTo Unconfirmed
+    End If
     report = "Catalog item retained with CATALOG_STATE=RETIRED."
     MarkInventoryCatalogRetiredAdmin = True
     Exit Function
-
+Unconfirmed:
+    report = "Partial result: catalog save returned; persisted retirement fields are unconfirmed." & vbCrLf & report
+    Exit Function
 Failed:
-    On Error Resume Next
-    If Not lo Is Nothing Then SetSheetProtectionAdminLocal lo.Parent, True
-    On Error GoTo 0
     report = "Catalog retirement failed: " & Err.Description
+    If attempted Then report = "Partial result: catalog save was attempted; persistence is unconfirmed." & vbCrLf & report
 End Function
 
 Private Function AddInventoryQuantityForWarehouse(ByVal warehouseId As String, _
                                                   ByVal stationId As String, _
                                                   ByVal userId As String, _
-                                                  ByVal rowVal As Long, _
                                                   ByVal sku As String, _
                                                   ByVal itemName As String, _
                                                   ByVal uom As String, _
                                                   ByVal locationVal As String, _
                                                   ByVal qty As Double, _
                                                   ByRef report As String) As Boolean
-    Dim payloadItems As Collection
-    Dim item As Object
-    Dim payloadJson As String
-    Dim eventIdOut As String
-    Dim queueError As String
-    Dim batchReport As String
-    Dim processedCount As Long
-    Dim inboxReport As String
-
-    On Error GoTo FailAdjust
-
-    warehouseId = Trim$(warehouseId)
-    stationId = Trim$(stationId)
-    userId = Trim$(userId)
-    sku = Trim$(sku)
-    itemName = Trim$(itemName)
-    uom = Trim$(uom)
-    locationVal = Trim$(locationVal)
-
-    If warehouseId = "" Then report = "WarehouseId is required.": Exit Function
-    If stationId = "" Then stationId = modStationIdentity.CurrentComputerStationId()
-    If userId = "" Then report = "Admin user is required.": Exit Function
-    If sku = "" Then report = "SKU is required.": Exit Function
-    If rowVal <= 0 Then report = "Inventory ROW id must be positive.": Exit Function
-    If qty <= 0 Then report = "Add qty must be greater than zero.": Exit Function
-
-    If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then
-        report = inboxReport
-        Exit Function
-    End If
-
-    Set payloadItems = New Collection
-    Set item = modRoleEventWriter.CreatePayloadItem(rowVal, sku, qty, locationVal, "Admin add inventory quantity", "IMPORT")
-    item("ITEM_CODE") = sku
-    item("ITEM") = itemName
-    item("UOM") = uom
-    item("LOCATION") = locationVal
-    payloadItems.Add item
-
-    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
-    If payloadJson = "" Or payloadJson = "[]" Then
-        report = "Inventory quantity payload was empty."
-        Exit Function
-    End If
-
-    If Not modRoleEventWriter.QueueMigrationSeedEvent(warehouseId, stationId, userId, payloadJson, _
-                                                      "ADMIN_ADD_INVENTORY_QTY", "Admin add inventory quantity " & sku, _
-                                                      0, Nothing, eventIdOut, queueError, "") Then
-        report = "Inventory quantity event could not be queued: " & queueError & vbCrLf & _
-                 "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
-        Exit Function
-    End If
-
-    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
-    If processedCount < 1 Then
-        report = "Inventory quantity event was queued but not applied. " & batchReport
-        Exit Function
-    End If
-
-    report = "Inventory quantity added." & vbCrLf & _
-             "Warehouse: " & warehouseId & vbCrLf & _
-             "SKU: " & sku & vbCrLf & _
-             "Item: " & itemName & vbCrLf & _
-             "Added quantity: " & CStr(qty) & vbCrLf & _
-             "Processor: " & batchReport & vbCrLf & _
-             "Refresh inventory in any open role workbook to see the updated quantity."
-    AddInventoryQuantityForWarehouse = True
-    Exit Function
-
-FailAdjust:
-    report = "AddInventoryQuantity failed: " & Err.Description
+    If qty <= 0 Then report = "Added quantity must be positive.": Exit Function
+    AddInventoryQuantityForWarehouse = modInventoryQuantityCommands.SetSingleEntityQuantity( _
+        warehouseId, stationId, userId, sku, ResolveInventoryQtyOnHandAdmin(warehouseId, sku) + qty, _
+        "Admin add inventory quantity", report)
 End Function
 
 Private Function SetInventoryQuantityForWarehouse(ByVal warehouseId As String, _
                                                   ByVal stationId As String, _
                                                   ByVal userId As String, _
-                                                  ByVal rowVal As Long, _
                                                   ByVal sku As String, _
                                                   ByVal itemName As String, _
                                                   ByVal uom As String, _
                                                   ByVal locationVal As String, _
                                                   ByVal targetQty As Double, _
                                                   ByVal editReason As String, _
-                                                  ByRef report As String) As Boolean
-    Dim currentQty As Double
-    Dim deltaQty As Double
-    Dim payloadItems As Collection
-    Dim item As Object
-    Dim payloadJson As String
-    Dim eventIdOut As String
-    Dim queueError As String
-    Dim batchReport As String
-    Dim processedCount As Long
-    Dim inboxReport As String
-    Dim noteText As String
-
-    On Error GoTo FailSet
-
-    warehouseId = Trim$(warehouseId)
-    stationId = Trim$(stationId)
-    userId = Trim$(userId)
-    sku = Trim$(sku)
-    itemName = Trim$(itemName)
-    uom = Trim$(uom)
-    locationVal = Trim$(locationVal)
-    editReason = Trim$(editReason)
-
-    If warehouseId = "" Then report = "WarehouseId is required.": Exit Function
-    If stationId = "" Then stationId = modStationIdentity.CurrentComputerStationId()
-    If userId = "" Then report = "Admin user is required.": Exit Function
-    If sku = "" Then report = "SKU is required.": Exit Function
-    If rowVal <= 0 Then report = "Inventory ROW id must be positive.": Exit Function
+                                                  ByRef report As String, _
+                                                  Optional ByVal interactiveContext As String = "") As Boolean
     If targetQty < 0 Then report = "Set qty cannot be negative.": Exit Function
-    If editReason = "" Then report = "Why the edit is required before changing quantity.": Exit Function
-
+    If Trim$(editReason) = "" Then report = "Why the edit is required before changing quantity.": Exit Function
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Function
+    End If
     If targetQty > 0 And Not InventorySkuHasManagedEntityAdmin(warehouseId, sku) Then
         SetInventoryQuantityForWarehouse = CreateFirstInventoryEntityForCatalogItemAdmin( _
-            warehouseId, stationId, userId, rowVal, sku, itemName, uom, _
-            locationVal, targetQty, editReason, report)
-        Exit Function
+            warehouseId, stationId, userId, sku, itemName, uom, _
+            locationVal, targetQty, editReason, report, interactiveContext)
+    Else
+        SetInventoryQuantityForWarehouse = modInventoryQuantityCommands.SetSingleEntityQuantity( _
+            warehouseId, stationId, userId, sku, targetQty, editReason, report, interactiveContext)
     End If
-
-    currentQty = ResolveInventoryQtyOnHandAdmin(warehouseId, sku)
-    deltaQty = targetQty - currentQty
-    If Abs(deltaQty) < 0.0000001 Then
-        report = "Inventory quantity already matched target." & vbCrLf & _
-                 "Warehouse: " & warehouseId & vbCrLf & _
-                 "SKU: " & sku & vbCrLf & _
-                 "Target quantity: " & CStr(targetQty)
-        SetInventoryQuantityForWarehouse = True
-        Exit Function
-    End If
-
-    If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then
-        report = inboxReport
-        Exit Function
-    End If
-
-    noteText = "Admin set inventory quantity. Reason: " & editReason & _
-               "; PreviousQty=" & CStr(currentQty) & "; TargetQty=" & CStr(targetQty)
-
-    Set payloadItems = New Collection
-    Set item = modRoleEventWriter.CreatePayloadItem(rowVal, sku, deltaQty, locationVal, noteText, "ADJUST")
-    item("ITEM_CODE") = sku
-    item("ITEM") = itemName
-    item("UOM") = uom
-    item("LOCATION") = locationVal
-    item("PreviousQty") = currentQty
-    item("TargetQty") = targetQty
-    item("Reason") = editReason
-    payloadItems.Add item
-
-    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
-    If payloadJson = "" Or payloadJson = "[]" Then
-        report = "Inventory adjustment payload was empty."
-        Exit Function
-    End If
-
-    If Not modRoleEventWriter.QueueAdminInventoryAdjustEvent(warehouseId, stationId, userId, payloadJson, _
-                                                             noteText, 0, eventIdOut, queueError, "") Then
-        report = "Inventory adjustment event could not be queued: " & queueError & vbCrLf & _
-                 "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
-        Exit Function
-    End If
-
-    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
-    If processedCount < 1 Then
-        report = "Inventory adjustment event was queued but not applied. " & batchReport
-        Exit Function
-    End If
-
-    report = "Inventory quantity set." & vbCrLf & _
-             "Warehouse: " & warehouseId & vbCrLf & _
-             "SKU: " & sku & vbCrLf & _
-             "Item: " & itemName & vbCrLf & _
-             "Previous quantity: " & CStr(currentQty) & vbCrLf & _
-             "Target quantity: " & CStr(targetQty) & vbCrLf & _
-             "Adjustment delta: " & CStr(deltaQty) & vbCrLf & _
-             "Reason: " & editReason & vbCrLf & _
-             "Processor: " & batchReport & vbCrLf & _
-             "Refresh inventory in any open role workbook to see the updated quantity."
-    SetInventoryQuantityForWarehouse = True
-    Exit Function
-
-FailSet:
-    report = "SetInventoryQuantity failed: " & Err.Description
 End Function
 
 Private Function CreateFirstInventoryEntityForCatalogItemAdmin(ByVal warehouseId As String, _
                                                                 ByVal stationId As String, _
                                                                 ByVal userId As String, _
-                                                                ByVal rowVal As Long, _
                                                                 ByVal sku As String, _
                                                                 ByVal itemName As String, _
                                                                 ByVal uom As String, _
                                                                 ByVal locationVal As String, _
                                                                 ByVal targetQty As Double, _
                                                                 ByVal editReason As String, _
-                                                                ByRef report As String) As Boolean
-    Dim payloadItems As Collection
-    Dim item As Object
-    Dim payloadJson As String
-    Dim eventIdOut As String
-    Dim queueError As String
-    Dim batchReport As String
-    Dim processedCount As Long
-    Dim inboxReport As String
-    Dim systemKey As String
-    Dim noteText As String
-
-    On Error GoTo Failed
-
-    If Not EnsureDemoStationInboxes(warehouseId, stationId, inboxReport) Then
-        report = inboxReport
-        Exit Function
-    End If
-
-    systemKey = modRoleEventWriter.CreateSystemKey()
-    noteText = "Admin completed catalog-only inventory item. Reason: " & editReason & _
-               "; SubmittedQty=" & CStr(targetQty)
-    Set payloadItems = New Collection
-    Set item = modRoleEventWriter.CreateInventoryEntityPayloadItem( _
-        systemKey, sku, targetQty, locationVal, "GOOD", "", noteText)
-    item("ROW") = rowVal
-    item("ITEM_CODE") = sku
-    item("ITEM") = itemName
-    item("UOM") = uom
-    item("LOCATION") = locationVal
-    item("TOTAL INV") = targetQty
-    item("QtyAvailable") = targetQty
-    item("Reason") = editReason
-    payloadItems.Add item
-
-    payloadJson = modRoleEventWriter.BuildPayloadJsonFromCollection(payloadItems)
-    If payloadJson = "" Or payloadJson = "[]" Then
-        report = "Inventory creation payload was empty."
-        Exit Function
-    End If
-    If Not modRoleEventWriter.QueueInventoryCreateEvent(warehouseId, stationId, userId, _
-            payloadJson, noteText, 0, Nothing, eventIdOut, queueError, "") Then
-        report = "Inventory creation event could not be queued: " & queueError
-        Exit Function
-    End If
-
-    processedCount = modProcessor.RunBatch(warehouseId, 0, batchReport)
-    If processedCount < 1 Then
-        report = "Inventory creation event was queued but not applied. " & batchReport
-        Exit Function
-    End If
-
-    report = "Catalog-only inventory item completed as a managed entity." & vbCrLf & _
-             "Warehouse: " & warehouseId & vbCrLf & _
-             "SKU: " & sku & vbCrLf & _
-             "System_Key: " & systemKey & vbCrLf & _
-             "Starting quantity: " & CStr(targetQty) & vbCrLf & _
-             "Reason: " & editReason & vbCrLf & _
-             "Processor: " & batchReport & vbCrLf & _
-             "Refresh Inventory Viewer and Production to see the item."
-    CreateFirstInventoryEntityForCatalogItemAdmin = True
-    Exit Function
-
-Failed:
-    report = "Complete catalog-only inventory item failed: " & Err.Description
+                                                                ByRef report As String, _
+                                                                Optional ByVal interactiveContext As String = "") As Boolean
+    CreateFirstInventoryEntityForCatalogItemAdmin = modAdminInventoryCreate.CompleteCatalogItem( _
+        warehouseId, stationId, userId, sku, itemName, uom, locationVal, targetQty, _
+        editReason, report, interactiveContext)
 End Function
 
 Public Function UpdateInventoryItemCatalogForWarehouse(ByVal warehouseId As String, _
@@ -1207,13 +1038,16 @@ Public Function UpdateInventoryItemCatalogForWarehouse(ByVal warehouseId As Stri
                                                        Optional ByVal externalCode As String = "", _
                                                        Optional ByVal imagePath As String = "", _
                                                        Optional ByVal customFields As Object = Nothing, _
-                                                       Optional ByRef report As String = "") As Boolean
+                                                       Optional ByRef report As String = "", _
+                                                       Optional ByVal interactiveContext As String = "", _
+                                                       Optional ByVal headlessUser As String = "", _
+                                                       Optional ByVal headlessStation As String = "") As Boolean
     Dim path As String
     Dim wb As Workbook
     Dim openedHere As Boolean
     Dim lo As ListObject
     Dim rowIndex As Long
-    Dim customKey As Variant
+    Dim fields As Object, field As Variant, saveAttempted As Boolean, savedToDisk As Boolean
 
     On Error GoTo FailUpdate
 
@@ -1227,11 +1061,22 @@ Public Function UpdateInventoryItemCatalogForWarehouse(ByVal warehouseId As Stri
     If itemName = "" Then report = "Item name is required.": Exit Function
     If uom = "" Then report = "UOM is required.": Exit Function
 
+    If interactiveContext = "" Then
+        If Trim$(headlessUser) = "" Or Trim$(headlessStation) = "" Then report = "An explicit provisioned user and station are required.": Exit Function
+        If Not modAuth.LoadAuth(warehouseId) Then report = "Provisioned authority could not be loaded.": Exit Function
+        If Not modAuth.HasProvisionedCapabilityForSystem("ADMIN_MAINT", headlessUser, warehouseId, headlessStation) Then report = "The provisioned user lacks ADMIN_MAINT for this warehouse and station.": Exit Function
+    End If
+
     path = modProcessor.ResolveInventoryWorkbookPathForAutomation(warehouseId)
     If path = "" Then report = "Inventory workbook path could not be resolved for " & warehouseId & ".": Exit Function
 
     Set wb = FindOpenWorkbookByFullNameAdmin(path)
-    If wb Is Nothing Then
+    If Not wb Is Nothing Then
+        If Not wb.Saved Then
+            report = "Inventory workbook has unsaved changes. Save or close it before editing the catalog."
+            Exit Function
+        End If
+    Else
         If Len(Dir$(path, vbNormal)) = 0 Then
             report = "Inventory workbook was not found: " & path
             Exit Function
@@ -1255,30 +1100,34 @@ Public Function UpdateInventoryItemCatalogForWarehouse(ByVal warehouseId As Stri
         GoTo CleanExit
     End If
 
-    SetSheetProtectionAdminLocal lo.Parent, False
-    SetCatalogValueAdmin lo, rowIndex, "ITEM_CODE", sku
-    SetCatalogValueAdmin lo, rowIndex, "ITEM", itemName
-    SetCatalogValueAdmin lo, rowIndex, "UOM", uom
-    SetCatalogValueAdmin lo, rowIndex, "LOCATION", locationVal
-    SetCatalogValueAdmin lo, rowIndex, "DESCRIPTION", description
-    SetCatalogValueAdmin lo, rowIndex, "VENDOR(s)", vendorName
-    SetCatalogValueAdmin lo, rowIndex, "VENDOR_CODE", vendorCode
-    SetCatalogValueAdmin lo, rowIndex, "CATEGORY", category
-    SetCatalogValueAdmin lo, rowIndex, "EXTERNAL_CODE", externalCode
-    SetPictureReferencesInCatalogAdmin lo, rowIndex, imagePath
-    If Not customFields Is Nothing Then
-        For Each customKey In customFields.Keys
-            If Trim$(CStr(customKey)) <> "" Then
-                If StrComp(Trim$(CStr(customKey)), "EDIT_HISTORY_APPEND", vbTextCompare) = 0 Then
-                    AppendCatalogEditHistoryAdmin lo, rowIndex, CStr(customFields(customKey))
-                Else
-                    SetCatalogValueAdmin lo, rowIndex, Trim$(CStr(customKey)), customFields(customKey)
-                End If
-            End If
-        Next customKey
+    Set fields = PlanInventoryCatalogFieldsAdmin(lo, rowIndex, Array(sku, itemName, uom, _
+        locationVal, description, vendorName, vendorCode, category, externalCode, imagePath), customFields)
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCatalog(interactiveContext, sku, report) Then GoTo CleanExit
+        If Not modInventoryCommands.BindCatalogWriter(interactiveContext, wb.Name, report) Then GoTo CleanExit
+        For Each field In fields.Keys
+            If Not modInventoryCommands.PlanCatalogField(interactiveContext, sku, CStr(field), _
+                    CStr(fields(field)), report) Then GoTo CleanExit
+        Next field
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
     End If
-    SetSheetProtectionAdminLocal lo.Parent, True
+    WriteInventoryCatalogFieldsAdmin lo, rowIndex, fields
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.BeginCatalogSave(interactiveContext, report) Then GoTo CleanExit
+    End If
+    saveAttempted = True
     wb.Save
+    savedToDisk = wb.Saved
+    If Not savedToDisk Then
+        report = "Partial result: catalog save was attempted but is unconfirmed. Reopen and verify before retrying."
+        GoTo CleanExit
+    End If
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.ConfirmCatalog(interactiveContext, report) Then
+            report = "Partial result: catalog save returned, but persisted fields could not be confirmed. Reopen and verify before retrying." & vbCrLf & report
+            GoTo CleanExit
+        End If
+    End If
 
     report = "Inventory item updated." & vbCrLf & _
              "Warehouse: " & warehouseId & vbCrLf & _
@@ -1289,15 +1138,78 @@ Public Function UpdateInventoryItemCatalogForWarehouse(ByVal warehouseId As Stri
 
 CleanExit:
     On Error Resume Next
-    If Not lo Is Nothing Then SetSheetProtectionAdminLocal lo.Parent, True
     If openedHere And Not wb Is Nothing Then wb.Close SaveChanges:=False
     On Error GoTo 0
     Exit Function
 
 FailUpdate:
     report = "UpdateInventoryItemCatalog failed: " & Err.Description
+    If saveAttempted Then report = "Partial result: catalog save was attempted; persisted outcome is unconfirmed. Reopen and verify before retrying." & vbCrLf & report
     Resume CleanExit
 End Function
+
+Private Function PlanInventoryCatalogFieldsAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, _
+        ByVal values As Variant, ByVal customFields As Object) As Object
+    Dim fields As Object, names As Variant, refs As Collection, i As Long, key As Variant
+    Dim text As String, existing As String
+    Set fields = CreateObject("Scripting.Dictionary"): fields.CompareMode = vbTextCompare
+    names = Array("ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", "EXTERNAL_CODE")
+    For i = 0 To UBound(names)
+        PlanInventoryCatalogValueAdmin fields, CStr(names(i)), values(i)
+    Next i
+    Set refs = ParsePictureReferencesAdmin(CStr(values(9)))
+    If refs.Count > 0 Then fields("IMAGE_PATH") = refs(1) Else fields("IMAGE_PATH") = ""
+    For i = 2 To 12
+        text = "IMAGE_PATH_" & CStr(i)
+        If i <= refs.Count Then
+            fields(text) = refs(i)
+        ElseIf ColumnIndexAdminLocal(lo, text) > 0 Then
+            fields(text) = ""
+        End If
+    Next i
+    If Not customFields Is Nothing Then
+        For Each key In customFields.Keys
+            text = Trim$(CStr(key))
+            If StrComp(text, "EDIT_HISTORY_APPEND", vbTextCompare) = 0 Then
+                text = Trim$(CStr(customFields(key)))
+                If text <> "" Then
+                    If fields.Exists("EDIT_HISTORY") Then existing = CStr(fields("EDIT_HISTORY")) Else existing = CatalogCellAdmin(lo, rowIndex, "EDIT_HISTORY")
+                    If existing <> "" Then text = existing & vbLf & text
+                    fields("EDIT_HISTORY") = text
+                End If
+            Else
+                PlanInventoryCatalogValueAdmin fields, text, customFields(key)
+            End If
+        Next key
+    End If
+    Set PlanInventoryCatalogFieldsAdmin = fields
+End Function
+
+Private Sub PlanInventoryCatalogValueAdmin(ByVal fields As Object, ByVal name As String, ByVal value As Variant)
+    name = NormalizeCatalogColumnNameAdmin(name)
+    If name <> "" Then fields(name) = value
+End Sub
+
+Private Sub WriteInventoryCatalogFieldsAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal fields As Object)
+    Dim events As Boolean, field As Variant, number As Long, description As String
+    events = Application.EnableEvents
+    On Error GoTo Failed
+    Application.EnableEvents = False
+    SetSheetProtectionAdminLocal lo.Parent, False
+    For Each field In fields.Keys
+        SetCatalogValueAdmin lo, rowIndex, CStr(field), fields(field)
+    Next field
+    SetSheetProtectionAdminLocal lo.Parent, True
+    Application.EnableEvents = events
+    Exit Sub
+Failed:
+    number = Err.Number: description = Err.Description
+    On Error Resume Next
+    SetSheetProtectionAdminLocal lo.Parent, True
+    Application.EnableEvents = events
+    On Error GoTo 0
+    Err.Raise number, , description
+End Sub
 
 Private Sub AppendCatalogEditHistoryAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal entryText As String)
     Dim existingText As String
@@ -1313,8 +1225,8 @@ Private Sub AppendCatalogEditHistoryAdmin(ByVal lo As ListObject, ByVal rowIndex
     End If
 End Sub
 
-Private Function GenerateInventorySkuAdmin(ByVal warehouseId As String, ByVal rowVal As Long) As String
-    Dim rowPart As String
+Private Function GenerateInventorySkuAdmin(ByVal warehouseId As String, ByVal codeOrdinal As Long) As String
+    Dim codePart As String
     Dim whPart As String
 
     whPart = UCase$(Trim$(warehouseId))
@@ -1323,11 +1235,11 @@ Private Function GenerateInventorySkuAdmin(ByVal warehouseId As String, ByVal ro
     If Len(whPart) > 4 Then whPart = Left$(whPart, 4)
     If whPart = "" Then whPart = "INV"
 
-    rowPart = Base36Admin(rowVal)
-    Do While Len(rowPart) < 6
-        rowPart = "0" & rowPart
+    codePart = Base36Admin(codeOrdinal)
+    Do While Len(codePart) < 6
+        codePart = "0" & codePart
     Loop
-    GenerateInventorySkuAdmin = "ITM-" & whPart & "-" & rowPart
+    GenerateInventorySkuAdmin = "ITM-" & whPart & "-" & codePart
 End Function
 
 Private Function LoadInventoryCatalogItemsAdmin(ByVal warehouseId As String) As Collection
@@ -1365,7 +1277,6 @@ Private Function LoadInventoryCatalogItemsAdmin(ByVal warehouseId As String) As 
                         Set item = CreateObject("Scripting.Dictionary")
                         item.CompareMode = vbTextCompare
                         item("SKU") = CatalogCellAdmin(lo, rowIndex, "SKU")
-                        item("ROW") = CatalogCellAdmin(lo, rowIndex, "ROW")
                         item("ITEM") = CatalogCellAdmin(lo, rowIndex, "ITEM")
                         item("UOM") = CatalogCellAdmin(lo, rowIndex, "UOM")
                         item("LOCATION") = CatalogCellAdmin(lo, rowIndex, "LOCATION")
@@ -1400,7 +1311,6 @@ Private Sub LoadCatalogItemsIntoAddInventoryForm(ByVal targetForm As frmAddInven
     If catalogItems Is Nothing Then Exit Sub
     For Each item In catalogItems
         targetForm.AddCatalogItem CatalogItemTextAdmin(item, "SKU"), _
-                                  CatalogItemTextAdmin(item, "ROW"), _
                                   CatalogItemTextAdmin(item, "ITEM"), _
                                   CatalogItemTextAdmin(item, "UOM"), _
                                   CatalogItemTextAdmin(item, "LOCATION"), _
@@ -1708,97 +1618,9 @@ Private Function SanitizeSeedCallbackErrorText(ByVal valueText As String) As Str
     SanitizeSeedCallbackErrorText = valueText
 End Function
 
-Private Function ResolveAdminCurrentTargetContext(ByRef warehouseId As String, _
-                                                  ByRef stationId As String, _
-                                                  ByRef userId As String, _
-                                                  ByRef report As String) As Boolean
-    Dim target As WarehouseTarget
-    Dim accessReport As String
-
-    If Not modRoleUiAccess.CanCurrentUserPerformCapabilityCached("ADMIN_MAINT", accessReport) Then
-        report = accessReport
-        If Trim$(report) = "" Then report = "Sign in as an admin user and connect a warehouse target first."
-        Exit Function
-    End If
-
-    Set target = modNasConnection.GetCurrentTarget()
-    If target Is Nothing Then
-        report = "Connect a warehouse target first."
-        Exit Function
-    End If
-
-    warehouseId = Trim$(target.WarehouseId)
-    stationId = Trim$(target.StationId)
-    userId = Trim$(modAuth.GetCurrentUserId())
-    If stationId = "" Then stationId = modStationIdentity.CurrentComputerStationId()
-    If warehouseId = "" Then
-        report = "Current warehouse target is missing WarehouseId."
-        Exit Function
-    End If
-    If userId = "" Then
-        report = "Current invSys user is not signed in."
-        Exit Function
-    End If
-    If Not modConfig.LoadConfig(warehouseId, stationId) Then
-        report = "Config load failed: " & modConfig.Validate()
-        Exit Function
-    End If
-
-    ResolveAdminCurrentTargetContext = True
-End Function
-
-Private Function NextInventoryRowSuggestionAdmin(ByVal warehouseId As String) As Long
-    Dim path As String
-    Dim wb As Workbook
-    Dim openedHere As Boolean
-    Dim lo As ListObject
-    Dim rowIndex As Long
-    Dim cRow As Long
-    Dim maxRow As Long
-    Dim rawValue As Variant
-
-    On Error GoTo Fallback
-    path = modProcessor.ResolveInventoryWorkbookPathForAutomation(warehouseId)
-    If path <> "" Then
-        Set wb = FindOpenWorkbookByFullNameAdmin(path)
-        If wb Is Nothing Then
-            If Len(Dir$(path, vbNormal)) > 0 Then
-                Set wb = Application.Workbooks.Open(path, UpdateLinks:=False, ReadOnly:=True, AddToMru:=False)
-                openedHere = True
-            End If
-        End If
-    End If
-
-    If Not wb Is Nothing Then
-        Set lo = FindListObjectByNameAdminLocal(wb, "tblSkuCatalog")
-        If Not lo Is Nothing Then
-            cRow = ColumnIndexAdminLocal(lo, "ROW")
-            If cRow > 0 And Not lo.DataBodyRange Is Nothing Then
-                For rowIndex = 1 To lo.ListRows.Count
-                    rawValue = lo.DataBodyRange.Cells(rowIndex, cRow).Value
-                    If IsNumeric(rawValue) Then
-                        If CLng(Val(CStr(rawValue))) > maxRow Then maxRow = CLng(Val(CStr(rawValue)))
-                    End If
-                Next rowIndex
-            End If
-        End If
-    End If
-
-    If maxRow > 0 Then
-        NextInventoryRowSuggestionAdmin = maxRow + 1
-    Else
-        NextInventoryRowSuggestionAdmin = CLng((DateDiff("s", DateSerial(2026, 1, 1), Now) Mod 900000) + 10000)
-    End If
-
-CleanExit:
-    On Error Resume Next
-    If openedHere And Not wb Is Nothing Then wb.Close SaveChanges:=False
-    On Error GoTo 0
-    Exit Function
-
-Fallback:
-    NextInventoryRowSuggestionAdmin = CLng((DateDiff("s", DateSerial(2026, 1, 1), Now) Mod 900000) + 10000)
-    Resume CleanExit
+Private Function NextInventoryCodeOrdinalAdmin(ByVal warehouseId As String) As Long
+    ' Preserve the existing greenfield Item Code seed; it is not entity identity.
+    NextInventoryCodeOrdinalAdmin = CLng((DateDiff("s", DateSerial(2026, 1, 1), Now) Mod 900000) + 10000)
 End Function
 
 Private Function FindOpenWorkbookByFullNameAdmin(ByVal fullName As String) As Workbook
@@ -2397,7 +2219,7 @@ Public Sub Admin_AggregateGlobalSnapshot_Click()
 
     Set targetWb = ResolveInteractiveAdminWorkbook()
     Call modRoleWorkbookSurfaces.EnsureAdminLegacyWorkbookSurface(targetWb, report)
-    frmAggregationSources.Show
+    frmAggregationSources.ObserveEntry: frmAggregationSources.Show
 End Sub
 
 ' D13 packaged form initialization smoke. This is not a Ribbon command and does
