@@ -30,7 +30,8 @@ Private mLastAutomationReport As String
 Public Function CreateInventoryWorksheetTable(ByVal wb As Workbook, _
                                               ByRef tableName As String, _
                                               ByRef report As String, _
-                                              Optional ByVal interactiveContext As String = "") As Boolean
+                                              Optional ByVal interactiveContext As String = "", _
+                                              Optional ByRef outcome As String = "") As Boolean
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim headers As Variant
@@ -40,22 +41,28 @@ Public Function CreateInventoryWorksheetTable(ByVal wb As Workbook, _
     Dim started As Boolean, saved As Boolean, requestedName As String
 
     On Error GoTo Failed
+    outcome = "FAILED"
     tableName = "": report = ""
     If Not IsUsableInventoryWorkbook(wb) Then
+        outcome = "REFUSED"
         report = "The captured Admin operator workbook is unavailable."
         Exit Function
     End If
     If wb.ReadOnly Then
+        outcome = "REFUSED"
         report = "Open the Admin operator workbook for editing before creating an inventory table."
         Exit Function
     End If
     If Trim$(wb.Path) = "" Then
+        outcome = "REFUSED"
         report = "Save the Admin operator workbook before creating an inventory table."
         Exit Function
     End If
 
+    outcome = "REFUSED"
     RequireInventoryCreationCurrent wb, interactiveContext, report
     started = True
+    outcome = "PARTIAL"
     Set ws = EnsureInventoryEditorSheet(wb, interactiveContext, report)
     headerRow = NextInventoryTableHeaderRow(ws)
     RequireInventoryCreationCurrent wb, interactiveContext, report
@@ -102,6 +109,7 @@ Public Function CreateInventoryWorksheetTable(ByVal wb As Workbook, _
     RequireInventoryCreationCurrent wb, interactiveContext, report
     report = "Created Inventory table " & tableName & ". Fill or paste rows, select a cell in the table, then choose Upload Selected Inventory Table."
     CreateInventoryWorksheetTable = True
+    outcome = "SAVED"
     Exit Function
 
 Failed:
@@ -128,7 +136,9 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
                                                        ByVal stationId As String, _
                                                        ByVal userId As String, _
                                                        ByRef report As String, _
-                                                       Optional ByVal interactiveContext As String = "") As Boolean
+                                                       Optional ByVal interactiveContext As String = "", _
+                                                       Optional ByRef outcome As String = "", _
+                                                       Optional ByRef observedEvents As String = "") As Boolean
     Dim lo As ListObject
     Dim records As Collection
     Dim record As Object
@@ -137,9 +147,10 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
     Dim succeeded As Long
     Dim failed As Long
     Dim remaining As Long
-    Dim idx As Long, values As Variant, tableName As String
+    Dim idx As Long, values As Variant, tableName As String, preflightOutcome As String
 
     On Error GoTo Failed
+    outcome = "REFUSED": observedEvents = ""
     mLastAutomationReport = ""
     If wb Is Nothing Then report = "The captured Admin operator workbook is unavailable.": Exit Function
     If wb.ReadOnly Then report = "Open the Admin operator workbook for editing before uploading inventory.": Exit Function
@@ -162,16 +173,18 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
         End If
         If Not FindSelectedInventoryWorksheetTable(wb, lo, report) Then Exit Function
     End If
-    If Not PreflightInventoryWorksheetTable(lo, warehouseId, records, report, interactiveContext) Then
+    If Not PreflightInventoryWorksheetTable(lo, warehouseId, records, report, interactiveContext, preflightOutcome) Then
         preflightReport = report
         If Not SaveInventoryWorksheetWorkbook(wb, interactiveContext, report) Then GoTo Partial
         report = preflightReport
         mLastAutomationReport = report
+        outcome = preflightOutcome
         Exit Function
     End If
     If records Is Nothing Or records.Count = 0 Then
         report = "The selected Inventory table has no pending rows to upload."
         mLastAutomationReport = report
+        outcome = "EMPTY"
         Exit Function
     End If
 
@@ -185,7 +198,10 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
         End If
         SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_ITEM_CODE, CStr(record("ItemCode")), interactiveContext
         SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_STATUS, "READY", interactiveContext
-        If CStr(record("CreateEventId")) <> "" Then
+        If CStr(record("EditReference")) <> "" Then
+            SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
+                "Inventory EDIT prepared; application is unconfirmed." & vbCrLf & CStr(record("EditReference")), interactiveContext
+        ElseIf CStr(record("CreateEventId")) <> "" Then
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
                 "Inventory upload prepared; application is unconfirmed." & vbCrLf & "Event: " & CStr(record("CreateEventId")), interactiveContext
         Else
@@ -196,12 +212,13 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
     ' durable in the existing result boundary before any create can be queued.
     If interactiveContext <> "" Then
         If Not SaveInventoryWorksheetWorkbook(wb, interactiveContext, report) Then GoTo Partial
+        If Not modInventoryEditCommands.ConfirmPreparedSelection(interactiveContext, report) Then GoTo Partial
     End If
 
     For idx = 1 To records.Count
         Set record = records(idx)
         applyReport = ""
-        If ApplyInventoryWorksheetRecord(record, warehouseId, stationId, userId, applyReport, interactiveContext) Then
+        If ApplyInventoryWorksheetRecord(record, warehouseId, stationId, userId, applyReport, interactiveContext, observedEvents) Then
             succeeded = succeeded + 1
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_STATUS, "IMPORTED", interactiveContext
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, applyReport, interactiveContext
@@ -218,7 +235,7 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
             remaining = remaining + 1
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_STATUS, "NOT IMPORTED", interactiveContext
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
-                "A prior row failed; correct it and upload again.", interactiveContext
+                "A prior row failed; correct it and upload again." & vbCrLf & CStr(record("EditReference")), interactiveContext
         Next idx
     End If
 
@@ -228,13 +245,16 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
     report = report & " Refresh Inventory Viewer and role pickers to see applied changes."
     mLastAutomationReport = report & "|" & InventoryWorksheetEvidenceForTest(lo)
     UploadSelectedInventoryWorksheetTable = (failed = 0 And succeeded > 0)
+    If failed = 0 And succeeded > 0 Then outcome = "CONFIRMED" Else outcome = "PARTIAL"
     Exit Function
 
 Partial:
+    outcome = "PARTIAL"
     If succeeded > 0 Then report = "Partial result: inventory application was saved; worksheet result is unconfirmed." & vbCrLf & applyReport & vbCrLf & report
     mLastAutomationReport = report
     Exit Function
 Failed:
+    outcome = "FAILED"
     report = "Inventory worksheet upload failed: " & Err.Description
     If succeeded > 0 Then report = "Partial result: inventory application was saved; worksheet result is unconfirmed." & vbCrLf & applyReport & vbCrLf & report
     If succeeded = 0 And applyReport <> "" Then report = applyReport & vbCrLf & report
@@ -245,7 +265,8 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
                                                  ByVal warehouseId As String, _
                                                  ByRef records As Collection, _
                                                  ByRef report As String, _
-                                                 Optional ByVal interactiveContext As String = "") As Boolean
+                                                 Optional ByVal interactiveContext As String = "", _
+                                                 Optional ByRef outcome As String = "") As Boolean
     Dim pending As New Collection
     Dim record As Object
     Dim rowError As String
@@ -253,12 +274,19 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
     Dim rowIndex As Long
     Dim baseOrdinal As Long
     Dim addOrdinal As Long
-    Dim generatedCodes As Object
+    Dim generatedCodes As Object, editReference As String
 
     On Error GoTo Failed
+    outcome = "REJECTED"
     ' Validate every pending row before any authoritative write is attempted.
     If lo Is Nothing Then report = "The selected Inventory table is unavailable.": Exit Function
     If Not ValidateInventoryWorksheetHeaders(lo, report) Then Exit Function
+    If interactiveContext <> "" Then
+        If Not modInventoryEditCommands.CheckSelection(interactiveContext, report) Then
+            report = "Inventory table validation failed. No inventory or catalog changes were made." & vbCrLf & report
+            Exit Function
+        End If
+    End If
     Set generatedCodes = CreateObject("Scripting.Dictionary")
     generatedCodes.CompareMode = vbTextCompare
     If mAutomationEnabled Then
@@ -270,7 +298,7 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
 
     For rowIndex = 1 To lo.ListRows.Count
         If InventoryWorksheetRowHasBusinessData(lo, rowIndex) Then
-            If UCase$(InventoryWorksheetText(lo, rowIndex, HDR_STATUS)) <> "IMPORTED" Then
+            If UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_STATUS)) <> "IMPORTED" Then
                 rowError = ""
                 Set record = Nothing
                 If ValidateInventoryWorksheetRow(lo, rowIndex, warehouseId, baseOrdinal, _
@@ -278,16 +306,25 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
                     pending.Add record
                 Else
                     SetInventoryWorksheetValue lo, rowIndex, HDR_STATUS, "VALIDATION ERROR", interactiveContext
-                    SetInventoryWorksheetValue lo, rowIndex, HDR_RESULT, rowError, interactiveContext
+                    If modInventoryEditWire.ReferenceField(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_RESULT), "Command:") = "" Then
+                        SetInventoryWorksheetValue lo, rowIndex, HDR_RESULT, rowError, interactiveContext
+                    End If
                     If errors <> "" Then errors = errors & vbCrLf
                     errors = errors & "Row " & CStr(rowIndex) & ": " & rowError
                 End If
             ElseIf interactiveContext <> "" And _
-                    UCase$(InventoryWorksheetText(lo, rowIndex, HDR_ACTION)) = "ADD" Then
+                    UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ACTION)) = "ADD" Then
                 rowError = ""
                 If Not ConfirmImportedCreateRow(lo, rowIndex, warehouseId, interactiveContext, rowError) Then
                     ' Retain the original receipt for exact reconciliation; never
                     ' turn an unconfirmed prior ADD into a new pending create.
+                    If errors <> "" Then errors = errors & vbCrLf
+                    errors = errors & "Row " & CStr(rowIndex) & ": " & rowError
+                End If
+            ElseIf interactiveContext <> "" And _
+                    UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ACTION)) = "EDIT" Then
+                rowError = "": editReference = ""
+                If Not modInventoryEditCommands.Prepare(interactiveContext, rowIndex, editReference, rowError) Then
                     If errors <> "" Then errors = errors & vbCrLf
                     errors = errors & "Row " & CStr(rowIndex) & ": " & rowError
                 End If
@@ -298,12 +335,13 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
         For Each record In pending
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_STATUS, "NOT UPLOADED", interactiveContext
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
-                "Resolve every validation error before upload.", interactiveContext
+                "Resolve every validation error before upload." & vbCrLf & CStr(record("EditReference")), interactiveContext
         Next record
         report = "Inventory table validation failed. No inventory or catalog changes were made." & vbCrLf & errors
         Exit Function
     End If
     If pending.Count = 0 Then
+        outcome = "EMPTY"
         report = "The selected Inventory table has no pending business rows."
         Exit Function
     End If
@@ -313,6 +351,7 @@ Public Function PreflightInventoryWorksheetTable(ByVal lo As ListObject, _
     Exit Function
 
 Failed:
+    outcome = "FAILED"
     report = "Inventory worksheet preflight failed: " & Err.Description
 End Function
 
@@ -320,7 +359,7 @@ Private Function ConfirmImportedCreateRow(ByVal lo As ListObject, ByVal rowIndex
         ByVal warehouseId As String, ByVal context As String, ByRef report As String) As Boolean
     Dim codes As Object, record As Object, ordinal As Long, rowError As String
     If Not modInventoryCreateReceipts.ConfirmAppliedResult(context, _
-            InventoryWorksheetText(lo, rowIndex, HDR_RESULT), report) Then Exit Function
+            modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_RESULT), report) Then Exit Function
     Set codes = CreateObject("Scripting.Dictionary"): codes.CompareMode = vbTextCompare
     ' Validate submitted values against the saved payload without consuming a
     ' pending-row ordinal or treating this already-applied row as new work.
@@ -383,7 +422,7 @@ Public Function ValidateInventoryWorksheetHeaders(ByVal lo As ListObject, _
     Set seen = CreateObject("Scripting.Dictionary")
     seen.CompareMode = vbTextCompare
     For Each lc In lo.ListColumns
-        normalized = NormalizeInventoryWorksheetHeader(CStr(lc.Name))
+        normalized = modInventoryItemFields.NormalizeInventoryWorksheetHeader(CStr(lc.Name))
         If normalized = Chr$(82) & Chr$(79) & Chr$(87) Or _
                 normalized = "SYSTEMKEY" Or normalized = "CONDITION" Then
             report = "Inventory staging tables may not contain the prohibited header " & lc.Name & "."
@@ -396,7 +435,7 @@ Public Function ValidateInventoryWorksheetHeaders(ByVal lo As ListObject, _
         seen(normalized) = True
     Next lc
     For Each headerValue In required
-        If InventoryWorksheetColumnIndex(lo, CStr(headerValue)) = 0 Then
+        If modInventoryItemFields.InventoryWorksheetColumnIndex(lo, CStr(headerValue)) = 0 Then
             report = "Inventory table is missing required header: " & CStr(headerValue) & "."
             Exit Function
         End If
@@ -476,16 +515,16 @@ Public Function InventoryWorksheetEvidenceForTest(ByVal lo As ListObject) As Str
         Exit Function
     End If
     tableCreated = IsInventoryWorksheetTable(lo)
-    generatedCode = InventoryWorksheetText(lo, 1, HDR_ITEM_CODE) <> "" And _
-                    InventoryWorksheetText(lo, 2, HDR_ITEM_CODE) <> ""
-    utilityReady = InStr(1, InventoryWorksheetText(lo, 2, HDR_RESULT), _
+    generatedCode = modInventoryItemFields.InventoryWorksheetText(lo, 1, HDR_ITEM_CODE) <> "" And _
+                    modInventoryItemFields.InventoryWorksheetText(lo, 2, HDR_ITEM_CODE) <> ""
+    utilityReady = InStr(1, modInventoryItemFields.InventoryWorksheetText(lo, 2, HDR_RESULT), _
                          "ITEM_KIND=UTILITY", vbTextCompare) > 0
-    exactEdit = InventoryWorksheetText(lo, 3, HDR_ITEM_CODE) = "EXISTING-SKU" And _
-                UCase$(InventoryWorksheetText(lo, 3, HDR_STATUS)) = "IMPORTED"
-    zeroCounted = (UCase$(InventoryWorksheetText(lo, 1, HDR_STATUS)) = "IMPORTED" And _
-                   Val(InventoryWorksheetText(lo, 1, HDR_QUANTITY)) = 0)
-    statusesReady = UCase$(InventoryWorksheetText(lo, 1, HDR_STATUS)) = "IMPORTED" And _
-                    UCase$(InventoryWorksheetText(lo, 2, HDR_STATUS)) = "IMPORTED" And exactEdit
+    exactEdit = modInventoryItemFields.InventoryWorksheetText(lo, 3, HDR_ITEM_CODE) = "EXISTING-SKU" And _
+                UCase$(modInventoryItemFields.InventoryWorksheetText(lo, 3, HDR_STATUS)) = "IMPORTED"
+    zeroCounted = (UCase$(modInventoryItemFields.InventoryWorksheetText(lo, 1, HDR_STATUS)) = "IMPORTED" And _
+                   Val(modInventoryItemFields.InventoryWorksheetText(lo, 1, HDR_QUANTITY)) = 0)
+    statusesReady = UCase$(modInventoryItemFields.InventoryWorksheetText(lo, 1, HDR_STATUS)) = "IMPORTED" And _
+                    UCase$(modInventoryItemFields.InventoryWorksheetText(lo, 2, HDR_STATUS)) = "IMPORTED" And exactEdit
     preflightPassed = generatedCode And statusesReady
     InventoryWorksheetEvidenceForTest = _
         "TableCreated=" & CStr(tableCreated) & _
@@ -517,16 +556,16 @@ Private Function ValidateInventoryWorksheetRow(ByVal lo As ListObject, _
     Dim editReason As String
     Dim statusText As String
     Dim codeOrdinal As Long
-    Dim customFields As Object, receiptEvent As String
+    Dim customFields As Object, receiptEvent As String, editReference As String
 
-    actionName = UCase$(InventoryWorksheetText(lo, rowIndex, HDR_ACTION))
-    sku = InventoryWorksheetText(lo, rowIndex, HDR_ITEM_CODE)
-    itemName = InventoryWorksheetText(lo, rowIndex, HDR_ITEM_NAME)
-    uom = UCase$(InventoryWorksheetText(lo, rowIndex, HDR_UOM))
-    qtyMode = UCase$(InventoryWorksheetText(lo, rowIndex, HDR_QTY_MODE))
-    qtyText = InventoryWorksheetText(lo, rowIndex, HDR_QUANTITY)
-    editReason = InventoryWorksheetText(lo, rowIndex, HDR_EDIT_REASON)
-    statusText = UCase$(InventoryWorksheetText(lo, rowIndex, HDR_STATUS))
+    actionName = UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ACTION))
+    sku = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ITEM_CODE)
+    itemName = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ITEM_NAME)
+    uom = UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_UOM))
+    qtyMode = UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_QTY_MODE))
+    qtyText = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_QUANTITY)
+    editReason = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_EDIT_REASON)
+    statusText = UCase$(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_STATUS))
     If qtyMode = "" Then qtyMode = "COUNTED"
 
     If actionName <> "ADD" And actionName <> "EDIT" Then
@@ -565,7 +604,7 @@ Private Function ValidateInventoryWorksheetRow(ByVal lo As ListObject, _
     End If
 
     If actionName = "ADD" Then
-        receiptEvent = modInventoryCreateReceipts.EventIdFromResult(InventoryWorksheetText(lo, rowIndex, HDR_RESULT))
+        receiptEvent = modInventoryCreateReceipts.EventIdFromResult(modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_RESULT))
         If receiptEvent <> "" And (sku = "" Or interactiveContext = "") Then
             rowError = "The prepared create requires its captured source, operator table and Item Code.": Exit Function
         End If
@@ -619,18 +658,23 @@ Private Function ValidateInventoryWorksheetRow(ByVal lo As ListObject, _
     record("QtyMode") = qtyMode
     record("Quantity") = qty
     record("HasQuantity") = hasQty
-    record("Location") = InventoryWorksheetText(lo, rowIndex, HDR_LOCATION)
-    record("Category") = InventoryWorksheetText(lo, rowIndex, HDR_CATEGORY)
-    record("Description") = InventoryWorksheetText(lo, rowIndex, HDR_DESCRIPTION)
-    record("Vendors") = InventoryWorksheetText(lo, rowIndex, HDR_VENDORS)
-    record("VendorCode") = InventoryWorksheetText(lo, rowIndex, HDR_VENDOR_CODE)
-    record("ExternalCode") = InventoryWorksheetText(lo, rowIndex, HDR_EXTERNAL_CODE)
-    record("Picture") = InventoryWorksheetText(lo, rowIndex, HDR_PICTURE)
+    record("Location") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_LOCATION)
+    record("Category") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_CATEGORY)
+    record("Description") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_DESCRIPTION)
+    record("Vendors") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_VENDORS)
+    record("VendorCode") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_VENDOR_CODE)
+    record("ExternalCode") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_EXTERNAL_CODE)
+    record("Picture") = modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_PICTURE)
     record("EditReason") = editReason
     Set record("CustomFields") = customFields
     record("CreateEventId") = receiptEvent
+    record("EditReference") = ""
     If receiptEvent <> "" Then
         If Not modAdmin.ValidateWorksheetCreateReceipt(record, interactiveContext, receiptEvent, rowError) Then Exit Function
+    End If
+    If actionName = "EDIT" And interactiveContext <> "" Then
+        If Not modInventoryEditCommands.Prepare(interactiveContext, rowIndex, editReference, rowError) Then Exit Function
+        record("EditReference") = editReference
     End If
     ValidateInventoryWorksheetRow = True
 End Function
@@ -644,7 +688,7 @@ Public Function StoreQueuedCreateReceipt(ByVal context As String, ByVal row As L
     Set book = Application.Workbooks(name)
     Set table = FindInventoryTableByName(book, modInventoryCommands.StagingTableName(context))
     If table Is Nothing Then Exit Function
-    If InventoryWorksheetText(table, row, HDR_ITEM_CODE) <> sku Then Exit Function
+    If modInventoryItemFields.InventoryWorksheetText(table, row, HDR_ITEM_CODE) <> sku Then Exit Function
     SetInventoryWorksheetValue table, row, HDR_STATUS, "QUEUED", context
     SetInventoryWorksheetValue table, row, HDR_RESULT, _
         "Inventory event queued; application is unconfirmed." & vbCrLf & "Event: " & eventId & _
@@ -660,8 +704,9 @@ Private Function ApplyInventoryWorksheetRecord(ByVal record As Object, _
                                                ByVal stationId As String, _
                                                ByVal userId As String, _
                                                ByRef report As String, _
-                                               Optional ByVal interactiveContext As String = "") As Boolean
-    Dim utilitySuffix As String
+                                               Optional ByVal interactiveContext As String = "", _
+                                               Optional ByRef observedEvents As String = "") As Boolean
+    Dim utilitySuffix As String, observedEvent As String
 
     If mAutomationEnabled Then
         If UCase$(CStr(record("QtyMode"))) = "UTILITY" Then utilitySuffix = " ITEM_KIND=UTILITY"
@@ -671,7 +716,17 @@ Private Function ApplyInventoryWorksheetRecord(ByVal record As Object, _
         Exit Function
     End If
     ApplyInventoryWorksheetRecord = modAdmin.ApplyInventoryWorksheetRecordForWarehouse( _
-        warehouseId, stationId, userId, record, report, interactiveContext)
+        warehouseId, stationId, userId, record, report, interactiveContext, observedEvent)
+    If observedEvent <> "" Then
+        If observedEvents <> "" Then observedEvents = observedEvents & vbLf
+        observedEvents = observedEvents & observedEvent
+    End If
+    If Not ApplyInventoryWorksheetRecord And interactiveContext <> "" Then
+        If CStr(record("EditReference")) <> "" And _
+                modInventoryEditWire.ReferenceField(report, "Command:") = "" Then
+            report = report & vbCrLf & CStr(record("EditReference"))
+        End If
+    End If
 End Function
 
 Private Function InventoryCatalogContains(ByVal warehouseId As String, _
@@ -705,7 +760,7 @@ Private Sub AppendInventoryWorksheetCustomFields(ByVal lo As ListObject, _
 End Sub
 
 Private Function IsManagedInventoryWorksheetHeader(ByVal headerName As String) As Boolean
-    Select Case NormalizeInventoryWorksheetHeader(headerName)
+    Select Case modInventoryItemFields.NormalizeInventoryWorksheetHeader(headerName)
         Case "ACTION", "ITEMCODE", "ITEMNAME", "UOM", "QTYMODE", "QUANTITY", _
              "DEFAULTLOCATION", "CATEGORY", "DESCRIPTION", "VENDORS", "VENDORCODE", _
              "EXTERNALCODE", "PICTUREPATHURL", "EDITREASON", "UPLOADSTATUS", "UPLOADRESULT"
@@ -832,41 +887,6 @@ Private Function IsInventoryWorksheetTable(ByVal lo As ListObject) As Boolean
         StrComp(Left$(lo.Name, Len(TABLE_PREFIX)), TABLE_PREFIX, vbTextCompare) = 0)
 End Function
 
-Private Function InventoryWorksheetColumnIndex(ByVal lo As ListObject, _
-                                               ByVal headerName As String) As Long
-    Dim lc As ListColumn
-    Dim normalized As String
-
-    normalized = NormalizeInventoryWorksheetHeader(headerName)
-    For Each lc In lo.ListColumns
-        If NormalizeInventoryWorksheetHeader(CStr(lc.Name)) = normalized Then
-            InventoryWorksheetColumnIndex = lc.Index
-            Exit Function
-        End If
-    Next lc
-End Function
-
-Private Function NormalizeInventoryWorksheetHeader(ByVal headerName As String) As String
-    headerName = UCase$(Trim$(headerName))
-    headerName = Replace$(headerName, " ", "")
-    headerName = Replace$(headerName, "_", "")
-    headerName = Replace$(headerName, "-", "")
-    headerName = Replace$(headerName, "/", "")
-    headerName = Replace$(headerName, "(", "")
-    headerName = Replace$(headerName, ")", "")
-    NormalizeInventoryWorksheetHeader = headerName
-End Function
-
-Private Function InventoryWorksheetText(ByVal lo As ListObject, _
-                                        ByVal rowIndex As Long, _
-                                        ByVal headerName As String) As String
-    Dim colIndex As Long
-
-    colIndex = InventoryWorksheetColumnIndex(lo, headerName)
-    If colIndex = 0 Or lo.DataBodyRange Is Nothing Then Exit Function
-    InventoryWorksheetText = Trim$(CStr(lo.DataBodyRange.Cells(rowIndex, colIndex).Value2))
-End Function
-
 Private Sub SetInventoryWorksheetValue(ByVal lo As ListObject, ByVal rowIndex As Long, _
         ByVal headerName As String, ByVal value As Variant, Optional ByVal interactiveContext As String = "")
     Dim colIndex As Long, report As String
@@ -875,7 +895,7 @@ Private Sub SetInventoryWorksheetValue(ByVal lo As ListObject, ByVal rowIndex As
             Err.Raise vbObjectError + 2141, , report
         End If
     End If
-    colIndex = InventoryWorksheetColumnIndex(lo, headerName)
+    colIndex = modInventoryItemFields.InventoryWorksheetColumnIndex(lo, headerName)
     If colIndex = 0 Or lo.DataBodyRange Is Nothing Then Err.Raise vbObjectError + 2141, , "The captured staging field is unavailable."
     lo.DataBodyRange.Cells(rowIndex, colIndex).Value2 = value
     If interactiveContext <> "" Then
@@ -886,11 +906,11 @@ End Sub
 Private Function InventoryWorksheetRowHasBusinessData(ByVal lo As ListObject, _
                                                       ByVal rowIndex As Long) As Boolean
     InventoryWorksheetRowHasBusinessData = _
-        InventoryWorksheetText(lo, rowIndex, HDR_ACTION) <> "" Or _
-        InventoryWorksheetText(lo, rowIndex, HDR_ITEM_CODE) <> "" Or _
-        InventoryWorksheetText(lo, rowIndex, HDR_ITEM_NAME) <> "" Or _
-        InventoryWorksheetText(lo, rowIndex, HDR_UOM) <> "" Or _
-        InventoryWorksheetText(lo, rowIndex, HDR_QUANTITY) <> ""
+        modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ACTION) <> "" Or _
+        modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ITEM_CODE) <> "" Or _
+        modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_ITEM_NAME) <> "" Or _
+        modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_UOM) <> "" Or _
+        modInventoryItemFields.InventoryWorksheetText(lo, rowIndex, HDR_QUANTITY) <> ""
 End Function
 
 Private Sub FormatInventoryWorksheet(ByVal ws As Worksheet, ByVal lo As ListObject, ByVal context As String, ByRef report As String)

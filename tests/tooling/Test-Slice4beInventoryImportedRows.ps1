@@ -4,9 +4,10 @@ param(
     [ValidateSet('RED','GREEN')][string]$Phase='RED',
     [Parameter(Mandatory=$true)][string]$DesktopMonitorReport,
     [switch]$TesterBaselineOverlayForTest,
+    [switch]$TraceResourcesForTest,
     [switch]$WorksheetResultsRegression,
     [string]$ReceiptScenarioForTest='',
-    [ValidateSet('ImportedRows','ImportedEdits','EditReceiptPhases','EditReceiptResults','EditReceiptSave','EditReceiptAll','EditBindings','WorksheetResults','PrimitivePayload','CatalogCompletion','Headless','CreatePhases','CreateName','ConfigMetadata')]
+    [ValidateSet('ImportedRows','ImportedEdits','EditReceiptPhases','EditReceiptResults','EditReceiptSave','EditReceiptAll','EditBindings','EditOwnership','WorksheetResults','PrimitivePayload','CatalogCompletion','Headless','CreatePhases','CreateName','ConfigMetadata')]
     [string]$InventoryCase='ImportedRows'
 )
 # Source-overlay diagnostic only. Preserve frozen packages, tooling, product
@@ -47,6 +48,7 @@ try{
         '-CompileEvaluationProbesForTest','-WaitForExcelReadyForTest','-ExcelReadyReadLimitForTest','40',
         '-DesktopMonitorReport',$DesktopMonitorReport)
     if($TesterBaselineOverlayForTest){$workerArgs+='-AdminInventoryTesterBaselineOverlayForTest'}
+    if($TraceResourcesForTest){$workerArgs+='-TraceGuideResourcesForTest'}
     if($ReceiptScenarioForTest -ne ''){$workerArgs+=@('-AdminInventoryReceiptScenarioForTest',$ReceiptScenarioForTest)}
     switch($InventoryCase){
         'ImportedRows' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryImportedRowsOnly')}
@@ -56,6 +58,7 @@ try{
         'EditReceiptSave' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryEditReceiptPhasesOnly','-AdminInventoryEditCanonicalSaveOnly')}
         'EditReceiptAll' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryEditReceiptPhasesOnly','-AdminInventoryEditReceiptAllOnly')}
         'EditBindings' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryEditReceiptPhasesOnly','-AdminInventoryEditBindingsOnly')}
+        'EditOwnership' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryEditReceiptPhasesOnly','-AdminInventoryEditOwnershipOnly')}
         'ConfigMetadata' {$workerArgs+=@('-AdminInventoryWorksheetResultsOnly','-AdminInventoryImportedRowsOnly','-AdminInventoryConfigMetadataOnly')}
         'WorksheetResults' {$workerArgs+='-AdminInventoryWorksheetResultsOnly'}
         'PrimitivePayload' {$workerArgs+='-AdminInventoryPrimitivePayloadOnly'}

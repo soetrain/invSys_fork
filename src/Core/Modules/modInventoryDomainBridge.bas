@@ -16,6 +16,11 @@ Public Const CORE_EVENT_TYPE_PROD_COMPLETE As String = "PROD_COMPLETE"
 Private Const INVENTORY_DOMAIN_ADDIN_NAME As String = "invSys.Inventory.Domain.xlam"
 Private Const INVENTORY_DOMAIN_REF_ADDIN_NAME As String = "invSys.Inventory.Domain.ref.xlam"
 
+' Worksheet EDIT uses a declared primitive command/result envelope.
+Public Function SaveWorksheetEditCatalogBridge(ByVal context As String, ByVal command As String) As Variant
+    SaveWorksheetEditCatalogBridge = RunInventoryDomainMacro2("modInventoryEditReceipts.SaveCatalog", context, command)
+End Function
+
 Public Function ResolveInventoryWorkbookBridge(Optional ByVal warehouseId As String = "", _
                                               Optional ByVal inventoryWb As Workbook = Nothing) As Workbook
     Dim result As Variant

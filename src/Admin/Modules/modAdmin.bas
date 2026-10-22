@@ -381,7 +381,7 @@ Public Function InventoryItemCatalogContainsForWorksheet(ByVal warehouseId As St
     If sku = "" Then Exit Function
     Set catalogItems = LoadInventoryCatalogItemsAdmin(warehouseId)
     For Each item In catalogItems
-        If StrComp(CatalogItemTextAdmin(item, "SKU"), sku, vbTextCompare) = 0 Then
+        If StrComp(modInventoryUiText.CatalogItemTextAdmin(item, "SKU"), sku, vbTextCompare) = 0 Then
             InventoryItemCatalogContainsForWorksheet = True
             Exit Function
         End If
@@ -393,7 +393,8 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
                                                           ByVal userId As String, _
                                                           ByVal record As Object, _
                                                           ByRef report As String, _
-                                                          Optional ByVal interactiveContext As String = "") As Boolean
+                                                          Optional ByVal interactiveContext As String = "", _
+                                                          Optional ByRef observedEvent As String = "") As Boolean
     Dim customFields As Object
     Dim actionName As String
     Dim sku As String
@@ -409,6 +410,7 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
     Dim editStamp As String, receiptRow As Long
 
     On Error GoTo Failed
+    observedEvent = ""
     If record Is Nothing Then report = "Inventory worksheet record is unavailable.": Exit Function
     actionName = UCase$(Trim$(CStr(record("Action"))))
     sku = Trim$(CStr(record("ItemCode")))
@@ -420,9 +422,9 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
     qty = CDbl(record("Quantity"))
     editReason = Trim$(CStr(record("EditReason")))
     Set customFields = record("CustomFields")
-    If IsNonCountedCustomFieldsAdmin(customFields) Then
-        If categoryValue = "" Then categoryValue = NonCountedItemKindAdmin(customFields)
-        If vendorValue = "" And NonCountedItemKindAdmin(customFields) = "UTILITY" Then vendorValue = "Utility"
+    If modInventoryItemFields.IsNonCountedCustomFieldsAdmin(customFields) Then
+        If categoryValue = "" Then categoryValue = modInventoryItemFields.NonCountedItemKindAdmin(customFields)
+        If vendorValue = "" And modInventoryItemFields.NonCountedItemKindAdmin(customFields) = "UTILITY" Then vendorValue = "Utility"
     End If
 
     If actionName = "ADD" Then
@@ -432,10 +434,14 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
             uom, locationValue, qty, CStr(record("Description")), vendorValue, _
             CStr(record("VendorCode")), categoryValue, CStr(record("ExternalCode")), _
             CStr(record("Picture")), customFields, report, interactiveContext, _
-            CStr(record("CreateEventId")), receiptRow)
+            CStr(record("CreateEventId")), receiptRow, observedEvent)
         Exit Function
     End If
     If actionName <> "EDIT" Then report = "Inventory worksheet Action must be ADD or EDIT.": Exit Function
+    If interactiveContext <> "" Then
+        ApplyInventoryWorksheetRecordForWarehouse = modInventoryEditCommands.Execute(interactiveContext, CLng(record("TableRow")), report, observedEvent)
+        Exit Function
+    End If
 
     editStamp = Format$(Now, "yyyy-mm-dd hh:nn:ss")
     customFields("LAST_EDIT_REASON") = editReason
@@ -447,7 +453,7 @@ Public Function ApplyInventoryWorksheetRecordForWarehouse(ByVal warehouseId As S
         uom, locationValue, CStr(record("Description")), vendorValue, _
         CStr(record("VendorCode")), categoryValue, CStr(record("ExternalCode")), _
         CStr(record("Picture")), customFields, report, interactiveContext, userId, stationId)
-    If actionSucceeded And Not IsNonCountedCustomFieldsAdmin(customFields) And _
+    If actionSucceeded And Not modInventoryItemFields.IsNonCountedCustomFieldsAdmin(customFields) And _
             CBool(record("HasQuantity")) Then
         If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, _
                 sku, itemName, uom, locationValue, qty, _
@@ -496,6 +502,7 @@ Sub Add_InventoryItem()
     Dim editStamp As String
     Dim actionSucceeded As Boolean
     Dim interactiveContext As String, sourceValues As Variant
+    Dim activity As cProvisioningActivity
 
     Set targetWb = ResolveInteractiveAdminWorkbook(False)
     If targetWb Is Nothing Then
@@ -505,10 +512,13 @@ Sub Add_InventoryItem()
     End If
 
     interactiveContext = modInventoryCommands.Capture(targetWb.Name)
+    Set activity = New cProvisioningActivity
+    activity.Initialize targetWb, "ADMIN_INVENTORY_", "Inventory"
     sourceValues = modInventoryCommands.SourceValues(interactiveContext)
     If Not IsArray(sourceValues) Then
         MsgBox "Sign in to the current source warehouse as an authorized Admin and reopen Add/Edit Inventory.", vbExclamation, "invSys Admin"
         modInventoryCommands.Release interactiveContext
+        activity.OpeningFailed
         Exit Sub
     End If
     warehouseId = CStr(sourceValues(0)): stationId = CStr(sourceValues(1)): userId = CStr(sourceValues(2))
@@ -520,6 +530,7 @@ Sub Add_InventoryItem()
 
     If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
     Set addForm = New frmAddInventoryItem
+    addForm.ObserveWith activity
     addForm.Configure warehouseId, stationId, userId, sku, defaultLocation
     addForm.SetOperatorWorkbook targetWb
     addForm.SetInteractiveContext interactiveContext
@@ -570,7 +581,7 @@ Sub Add_InventoryItem()
                                                                      formVendorCode, formCategory, _
                                                                      formExternalCode, formImagePath, _
                                                                      formCustomFields, report, interactiveContext)
-            If actionSucceeded And Not IsNonCountedCustomFieldsAdmin(formCustomFields) Then
+            If actionSucceeded And Not modInventoryItemFields.IsNonCountedCustomFieldsAdmin(formCustomFields) Then
                 Dim qtyReport As String
                 If SetInventoryQuantityForWarehouse(warehouseId, stationId, userId, formSku, _
                                                     formItemName, formUom, formLocation, formQty, formEditReason, qtyReport, interactiveContext) Then
@@ -609,6 +620,7 @@ Sub Add_InventoryItem()
 
 CleanExit:
     On Error Resume Next
+    If Not activity Is Nothing Then activity.OpeningFailed
     Unload addForm
     modInventoryCommands.Release interactiveContext
     On Error GoTo 0
@@ -644,7 +656,8 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
                                              Optional ByRef report As String = "", _
                                              Optional ByVal interactiveContext As String = "", _
                                              Optional ByVal creationEventId As String = "", _
-                                             Optional ByVal stagingRow As Long = 0) As Boolean
+                                             Optional ByVal stagingRow As Long = 0, _
+                                             Optional ByRef observedEvent As String = "") As Boolean
     Dim payloadJson As String
     Dim eventIdOut As String
     Dim queueError As String
@@ -657,6 +670,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     Dim receiptFound As Boolean, receiptApplied As Boolean, receiptPayload As String, receiptKey As String
 
     On Error GoTo FailAdd
+    observedEvent = ""
 
     warehouseId = Trim$(warehouseId)
     stationId = Trim$(stationId)
@@ -672,7 +686,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     If sku = "" Then report = "SKU is required.": Exit Function
     If itemName = "" Then itemName = sku
     If uom = "" Then report = "UOM is required.": Exit Function
-    nonCounted = IsNonCountedCustomFieldsAdmin(customFields)
+    nonCounted = modInventoryItemFields.IsNonCountedCustomFieldsAdmin(customFields)
     If nonCounted Then
         qty = 0#
     ElseIf qty < 0 Then
@@ -725,6 +739,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         If Not modInventoryCreateReceipts.PayloadMatches(payloadJson, receiptPayload) Then
             report = "The pending row differs from its exact queued create. Reconcile it before retrying.": Exit Function
         End If
+        observedEvent = eventIdOut & vbTab & "Submitted"
         If receiptApplied Then
             batchReport = "Exact previously saved event independently reconciled."
             GoTo CreateSaved
@@ -735,7 +750,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     End If
     If Not receiptFound Then
     If Not modInventoryCreateWire.QueueCreate(warehouseId, stationId, userId, payloadJson, _
-                                             "Admin add inventory item " & sku, eventIdOut, queueError) Then
+                                             "Admin add inventory item " & sku, eventIdOut, queueError, observedEvent) Then
         If interactiveContext <> "" Then modInventoryCommands.Release interactiveContext
         report = "Inventory item event could not be queued: " & queueError & vbCrLf & _
                  "Use Users & Roles to grant ADMIN_MAINT to '" & userId & "' for " & warehouseId & " / " & stationId & "."
@@ -790,7 +805,7 @@ Private Function BuildInventoryCreatePayloadAdmin(ByVal systemKey As String, ByV
         ByVal description As String, ByVal vendorName As String, ByVal vendorCode As String, _
         ByVal category As String, ByVal externalCode As String, ByVal imagePath As String, ByVal customFields As Object) As String
     Dim item As Object, customKey As Variant, nonCounted As Boolean
-    nonCounted = IsNonCountedCustomFieldsAdmin(customFields)
+    nonCounted = modInventoryItemFields.IsNonCountedCustomFieldsAdmin(customFields)
     Set item = CreateObject("Scripting.Dictionary"): item.CompareMode = vbTextCompare
     item("ITEM_CODE") = sku
     item("ITEM") = itemName
@@ -807,7 +822,7 @@ Private Function BuildInventoryCreatePayloadAdmin(ByVal systemKey As String, ByV
     AddPictureReferencesToPayloadAdmin item, imagePath
     If nonCounted Then
         item("TRACK_QTY") = "FALSE"
-        item("ITEM_KIND") = NonCountedItemKindAdmin(customFields)
+        item("ITEM_KIND") = modInventoryItemFields.NonCountedItemKindAdmin(customFields)
     End If
     If Not customFields Is Nothing Then
         For Each customKey In customFields.Keys
@@ -835,9 +850,9 @@ Public Function ValidateWorksheetCreateReceipt(ByVal record As Object, ByVal con
     End If
     category = CStr(record("Category")): vendor = CStr(record("Vendors"))
     Set customFields = record("CustomFields")
-    If IsNonCountedCustomFieldsAdmin(customFields) Then
-        If category = "" Then category = NonCountedItemKindAdmin(customFields)
-        If vendor = "" And NonCountedItemKindAdmin(customFields) = "UTILITY" Then vendor = "Utility"
+    If modInventoryItemFields.IsNonCountedCustomFieldsAdmin(customFields) Then
+        If category = "" Then category = modInventoryItemFields.NonCountedItemKindAdmin(customFields)
+        If vendor = "" And modInventoryItemFields.NonCountedItemKindAdmin(customFields) = "UTILITY" Then vendor = "Utility"
     End If
     expected = BuildInventoryCreatePayloadAdmin(systemKey, CStr(record("ItemCode")), CStr(record("ItemName")), _
         CStr(record("UOM")), CStr(record("Location")), CDbl(record("Quantity")), CStr(record("Description")), _
@@ -1149,45 +1164,23 @@ End Function
 
 Private Function PlanInventoryCatalogFieldsAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, _
         ByVal values As Variant, ByVal customFields As Object) As Object
-    Dim fields As Object, names As Variant, refs As Collection, i As Long, key As Variant
-    Dim text As String, existing As String
-    Set fields = CreateObject("Scripting.Dictionary"): fields.CompareMode = vbTextCompare
-    names = Array("ITEM_CODE", "ITEM", "UOM", "LOCATION", "DESCRIPTION", "VENDOR(s)", "VENDOR_CODE", "CATEGORY", "EXTERNAL_CODE")
-    For i = 0 To UBound(names)
-        PlanInventoryCatalogValueAdmin fields, CStr(names(i)), values(i)
-    Next i
-    Set refs = ParsePictureReferencesAdmin(CStr(values(9)))
-    If refs.Count > 0 Then fields("IMAGE_PATH") = refs(1) Else fields("IMAGE_PATH") = ""
-    For i = 2 To 12
-        text = "IMAGE_PATH_" & CStr(i)
-        If i <= refs.Count Then
-            fields(text) = refs(i)
-        ElseIf ColumnIndexAdminLocal(lo, text) > 0 Then
-            fields(text) = ""
-        End If
-    Next i
+    Dim fields As Object, names As Variant, data As Variant, headers() As String
+    Dim customNames As Variant, customValues As Variant, planned As Variant, i As Long
+    customNames = Array(): customValues = Array()
     If Not customFields Is Nothing Then
-        For Each key In customFields.Keys
-            text = Trim$(CStr(key))
-            If StrComp(text, "EDIT_HISTORY_APPEND", vbTextCompare) = 0 Then
-                text = Trim$(CStr(customFields(key)))
-                If text <> "" Then
-                    If fields.Exists("EDIT_HISTORY") Then existing = CStr(fields("EDIT_HISTORY")) Else existing = CatalogCellAdmin(lo, rowIndex, "EDIT_HISTORY")
-                    If existing <> "" Then text = existing & vbLf & text
-                    fields("EDIT_HISTORY") = text
-                End If
-            Else
-                PlanInventoryCatalogValueAdmin fields, text, customFields(key)
-            End If
-        Next key
+        customNames = customFields.Keys: customValues = customFields.Items
     End If
+    ReDim headers(0 To lo.ListColumns.Count - 1)
+    For i = 1 To lo.ListColumns.Count: headers(i - 1) = CStr(lo.ListColumns(i).Name): Next i
+    planned = modInventoryCatalogWire.PlanFields(values, customNames, customValues, _
+        CatalogCellAdmin(lo, rowIndex, "EDIT_HISTORY"), headers)
+    names = planned(0): data = planned(1)
+    Set fields = CreateObject("Scripting.Dictionary"): fields.CompareMode = vbTextCompare
+    For i = LBound(names) To UBound(names)
+        fields(CStr(names(i))) = data(i)
+    Next i
     Set PlanInventoryCatalogFieldsAdmin = fields
 End Function
-
-Private Sub PlanInventoryCatalogValueAdmin(ByVal fields As Object, ByVal name As String, ByVal value As Variant)
-    name = NormalizeCatalogColumnNameAdmin(name)
-    If name <> "" Then fields(name) = value
-End Sub
 
 Private Sub WriteInventoryCatalogFieldsAdmin(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal fields As Object)
     Dim events As Boolean, field As Variant, number As Long, description As String
@@ -1309,57 +1302,21 @@ Private Sub LoadCatalogItemsIntoAddInventoryForm(ByVal targetForm As frmAddInven
     If targetForm Is Nothing Then Exit Sub
     If catalogItems Is Nothing Then Exit Sub
     For Each item In catalogItems
-        targetForm.AddCatalogItem CatalogItemTextAdmin(item, "SKU"), _
-                                  CatalogItemTextAdmin(item, "ITEM"), _
-                                  CatalogItemTextAdmin(item, "UOM"), _
-                                  CatalogItemTextAdmin(item, "LOCATION"), _
-                                  CatalogItemTextAdmin(item, "DESCRIPTION"), _
-                                  CatalogItemTextAdmin(item, "VENDOR(s)"), _
-                                  CatalogItemTextAdmin(item, "VENDOR_CODE"), _
-                                  CatalogItemTextAdmin(item, "CATEGORY"), _
-                                  CatalogItemTextAdmin(item, "EXTERNAL_CODE"), _
-                                  CatalogItemTextAdmin(item, "IMAGE_PATH"), _
-                                  CatalogItemTextAdmin(item, "TRACK_QTY"), _
-                                  CatalogItemTextAdmin(item, "ITEM_KIND"), _
-                                  CatalogItemTextAdmin(item, "QTY_ON_HAND")
+        targetForm.AddCatalogItem modInventoryUiText.CatalogItemTextAdmin(item, "SKU"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "ITEM"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "UOM"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "LOCATION"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "DESCRIPTION"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "VENDOR(s)"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "VENDOR_CODE"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "CATEGORY"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "EXTERNAL_CODE"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "IMAGE_PATH"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "TRACK_QTY"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "ITEM_KIND"), _
+                                  modInventoryUiText.CatalogItemTextAdmin(item, "QTY_ON_HAND")
     Next item
 End Sub
-
-Private Function IsNonCountedCustomFieldsAdmin(ByVal customFields As Object) As Boolean
-    Dim trackQty As String
-    Dim itemKind As String
-
-    On Error Resume Next
-    If Not customFields Is Nothing Then
-        trackQty = UCase$(Trim$(CStr(customFields("TRACK_QTY"))))
-        itemKind = UCase$(Trim$(CStr(customFields("ITEM_KIND"))))
-    End If
-    On Error GoTo 0
-
-    IsNonCountedCustomFieldsAdmin = (trackQty = "FALSE" Or trackQty = "NO" Or trackQty = "0" _
-                                     Or itemKind = "UTILITY" Or itemKind = "SERVICE" Or itemKind = "NON_COUNTED")
-End Function
-
-Private Function NonCountedItemKindAdmin(ByVal customFields As Object) As String
-    Dim itemKind As String
-
-    On Error Resume Next
-    If Not customFields Is Nothing Then itemKind = UCase$(Trim$(CStr(customFields("ITEM_KIND"))))
-    On Error GoTo 0
-
-    Select Case itemKind
-        Case "UTILITY", "SERVICE", "NON_COUNTED"
-            NonCountedItemKindAdmin = itemKind
-        Case Else
-            NonCountedItemKindAdmin = "NON_COUNTED"
-    End Select
-End Function
-
-Private Function CatalogItemTextAdmin(ByVal item As Variant, ByVal fieldName As String) As String
-    On Error Resume Next
-    CatalogItemTextAdmin = Trim$(CStr(item(fieldName)))
-    On Error GoTo 0
-End Function
 
 Private Function ResolveInventoryQtyOnHandAdmin(ByVal warehouseId As String, ByVal sku As String) As Double
     Dim path As String
@@ -1713,17 +1670,7 @@ Private Function EnsureCatalogColumnAdmin(ByVal lo As ListObject, ByVal columnNa
 End Function
 
 Private Function NormalizeCatalogColumnNameAdmin(ByVal columnName As String) As String
-    columnName = Replace(columnName, vbCr, " ")
-    columnName = Replace(columnName, vbLf, " ")
-    columnName = Replace(columnName, vbTab, " ")
-    columnName = Replace(columnName, "[", "(")
-    columnName = Replace(columnName, "]", ")")
-    Do While InStr(1, columnName, "  ", vbBinaryCompare) > 0
-        columnName = Replace(columnName, "  ", " ")
-    Loop
-    columnName = Trim$(columnName)
-    If Len(columnName) > 48 Then columnName = Left$(columnName, 48)
-    NormalizeCatalogColumnNameAdmin = columnName
+    NormalizeCatalogColumnNameAdmin = modInventoryCatalogWire.NormalizeHeader(columnName)
 End Function
 
 Private Sub SetSheetProtectionAdminLocal(ByVal ws As Worksheet, ByVal protectAfter As Boolean)
@@ -1795,20 +1742,11 @@ Private Function CombinedPictureReferencesAdmin(ByVal lo As ListObject, ByVal ro
 End Function
 
 Private Function ParsePictureReferencesAdmin(ByVal imagePath As String) As Collection
-    Dim result As Collection
-    Dim rawParts As Variant
-    Dim part As Variant
-    Dim valueText As String
-
-    Set result = New Collection
-    imagePath = Replace(imagePath, "|", ";")
-    imagePath = Replace(imagePath, vbCr, ";")
-    imagePath = Replace(imagePath, vbLf, ";")
-    rawParts = Split(imagePath, ";")
-    For Each part In rawParts
-        valueText = Trim$(CStr(part))
-        If valueText <> "" Then result.Add valueText
-    Next part
+    Dim result As New Collection, values As Variant, value As Variant
+    values = modInventoryCatalogWire.PictureValues(imagePath)
+    For Each value In values
+        result.Add CStr(value)
+    Next value
     Set ParsePictureReferencesAdmin = result
 End Function
 

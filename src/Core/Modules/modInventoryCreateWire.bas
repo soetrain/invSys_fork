@@ -29,7 +29,14 @@ End Function
 ' exact event identity and queue behavior remain at the owning Core boundary.
 Public Function QueueCreate(ByVal warehouse As String, ByVal station As String, _
         ByVal user As String, ByVal payload As String, ByVal note As String, _
-        ByRef eventId As String, ByRef report As String) As Boolean
+        ByRef eventId As String, ByRef report As String, Optional ByRef observedEvent As String = "") As Boolean
+    Dim attempted As Boolean
+    observedEvent = ""
     QueueCreate = modRoleEventWriter.QueueInventoryCreateEvent(warehouse, station, _
-        user, payload, note, 0, Nothing, eventId, report, "")
+        user, payload, note, 0, Nothing, eventId, report, "", attempted)
+    If QueueCreate Then
+        observedEvent = eventId & vbTab & "Submitted"
+    ElseIf attempted Then
+        observedEvent = eventId & vbTab & "Unknown"
+    End If
 End Function

@@ -101,7 +101,7 @@ End Function
 
 ' Read only. A SKU is a catalog choice; a quantity command needs one exact active
 ' entity. Refuse ambiguity rather than allocate across physical entities.
-Private Function ResolveSingleEntity(ByVal warehouse As String, ByVal sku As String, ByRef report As String) As Variant
+Public Function ResolveSingleEntity(ByVal warehouse As String, ByVal sku As String, ByRef report As String) As Variant
     Dim source As cSnapshotInventorySource, book As Workbook, table As ListObject
     Dim fields As Object, row As Long, matches As Long, key As String, state As String
     Dim keys As Object, result As Variant, quantity As Variant

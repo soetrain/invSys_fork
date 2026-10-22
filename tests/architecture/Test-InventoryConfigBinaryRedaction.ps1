@@ -94,7 +94,7 @@ Check-ConfigVector 'Redaction.NoPayloadValuesOrHashes' ($json -notmatch 'CANARY|
 $allowed = @('Parsed','BeforeRecordCount','AfterRecordCount','RecordOrderPreserved',
     'RecordHeadersPreserved','ChangedRecordTypes','ChangedBookViewFields',
     'UnknownBookViewChange','AllWorkbookSemanticsProven','ChangedRevisionPointerFields',
-    'UnknownRevisionPointerChange')
+    'UnknownRevisionPointerChange','ListPrefixChanges')
 $labels = @('xrevidLastSaved','documentId','CoauthVersionLast','CoauthVersionMax','uidLastSave')
 $safeShape = $true
 foreach ($observation in $observations) {
@@ -107,5 +107,44 @@ foreach ($observation in $observations) {
 }
 Check-ConfigVector 'Redaction.OnlyApprovedSummaryProperties' $safeShape
 Check-ConfigVector 'Scope.NoBlanketSemanticProof' (@($observations | Where-Object { $_.AllWorkbookSemanticsProven -ne $false }).Count -eq 0)
+$partBefore=@{};$partAfter=@{}
+foreach($path in @('xl/worksheets/sheet1.bin','xl/tables/table2.bin','xl/styles.bin','xl/CANARY.bin')){
+    $partBefore[$path]=Record-Vector ([Text.Encoding]::UTF8.GetBytes('BEFORE-CANARY')) 778
+    $partAfter[$path]=Record-Vector ([Text.Encoding]::UTF8.GetBytes('AFTER--CANARY')) 778
+}
+$parts=@(Compare-InventoryConfigPartRecords $partBefore $partAfter)
+Check-ConfigVector 'Parts.FixedCategoriesOnly' (($parts.Category|Sort-Object) -join '|' -ceq 'Styles|Table|Worksheet')
+Check-ConfigVector 'Parts.ChangedRecordTypes' (@($parts|Where-Object {($_.Comparison.ChangedRecordTypes -join '|') -ceq '778'}).Count -eq 3)
+Check-ConfigVector 'Parts.UnchangedOmitted' (@(Compare-InventoryConfigPartRecords $partBefore $partBefore).Count -eq 0)
+$missingPart=@(Compare-InventoryConfigPartRecords @{} @{'xl/styles.bin'=$partAfter['xl/styles.bin']})
+Check-ConfigVector 'Parts.MissingSideUnclassified' ($missingPart.Count -eq 1 -and -not $missingPart[0].Comparison.Parsed)
+$partsJson=(@($parts)+@($missingPart))|ConvertTo-Json -Depth 6 -Compress
+Check-ConfigVector 'Parts.Redacted' ($partsJson -notmatch 'CANARY|xl/|"(?:Data|Hash|HeaderHash|Payload|Path)"\s*:')
+Check-ConfigVector 'Parts.NoAcceptanceClaim' ($partsJson -notmatch '"(?:CauseEstablished|Accepted)"\s*:')
+$listBase=[byte[]]::new(80);[Text.Encoding]::UTF8.GetBytes('LIST-CANARY').CopyTo($listBase,64)
+$listChanged=[byte[]]$listBase.Clone();$listChanged[36]=1
+$list=Compare-InventoryConfigBinaryRecords (Record-Vector $listBase 343) (Record-Vector $listChanged 343)
+Check-ConfigVector 'List.FixedHeaderFormatField' ($list.ListPrefixChanges.Count -eq 1 -and ($list.ListPrefixChanges[0].ChangedFields -join '|') -ceq 'HeaderFormat' -and -not $list.ListPrefixChanges[0].TailChangedOrUnavailable)
+$listChanged[64]=0
+$listTail=Compare-InventoryListPrefix $listBase $listChanged
+Check-ConfigVector 'List.TailRemainsUnclassified' $listTail.TailChangedOrUnavailable
+$listShort=Compare-InventoryListPrefix ([byte[]](1)) $listChanged
+Check-ConfigVector 'List.TruncatedPrefixUnavailable' (-not $listShort.FixedPrefixAvailable -and $listShort.TailChangedOrUnavailable)
+$listJson=@($list,$listTail,$listShort)|ConvertTo-Json -Depth 8 -Compress
+Check-ConfigVector 'List.Redacted' ($listJson -notmatch 'CANARY|"(?:Data|Hash|HeaderHash|Payload|Path)"\s*:')
+$tableA=[byte[]]$listBase.Clone();$tableB=[byte[]]$listBase.Clone();$tableB[36]=1
+$styles=[pscustomobject]@{Parsed=$true;Records=@{'507:1'=[pscustomobject]@{Hash='PRIVATE-HASH-CANARY'};'507:2'=[pscustomobject]@{Hash='PRIVATE-HASH-CANARY'}}}
+$equivalent=Compare-InventoryHeaderFormatReferences (Record-Vector $tableA 343) (Record-Vector $tableB 343) $styles $styles
+Check-ConfigVector 'HeaderReference.ExactEquivalentBytes' $equivalent.ExactFormatBytesEqual
+$styles.Records['507:2'].Hash='DIFFERENT-HASH-CANARY'
+$different=Compare-InventoryHeaderFormatReferences (Record-Vector $tableA 343) (Record-Vector $tableB 343) $styles $styles
+Check-ConfigVector 'HeaderReference.DifferentBytesRefused' (-not $different.ExactFormatBytesEqual)
+[Array]::Copy([BitConverter]::GetBytes([uint32]::MaxValue),0,$tableB,36,4)
+$none=Compare-InventoryHeaderFormatReferences (Record-Vector $tableA 343) (Record-Vector $tableB 343) $styles $styles
+Check-ConfigVector 'HeaderReference.NoneIsNotEquivalence' ($none.AfterKind -ceq 'None' -and -not $none.ExactFormatBytesEqual)
+$missingStyle=Compare-InventoryHeaderFormatReferences (Record-Vector $tableA 343) (Record-Vector $tableA 343) $null $styles
+Check-ConfigVector 'HeaderReference.MissingStyleUnclassified' ($missingStyle.BeforeKind -ceq 'Unavailable' -and -not $missingStyle.ExactFormatBytesEqual)
+$referenceJson=@($equivalent,$different,$none,$missingStyle)|ConvertTo-Json -Depth 4 -Compress
+Check-ConfigVector 'HeaderReference.Redacted' ($referenceJson -notmatch 'CANARY|"Hash"\s*:')
 Write-Output ('CONFIG_BINARY_DIAGNOSTIC passed={0} failed={1} total={2}' -f ($script:checked-$script:failed),$script:failed,$script:checked)
 if ($script:failed) { exit 1 }

@@ -252,6 +252,20 @@ Public Function BeginCatalogSave(ByVal key As String, ByRef report As String) As
     BeginCatalogSave = BeginResultSave(key, PHASE_CATALOG, report)
 End Function
 
+' Only the owning worksheet EDIT coordinator uses this primitive receipt plan.
+Public Function PlanEditReceipt(ByVal key As String, ByVal headers As Variant, _
+        ByVal values As Variant, ByRef report As String) As Boolean
+    Dim entry As Object, inputs As cInventoryCommandInputs
+    On Error GoTo Refused
+    If Not CheckForm(key, report) Then Exit Function
+    Set entry = mForms.Item(key): Set inputs = entry("Inputs")
+    If Not inputs.PlanEditReceipt(headers, values) Then GoTo Refused
+    PlanEditReceipt = CheckForm(key, report)
+    Exit Function
+Refused:
+    Expire key, report
+End Function
+
 Public Function BeginQuantity(ByVal key As String, ByVal systemKey As String, _
         ByVal target As Double, ByRef report As String) As Boolean
     Dim entry As Object, inputs As cInventoryCommandInputs
@@ -354,5 +368,6 @@ Refused:
 End Function
 
 Public Sub Release(ByVal key As String)
+    modInventoryEditCommands.ReleaseContext key
     If Not mForms Is Nothing Then mForms.Remove key
 End Sub

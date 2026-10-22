@@ -40,13 +40,13 @@ Unavailable:
     Resume Finished
 End Function
 
-Public Sub Finish(ByVal action As String, ByVal outcome As String)
+Public Sub Finish(ByVal action As String, ByVal outcome As String, Optional ByVal sourceReferencesJson As String = "[]")
     Dim surface As Object, notice As String
     On Error GoTo Unavailable
     Set surface = modAdminActionObservation.CurrentSurface()
     If action <> "" Then
         If Not TargetLive() Then GoTo Unavailable
-        If Not modActivity.FinishAction(action, outcome, notice) And notice = "" Then _
+        If Not modActivity.FinishAction(action, outcome, notice, sourceReferencesJson) And notice = "" Then _
             notice = "Tracking unavailable: the " & mLabel & " result could not be recorded."
         If notice <> "" Then mNotice = notice
     End If

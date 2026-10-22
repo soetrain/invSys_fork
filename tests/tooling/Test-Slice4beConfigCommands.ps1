@@ -139,6 +139,14 @@ param(
     [switch]$AdminTesterSetupOwnerOnly,
     [switch]$AdminAggregationOnly,
     [switch]$AdminInventoryEntryOnly,
+    [switch]$AdminInventoryConfigPreservationOnly,
+    [switch]$AdminInventoryRecordingOnly,
+    [switch]$AdminInventoryGuideOnly,
+    [switch]$AdminInventoryWorkbookBindingOnly,
+    [switch]$AdminInventorySelectionsOnly,
+    [switch]$AdminInventoryUomRecordingOnly,
+    [switch]$AdminInventoryWorksheetRecordingOnly,
+    [ValidateSet('All','Create','Upload','Evidence','UploadEnabled','UploadNoFormat')][string]$AdminInventoryWorksheetRecordingGroup='All',
     [switch]$AdminInventoryExactQuantityOnly,
     [switch]$AdminInventoryManagedFieldsOnly,
     [switch]$AdminInventoryQuantityRetryOnly,
@@ -161,6 +169,7 @@ param(
     [switch]$AdminInventoryEditCanonicalSaveOnly,
     [switch]$AdminInventoryEditBindingsOnly,
     [switch]$AdminInventoryEditReceiptAllOnly,
+    [switch]$AdminInventoryEditOwnershipOnly,
     [string]$AdminInventoryReceiptScenarioForTest='',
     [switch]$AdminInventoryReadOnlyOperatorsOnly,
     [switch]$AdminInventoryHeadlessWorksheetOnly,
@@ -344,7 +353,9 @@ if($RunNextClosedOnly -and -not $RunNextYieldOnly){throw 'Next Batch native clos
 if($RunNextClosedEscapeForTest -and -not $RunNextClosedOnly){throw 'Next Batch diagnostic escape requires native closure testing.'}
 if($RunNextPathsOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly)){throw 'Next Batch paths require the isolated Next baseline fixture.'}
 if($TraceGuideResourcesForTest){
-    if(-not $GuidePresentationRestartOnly){throw 'Resource tracing requires the isolated restart diagnostic.'}
+    if(-not $GuidePresentationRestartOnly -and -not ($AdminInventoryEntryOnly -and $AdminInventorySourceOverlayForTest)){
+        throw 'Resource tracing requires the isolated restart or Inventory source-overlay diagnostic.'
+    }
     . (Join-Path $PSScriptRoot 'Slice4beGuideResourceTrace.ps1')
 }
 if($GuideResourceSavedWorkbookForTest -and -not $TraceGuideResourcesForTest){throw 'Saved-workbook resource control requires tracing.'}
@@ -911,9 +922,19 @@ if($AdminInventoryEditReceiptResultsOnly -and -not $AdminInventoryEditReceiptPha
 if($AdminInventoryEditCanonicalSaveOnly -and (-not $AdminInventoryEditReceiptPhasesOnly -or $AdminInventoryEditReceiptResultsOnly)){throw 'Canonical EDIT saves require their separate receipt phase gate.'}
 if($AdminInventoryEditBindingsOnly -and (-not $AdminInventoryEditReceiptPhasesOnly -or $AdminInventoryEditReceiptResultsOnly -or $AdminInventoryEditCanonicalSaveOnly)){throw 'EDIT bindings require their separate receipt phase gate.'}
 if($AdminInventoryEditReceiptAllOnly -and (-not $AdminInventoryEditReceiptPhasesOnly -or $AdminInventoryEditReceiptResultsOnly -or $AdminInventoryEditCanonicalSaveOnly -or $AdminInventoryEditBindingsOnly)){throw 'Combined EDIT receipts require their separate receipt phase gate.'}
+if($AdminInventoryEditOwnershipOnly -and (-not $AdminInventoryEditReceiptPhasesOnly -or $AdminInventoryEditReceiptAllOnly -or $AdminInventoryEditReceiptResultsOnly -or $AdminInventoryEditCanonicalSaveOnly -or $AdminInventoryEditBindingsOnly)){throw 'EDIT ownership requires its separate receipt phase gate.'}
 if($AdminInventoryPrimitivePayloadOnly -and (-not $AdminInventoryEntryOnly -or -not $AdminInventorySourceOverlayForTest -or $AdminInventoryHeadlessWorksheetOnly -or $AdminInventoryReadOnlyOperatorsOnly -or $AdminInventoryWorksheetResultsOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Primitive payload controls require their separate source-overlay Inventory gate.'}
 if($AdminInventoryCreatePhasesOnly -and -not $AdminInventoryEntryOnly){throw 'Create phases require the separate Inventory entry gate.'}
 if($AdminInventoryCreateNameOnly -and -not $AdminInventoryCreatePhasesOnly){throw 'Create name checks require the Create phase gate.'}
+if($AdminInventoryRecordingOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventorySourceOverlayForTest -or $AdminInventoryWorksheetResultsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryCatalogOnly)){throw 'Inventory recording requires its isolated packaged entry gate.'}
+if($AdminInventoryGuideOnly -and -not $AdminInventoryRecordingOnly){throw 'Inventory guide requires the isolated packaged recording gate.'}
+if($AdminInventoryWorkbookBindingOnly -and (-not $AdminInventoryRecordingOnly -or $AdminInventoryGuideOnly)){throw 'Inventory workbook binding requires the isolated recording boundary gate.'}
+if($AdminInventorySelectionsOnly -and (-not $AdminInventoryRecordingOnly -or $AdminInventoryWorkbookBindingOnly)){throw 'Inventory selections require the isolated recording gate.'}
+if($AdminInventoryUomRecordingOnly -and (-not $AdminInventoryRecordingOnly -or $AdminInventorySelectionsOnly -or $AdminInventoryWorkbookBindingOnly)){throw 'Inventory UOM requires its isolated recording gate.'}
+if($AdminInventoryWorksheetRecordingOnly -and (-not $AdminInventoryRecordingOnly -or $AdminInventorySelectionsOnly -or $AdminInventoryWorkbookBindingOnly -or $AdminInventoryUomRecordingOnly -or $AdminInventoryGuideOnly)){throw 'Inventory worksheet recording requires its isolated gate.'}
+if($AdminInventoryWorksheetRecordingGroup -ne 'All' -and -not $AdminInventoryWorksheetRecordingOnly){throw 'Worksheet recording group requires its isolated gate.'}
+if($AdminInventoryWorksheetRecordingGroup -eq 'UploadNoFormat' -and $Phase -ne 'RED'){throw 'Formatting suppression is a RED-only causal diagnostic, not product GREEN.'}
+if($AdminInventoryConfigPreservationOnly -and (-not $AdminInventoryEntryOnly -or $AdminInventoryRecordingOnly -or $AdminInventorySourceOverlayForTest)){throw 'Config preservation requires its isolated packaged Inventory gate.'}
 if($AdminInventoryEntryOnly){
     if($AdminInventoryCreatePhasesOnly -and (-not $AdminInventorySourceOverlayForTest -or $AdminInventoryPrimitivePayloadOnly -or $AdminInventoryHeadlessWorksheetOnly -or $AdminInventoryReadOnlyOperatorsOnly -or $AdminInventoryWorksheetResultsOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryAddResultsOnly -or $AdminInventoryOwnResultsOnly -or $AdminInventoryCatalogOnly -or $AdminInventoryInputsOnly -or $AdminInventoryBaselineOnly -or $AdminInventoryExactQuantityOnly -or $AdminInventoryManagedFieldsOnly -or $AdminInventoryQuantityRetryOnly)){throw 'Create phases require their separate source-overlay Inventory gate.'}
     if(-not $CompileEvaluationProbesForTest -or $AdminAggregationOnly -or $AdminTesterSetupOwnerOnly -or $AdminCreateWarehouseOwnerOnly -or $CheckViewerPublishedRead -or $CheckActionRecording -or $CheckTrackingSettings -or $CheckAuthReadOnly -or $CheckReceivingReplay){throw 'Inventory entry audit requires its separate compiled Ribbon/modal gate.'}
@@ -971,7 +992,7 @@ function Complete-ResultEvidence([string]$ReportPath,[scriptblock]$Cleanup) {
     finally { $results | ConvertTo-Json | Set-Content -Encoding UTF8 -LiteralPath $ReportPath }
 }
 function Write-InventoryShutdownTrace([string]$Stage) {
-    if($AdminInventorySourceOverlayForTest){
+    if($AdminInventorySourceOverlayForTest -or $AdminInventoryWorksheetRecordingOnly){
         [pscustomobject]@{UTC=[DateTimeOffset]::UtcNow.ToString('o');Stage=$Stage}|
             ConvertTo-Json -Compress|Add-Content (Join-Path $reportRoot 'inventory-shutdown.jsonl')
     }
@@ -1554,7 +1575,7 @@ function NewFixture([string]$Suffix) {
             $row.Range.Cells.Item(1,$caps.ListColumns.Item($pair.Key).Index).Value2=$pair.Value
         }
     }
-    if($AdminAggregationGuideOnly -or $AdminTesterGuidePaths -or $AdminCreateGuidePaths -or $AdminWarehouseRootGuidePaths -or $AdminDirectoryGuidePaths -or $AdminReconcileLocalDiagnostic -or $AdminSeedGuidePaths -or $AdminUsersGuideOnly -or $AdminConsoleGuidePaths -or $AdminVerifyGuidePaths -or $AdminReconcileGuidePaths -or $RunScalePathsForTest -or $CheckGeneralSettingsRecorded -or $RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
+    if($AdminInventoryGuideOnly -or $AdminAggregationGuideOnly -or $AdminTesterGuidePaths -or $AdminCreateGuidePaths -or $AdminWarehouseRootGuidePaths -or $AdminDirectoryGuidePaths -or $AdminReconcileLocalDiagnostic -or $AdminSeedGuidePaths -or $AdminUsersGuideOnly -or $AdminConsoleGuidePaths -or $AdminVerifyGuidePaths -or $AdminReconcileGuidePaths -or $RunScalePathsForTest -or $CheckGeneralSettingsRecorded -or $RunPrintRecordedOnly -or $RunNextPathsOnly -or $RunCompletePathsOnly -or $RunCheckInPathsOnly -or $RunAllocatePathsOnly -or $RunRefreshPathsOnly -or $RunLoadPathsOnly -or $RunClearPathsOnly -or $RunPresentationPathsOnly -or $CheckGuideDraft -or $CheckOperationsGuidePresentation -or $CheckSettingsDiagnostics -or $CheckProductionLifecyclePresentation -or $CheckProductionInstructionPaths -or $CheckProductionUomPaths -or $CheckProductionComponentPaths -or $CheckProductionRecipeOrderPaths -or $CheckProductionRecipeStructurePaths -or $CheckProductionDesignReadPaths -or $CheckProductionRegulationPaths -or $CheckProductionClosePaths -or $CheckProcessWorksheetPaths -or $CheckProductionAssignmentPaths){
         # Explicit fixture grant: Admin bootstrap does not imply guide maintenance.
         $row=$caps.ListRows.Add()
         foreach($pair in @{UserId='config-admin';Capability='ACTION_PATH_MAINT';WarehouseId=$wh;StationId='S1';Status='Active'}.GetEnumerator()){
@@ -2279,6 +2300,31 @@ End Function
             Install-InventorySourceOverlay
         }
         Install-AdminInventoryEntryProbe
+        if($AdminInventoryConfigPreservationOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryConfigPreservation.ps1')
+            Install-InventoryConfigPreservationProbe
+        }
+        if($AdminInventoryRecordingOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryRecording.ps1')
+            Install-InventoryRecordingProbe
+            if($AdminInventoryWorksheetRecordingOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryWorksheetRecording.ps1')
+                Install-InventoryWorksheetRecordingProbe
+            }
+            if($AdminInventoryUomRecordingOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryUomRecording.ps1')
+                Install-InventoryUomRecordingProbe
+            }
+            if($AdminInventorySelectionsOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beInventorySelections.ps1')
+                Install-InventorySelectionProbe
+            }
+            if($AdminInventoryGuideOnly){
+                . (Join-Path $PSScriptRoot 'Slice4beAdminVerifyGuide.ps1')
+                Install-AdminVerifyGuideProbe
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryGuide.ps1')
+            }
+        }
         if($AdminInventoryCreatePhasesOnly){
             . (Join-Path $PSScriptRoot 'Slice4beInventoryCreatePhases.ps1')
             Install-InventoryCreatePhaseProbe
@@ -2301,8 +2347,14 @@ End Function
             if($AdminInventoryEditReceiptPhasesOnly){
                 . (Join-Path $PSScriptRoot 'Slice4beInventoryEditReceipts.ps1')
                 Install-InventoryEditReceiptProbe
-                if($AdminInventoryEditBindingsOnly){
+                if($AdminInventoryEditBindingsOnly -or $AdminInventoryEditReceiptAllOnly -or $AdminInventoryEditOwnershipOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beInventoryEditBindings.ps1')
+                }
+                if($AdminInventoryEditReceiptAllOnly -or $AdminInventoryEditOwnershipOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beInventoryEditOwnership.ps1')
+                    Install-InventoryEditOwnershipProbe
+                }
+                if($AdminInventoryEditBindingsOnly){
                     Install-InventoryEditBindingsProbe
                     . (Join-Path $PSScriptRoot 'Slice4beInventoryEditPrivacy.ps1')
                     Install-InventoryEditPrivacyProbe
@@ -2552,7 +2604,13 @@ End Function
     }
     if($AdminAggregationOnly){$step='packaged Aggregation authority and workbook diagnostic'; Test-AdminAggregation $a $b}
     if($AdminInventoryEntryOnly){
-        if($AdminInventoryCreatePhasesOnly){
+        if($AdminInventoryConfigPreservationOnly){
+            $step='packaged Inventory Add and catalog-only Edit Config preservation'
+            Test-InventoryConfigPreservation $a $b
+        }elseif($AdminInventoryRecordingOnly){
+            $step='packaged Inventory navigation recording and policy boundaries'
+            if($AdminInventoryWorksheetRecordingOnly){Test-InventoryWorksheetRecording $a $b $AdminInventoryWorksheetRecordingGroup}elseif($AdminInventoryUomRecordingOnly -and $AdminInventoryGuideOnly){Test-InventoryGuide $a -Uom}elseif($AdminInventoryUomRecordingOnly){Test-InventoryUomRecording $a}elseif($AdminInventorySelectionsOnly -and $AdminInventoryGuideOnly){Initialize-InventorySelectionFixture $a;Test-InventoryGuide $a -Selections}elseif($AdminInventorySelectionsOnly){Test-InventorySelections $a}elseif($AdminInventoryGuideOnly){Test-InventoryGuide $a}else{Test-InventoryRecording $a $b}
+        }elseif($AdminInventoryCreatePhasesOnly){
             $step='actual Create handler authority write and save phases'
             Test-InventoryCreatePhases $a $b
         }elseif($AdminInventoryPrimitivePayloadOnly){
@@ -2568,9 +2626,13 @@ End Function
             $step='actual worksheet Upload source and result save retry boundaries'
             if($AdminInventoryEditReceiptPhasesOnly){
                 $step='actual Upload durable EDIT phases and quantity-only retry'
-                if($AdminInventoryEditBindingsOnly){
+                if($AdminInventoryEditOwnershipOnly){
+                    Test-InventoryEditOwnership $a $b
+                    Test-InventoryEditReceiptPhases $a $b 'Ownership'
+                }elseif($AdminInventoryEditBindingsOnly){
                     Test-InventoryEditBindings $a $b
                 }elseif($AdminInventoryEditReceiptAllOnly){
+                    Test-InventoryEditOwnership $a $b
                     foreach($cohort in @('Phase','Result','Canonical')){Test-InventoryEditReceiptPhases $a $b $cohort}
                 }else{Test-InventoryEditReceiptPhases $a $b}
             }elseif($AdminInventoryImportedRowsOnly){

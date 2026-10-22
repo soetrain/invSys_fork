@@ -1,5 +1,71 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## Config diagnosis — worksheet recording,2026-10-21
+
+Product remains catalog46 `validation-inventory-uom-02` from `bd438789`; the
+catalog47 draft is not built. Controller paths below are under main
+`reports/runtime/`; each run pins and preserves the five package hashes.
+
+- Expanded worksheet attempt: controller
+  `inventory-worksheet-evidence-recording/red-9627fe790ca544509b986217023d9aa4`,
+  worker `slice4be-admin-inventory-entry/17184532fae7486aa3acfd6f44d9d8ba`, loaded
+  tests at `55d89c41`. Normal and failed-save Upload preserve Auth bytes and
+  table cells/shapes, but change Config bytes beyond the established metadata
+  classifier. Reopened retry preserves Inventory/Config/Auth bytes. The queue
+  failure probe misses local staging and invalidates completion of that cohort;
+  corrected coverage is in `41915975`. Native cleanup eventually completes
+  unassisted15:31:18Z; preservation and delayed audit pass.
+- Isolated normal comparison: controller
+  `inventory-worksheet-config-diagnostic/red-161946cc11954732878ae8836b435d42`,
+  worker `slice4be-admin-inventory-entry/bea18691278b4d9e80c5065456661223`, reports
+  21 PASS/18 FAIL. Its diagnostic source was uncommitted at launch and subsequently
+  included in `41915975`; exact test-commit-based acceptance is not claimed.
+  Auth and diagnostic reads preserve bytes; Config changes within three observed
+  Receiving/Shipping/Production inbox-setup saves. Table cells/shapes remain equal.
+  Additional binary differences include style records505/507, table343/347 and
+  worksheet0/7/60. No exception or unknown caller/window is hidden. Closure and
+  preservation pass15:34:47Z; delayed audit15:35:48Z is clear.
+- Controlled formatting comparison, tests `41915975`: controller
+  `inventory-worksheet-noformat-diagnostic/red-23fc1cc0b5fe482b896fd77755e0c8db`,
+  worker `slice4be-admin-inventory-entry/587471f2d0ac4a1a89fda708a0e2cab9`, reports
+  21 PASS/18 FAIL. Only the existing EnsureStationInbox call's formatting argument
+  is suppressed in the unsaved test package. Worksheet/style differences disappear,
+  while two table343 records still differ; only one of three observed saves changes
+  bytes. Auth/table cells/shapes/read extraction remain preserved. Closure and
+  preservation pass15:39:14Z; delayed audit15:40:13Z is clear. This is causal
+  diagnostic evidence, not product GREEN or authorization to change formatting.
+
+- Field comparison, tests `3ca37b0f`: controller
+  `inventory-worksheet-noformat-diagnostic/red-088395f263a94862a75e5495a535e9d6`,
+  worker `slice4be-admin-inventory-entry/2cfe3654659145c195c798da38d50d20`, again
+  reports21/18. Both remaining table343 changes are HeaderFormat references only;
+  their string tails and other fixed fields are unchanged. Auth/cells/shapes/read
+  preservation pass. Unassisted closure/settings/package preservation15:43:17Z
+  and delayed audit15:43:37Z pass.
+
+- Reference comparison, tests `30b13465`: controller
+  `inventory-worksheet-noformat-diagnostic/red-68f0a73039494193a1620add4207b516`,
+  worker `slice4be-admin-inventory-entry/b82deb2afac24cec871a349b4e7952f2`, reports
+  21/18. Both old/new HeaderFormat references are indexed and resolve to identical
+  format-record bytes. The other fixed fields/string tails stay equal. Auth,
+  table cells/shapes and read-only extraction remain preserved. Closure/settings/
+  packages pass15:48:17Z; delayed audit15:48:37Z is clear. The comparison emits
+  only kinds/equality, never indices, payloads or hashes; synthetic guards33/33 pass.
+
+**Diagnosis:** inbox preparation applies Config presentation formatting; removing
+that call in the diagnostic eliminates worksheet/style changes. Remaining table
+reference renumbering in that diagnostic is byte-equivalent formatting. The strict
+acceptance classifier is unchanged and still fails these runs. Architecture
+D8-INV-CONFIG-01 proposes nonformatting Inventory inbox preparation and awaits
+approval; no product implementation or GREEN is claimed. Future classification
+must independently prove every changed part and retain unknown-change refusal.
+This diagnosis does not close older cohorts' evidence gaps or accept4be-A.
+
+The record labels follow Microsoft's
+[MS-XLSB record table](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xlsb/30e2eaae-0b1e-4e8e-a465-e1ce5575868d).
+Exact worksheet recording/cleanup exclusions are in
+`plan022_slice4be_inventory_worksheet_recording_results.md`.
+
 **Packaged Production layout qualified, 2026-10-21 01:30Z:** unchanged candidate
 `validation-inventory-receipts-01` passes all 18 size/page geometry checks and five
 native-window checks. All six Run List/Settings screenshots were reviewed: labels,
@@ -374,6 +440,22 @@ preserved. Audit17:19:37.188Z records zero Excel events; no intervention occurre
 Read-only cleanup samples showed increasing CPU with one remaining Excel thread
 despite HasExited=True; the slow teardown's cause remains unresolved.
 The corrected full cohort must pass; partial results do not replace it.
+
+**D8-INV-EDIT-01 implementation draft,2026-10-20 Pacific:** isolated branch
+`work/d8-inv-edit-receipts` adds Core preparation/binding and Inventory Domain
+ownership of the single catalog/receipt save. The existing operator result keeps
+the command reference; quantity completion uses the exact saved event/log proof.
+The receipt stores the immutable quantity plan, without a second mutable success
+flag. Canonical-save tests observe the Domain owner. Modal catalog and quantity
+paths are retained; catalog field planning and read-only entity resolution are
+shared. No new recording ControlId or replay adapter.
+
+Five instrumented compiles, ownership and binding/mutation GREEN qualify.
+Receipt phase/result/save GREENs, retained regressions and packaged/native/visible
+acceptance remain open. The older combined baseline's Config observations remain
+unqualified. Initial draft5d15970c/testb19676af static baseline was385 components/
+6710 procedures with Run9/unresolved45/duplicates194/oversized27 in
+`reports/runtime/edit-receipts-b19676af-static`; final ownership metrics are below.
 
 **EDIT ownership GREEN qualified66/66,2026-10-20 Pacific:**
 draft fixfe4b5fb4 adds Core pending-write ownership checks in EDIT preparation,

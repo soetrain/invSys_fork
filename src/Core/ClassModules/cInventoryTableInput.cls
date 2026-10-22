@@ -27,6 +27,30 @@ Public Function Capture(ByVal table As ListObject, ByVal keyHeader As String, By
     Capture = True
 End Function
 
+' A narrowly authorized owning command can plan an absent table in memory.
+' This does not create a sheet/table or authorize generic schema repair.
+Public Function CaptureAbsent(ByVal headers As Variant, ByVal keyHeader As String) As Boolean
+    Dim names As Object, rows As Object, skus As Object, name As Variant, normalized As String
+    On Error GoTo Invalid
+    Set names = CreateObject("Scripting.Dictionary")
+    For Each name In headers
+        normalized = UCase$(Trim$(CStr(name)))
+        If normalized = "" Or normalized = "ROW" Or names.Exists(normalized) Then Exit Function
+        names.Add normalized, names.Count + 1
+    Next name
+    mKeyHeader = UCase$(Trim$(keyHeader))
+    If Not names.Exists(mKeyHeader) Then Exit Function
+    Set rows = CreateObject("Scripting.Dictionary"): rows.CompareMode = vbBinaryCompare
+    Set skus = CreateObject("Scripting.Dictionary")
+    Set mState = CreateObject("Scripting.Dictionary")
+    mState.Add "Headers", names: mState.Add "Rows", rows: mState.Add "Skus", skus
+    Set mOriginal = Nothing
+    Set mPlanned = CreateObject("Scripting.Dictionary"): mPlanned.CompareMode = vbBinaryCompare
+    Set mNewHeaders = CreateObject("Scripting.Dictionary")
+    CaptureAbsent = True
+Invalid:
+End Function
+
 Public Sub PlanValue(ByVal rowKey As String, ByVal header As String, ByVal value As Variant)
     Dim fields As Object
     If IsObject(value) Or IsArray(value) Or IsError(value) Or IsNull(value) Then Err.Raise 5, , "A planned scalar is required."

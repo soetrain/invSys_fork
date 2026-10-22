@@ -20,6 +20,7 @@ Private mInitiallyBorrowed As Boolean
 Private mCreate As cInventoryCreatePlan
 Private mRetirement As cInventoryRetirementPlan
 Private mQuantityKey As String, mQuantityBefore As Double, mQuantityTarget As Double
+Private mEditReceipts As cInventoryTableInput, mEditReceiptAbsent As Boolean
 
 Public Property Get SourcePath() As String
     SourcePath = mPath
@@ -82,6 +83,7 @@ Public Function Unchanged() As Boolean
     If Not mCatalog.Matches(modExecutionTarget.Table(book, "tblSkuCatalog")) Then Exit Function
     If Not mEntities.Matches(modExecutionTarget.Table(book, "tblInventoryEntities"), _
                             mSelectedSku, mSelectedSku = "") Then Exit Function
+    If Not EditReceiptsMatch(book) Then Exit Function
     If Not mStaging Is Nothing Then
         If Not mStaging.Matches(mStage) Then Exit Function
     End If
@@ -200,6 +202,48 @@ Public Function BeginCatalog(ByVal sku As String) As Boolean
     mPhase = "Catalog": BeginCatalog = True
 End Function
 
+Public Function PlanEditReceipt(ByVal headers As Variant, ByVal values As Variant) As Boolean
+    Dim owner As cSnapshotInventorySource, book As Workbook, borrowed As Boolean
+    Dim table As ListObject, i As Long
+    On Error GoTo Invalid
+    If mPhase <> "Catalog" Or Not Unchanged() Then Exit Function
+    If LBound(headers) <> 0 Or LBound(values) <> 0 Then Exit Function
+    If UBound(headers) <> UBound(values) Then Exit Function
+    If CStr(headers(0)) <> "CommandId" Or CStr(values(0)) = "" Then Exit Function
+    Set book = ReadSource(owner, borrowed)
+    If book Is Nothing Then Exit Function
+    Set table = modExecutionTarget.Table(book, "tblInventoryEditReceipts")
+    Set mEditReceipts = New cInventoryTableInput
+    mEditReceiptAbsent = (table Is Nothing)
+    If mEditReceiptAbsent Then
+        If Not mEditReceipts.CaptureAbsent(headers, "CommandId") Then Exit Function
+    Else
+        If Not mEditReceipts.Capture(table, "CommandId", borrowed) Then Exit Function
+    End If
+    If Not mEditReceipts.PlanNewRow(CStr(values(0))) Then Exit Function
+    For i = 0 To UBound(headers)
+        mEditReceipts.PlanValue CStr(values(0)), CStr(headers(i)), values(i)
+    Next i
+    ' Release our own read-only source before another source check classifies
+    ' open workbooks. It must not be mistaken for a borrowed read-only owner.
+    Set table = Nothing: Set book = Nothing: Set owner = Nothing
+    PlanEditReceipt = Unchanged()
+Invalid:
+End Function
+
+Private Function EditReceiptsMatch(ByVal book As Workbook, Optional ByVal saved As Boolean = False) As Boolean
+    Dim table As ListObject
+    If mEditReceipts Is Nothing Then EditReceiptsMatch = True: Exit Function
+    Set table = modExecutionTarget.Table(book, "tblInventoryEditReceipts")
+    If table Is Nothing Then
+        EditReceiptsMatch = (mEditReceiptAbsent And Not saved)
+    ElseIf saved Then
+        EditReceiptsMatch = mEditReceipts.MatchesPersistedCopy(table)
+    Else
+        EditReceiptsMatch = mEditReceipts.Matches(table)
+    End If
+End Function
+
 Public Sub PlanCatalogField(ByVal sku As String, ByVal header As String, ByVal value As Variant)
     If mPhase <> "Catalog" Or sku <> mSelectedSku Then Err.Raise 5, , "No matching catalog command."
     mCatalog.PlanValue sku, header, value
@@ -212,6 +256,9 @@ Public Function BindCatalogWriter(ByVal book As Workbook) As Boolean
     If Not book.Saved Then Exit Function
     If Not mCatalog.BindObject(modExecutionTarget.Table(book, "tblSkuCatalog")) Then Exit Function
     If Not mEntities.BindObject(modExecutionTarget.Table(book, "tblInventoryEntities")) Then Exit Function
+    If Not mEditReceipts Is Nothing And Not mEditReceiptAbsent Then
+        If Not mEditReceipts.BindObject(modExecutionTarget.Table(book, "tblInventoryEditReceipts")) Then Exit Function
+    End If
     BindCatalogWriter = True
 Invalid:
 End Function
@@ -251,6 +298,7 @@ Public Function BeginSave(Optional ByVal expectedPhase As String = "Catalog") As
     If mPhase <> "Create" Then
         If Not mCatalog.Matches(modExecutionTarget.Table(book, "tblSkuCatalog"), "", False, True) Then Exit Function
     End If
+    If Not EditReceiptsMatch(book, True) Then Exit Function
     mSaving = True: BeginSave = True
 End Function
 
@@ -291,6 +339,7 @@ Private Function ConfirmSavedInputs(Optional ByVal eventId As String = "") As Bo
     End If
     If Not mCatalog.MatchesPersistedCopy(modExecutionTarget.Table(persisted, "tblSkuCatalog")) Then GoTo CleanExit
     If Not mEntities.MatchesPersistedCopy(modExecutionTarget.Table(persisted, "tblInventoryEntities")) Then GoTo CleanExit
+    If Not EditReceiptsMatch(persisted, True) Then GoTo CleanExit
     If modAggregationFiles.Identity(mPath) <> savedIdentity Or modTrainingWire.FileSha256(mPath) <> savedHash Then GoTo CleanExit
     If borrowed Then
         If Not Unchanged() Then GoTo CleanExit
@@ -299,9 +348,14 @@ Private Function ConfirmSavedInputs(Optional ByVal eventId As String = "") As Bo
     End If
     If Not mCatalog.Confirm(modExecutionTarget.Table(book, "tblSkuCatalog")) Then GoTo CleanExit
     If Not mEntities.Confirm(modExecutionTarget.Table(book, "tblInventoryEntities")) Then GoTo CleanExit
+    If Not mEditReceipts Is Nothing Then
+        If Not mEditReceipts.Confirm(modExecutionTarget.Table(book, "tblInventoryEditReceipts")) Then GoTo CleanExit
+        mEditReceiptAbsent = False
+    End If
     If Not mInitiallyBorrowed Then
         mCatalog.ReleaseObjectReference
         mEntities.ReleaseObjectReference
+        If Not mEditReceipts Is Nothing Then mEditReceipts.ReleaseObjectReference
     End If
     ' Release our read-only source before another read classifies open books.
     Set book = Nothing: Set owner = Nothing

@@ -1,5 +1,51 @@
 # Slice4be remaining Admin coverage
 
+**Inventory UOM prompt checkpoint,2026-10-21 07:07Z:** catalog46/199 qualifies
+actual-handler RED56 PASS/12 FAIL -> GREEN68/68 and guide-editor RED73/1 ->74/74.
+New/existing choices are local STAGED; cancel/empty is CANCELLED; an expired owner
+handle with valid recording context reports REFUSED. Lost recording context leaves
+an incomplete attempt. All198 prior definitions and canonical bytes are preserved.
+Candidate02 retains selections65, smoke86 and Settings202 with exact prior ordered
+checks;16 guide/Settings captures reviewed. Five compiles/cold start,36 source
+guards, all27 static caps, normal preserved closure and delayed audits pass.
+Create Table/Upload and owning mutations remain next; wider D18 and release
+acceptance are open. See [exact scope](plan022_slice4be_inventory_uom_recording_results.md).
+
+**Inventory selection/local-field checkpoint,2026-10-21 06:17Z:** candidate
+`validation-inventory-selection-01`, catalog45/198, qualifies actual-handler
+RED40 PASS/25 FAIL -> GREEN65/65. All190 historical definitions remain unchanged.
+Retained boundaries151, Catalog/Edit50, smoke86 and Settings202 preserve exact
+prior ordered checks. Independent guide75 and16 reviewed guide/Settings captures
+qualify complete15-step and interrupted13-step observations without a canonical
+mutation claim. Five compiles/cold start,36 source guards, all27 static caps,
+normal preservation/closure and delayed audits pass. UOM creation, worksheet and
+owning mutation observations, wider D18 and release acceptance remain open.
+See [exact scope and exclusions](plan022_slice4be_inventory_selection_results.md).
+
+**Inventory navigation boundaries/guide checkpoint,2026-10-21 05:26Z:** candidate
+`validation-inventory-guide-01` qualifies closed/replaced workbook RED33/4 ->
+GREEN37/37, expanded navigation/boundaries151/151 retaining the original63 checks,
+and independent guide73/73 after two semantic RED failures. Six captures were
+reviewed; successful and incomplete conclusions preserve exact observed evidence.
+Five compiles/cold start, static caps and36 source guards pass. Catalog/Edit50
+and smoke86 retain their exact prior ordered checks. Normal preserved closure
+and delayed native audits qualify. Remaining Inventory selections, custom fields,
+worksheet/mutation outcomes, wider D18 coverage and release acceptance stay open.
+See [exact scope and exclusions](plan022_slice4be_inventory_recording_results.md).
+
+**Inventory navigation checkpoint,2026-10-21 04:09Z:** draft candidate
+`validation-inventory-recording-02`, catalog44/190, qualifies actual Ribbon/form
+RED32/31 -> GREEN63/63. Open, Add/Edit mode and explicit Close now record through
+captured context; all prior186 definitions and canonical Inventory bytes remain
+unchanged. Five compiles/cold start,36 source guards, static caps and normal
+preserved closure/audit qualify. Current candidate also retains smoke86 and
+Settings202 with exact prior IDs/order and ten reviewed Settings captures.
+Storage-failure and
+additional binding coverage, remaining Inventory actions, saved guide conclusions
+and visible acceptance remain open. See
+[exact evidence](plan022_slice4be_inventory_recording_results.md). The earlier
+no-activity audit below describes product a9faab9c, not this new draft candidate.
+
 **Current regression checkpoint,2026-10-21 01:53Z:** unchanged Inventory candidate
 now qualifies Settings202, recording80 and Receiving replay121, with27 reviewed
 captures across those gates, normal preserved closure and clear delayed audits.
