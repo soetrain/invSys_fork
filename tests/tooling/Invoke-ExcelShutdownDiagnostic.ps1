@@ -11,6 +11,8 @@ $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 $workerPath=(Resolve-Path -LiteralPath $WorkerScript).Path
 $deploy=(Resolve-Path -LiteralPath $DeployRoot).Path
+if(-not $deploy.StartsWith($repo+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Frozen deployment must be inside RepoRoot.'}
+$workerDeploy=$deploy.Substring($repo.Length+1)
 if([IO.Path]::GetFileName($workerPath) -cne 'Test-Slice4beConfigCommands.ps1'){throw 'Known Config command worker required.'}
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Existing Excel prevents isolated diagnostic.'}
 $desktop=Get-Content -Raw -LiteralPath $DesktopMonitorReport|ConvertFrom-Json
@@ -36,12 +38,13 @@ Write-Output ('Shutdown diagnostic: '+$root)
 Initialize-ExcelExitObserver
 try {
     $arguments=@('-NoProfile','-NonInteractive','-File',('"'+$generatedPath+'"'),'-RepoRoot',('"'+$repo+'"'),
-        '-DeployRoot',('"'+$deploy+'"'),'-Phase','RED','-AdminInventoryEntryOnly','-AdminInventoryRecordingOnly',
+        '-DeployRoot',('"'+$workerDeploy+'"'),'-Phase','RED','-AdminInventoryEntryOnly','-AdminInventoryRecordingOnly',
         '-AdminInventoryWorksheetRecordingOnly','-AdminInventoryWorksheetRecordingGroup','Evidence',
         '-CompileEvaluationProbesForTest','-WaitForExcelReadyForTest','-ExcelReadyReadLimitForTest','40',
         '-DesktopMonitorReport',('"'+$DesktopMonitorReport+'"'))
     $worker=Start-Process powershell.exe -WindowStyle Hidden -PassThru -ArgumentList $arguments -WorkingDirectory $repo `
         -RedirectStandardOutput (Join-Path $root 'worker.log') -RedirectStandardError (Join-Path $root 'worker.stderr.log')
+    $workerHandle=$worker.Handle
     while(-not $worker.WaitForExit(500)){
         if(-not $watching -and (Test-Path -LiteralPath (Join-Path $root 'owner.json'))){
             $owner=Get-Content -Raw -LiteralPath (Join-Path $root 'owner.json')|ConvertFrom-Json
@@ -55,6 +58,7 @@ try {
         }
     }
     $code=$worker.ExitCode
+    if($null -eq $code){throw 'Worker exit code unavailable.'}
     $script:ExcelShutdownTimingRoot=$root
     Write-ExcelShutdownTiming WorkerExit
 } finally {
