@@ -3,10 +3,12 @@ param(
     [Parameter(Mandatory=$true)][string]$RepoRoot,
     [Parameter(Mandatory=$true)][string]$WorkerScript,
     [Parameter(Mandatory=$true)][string]$DeployRoot,
-    [Parameter(Mandatory=$true)][string]$DesktopMonitorReport
+    [Parameter(Mandatory=$true)][string]$DesktopMonitorReport,
+    [ValidateSet('Baseline','OwnedTableTraversal')][string]$TableTraversal='Baseline'
 )
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ExcelShutdownTiming.ps1')
+. (Join-Path $PSScriptRoot 'ExcelShutdownTableVariant.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beRecordingLifecycle.ps1')
 $repo=(Resolve-Path -LiteralPath $RepoRoot).Path
 $workerPath=(Resolve-Path -LiteralPath $WorkerScript).Path
@@ -21,17 +23,24 @@ $root=Join-Path $repo ('reports/runtime/excel-shutdown-timing/'+[guid]::NewGuid(
 New-Item -ItemType Directory -Path $root|Out-Null
 $module=(Join-Path $PSScriptRoot 'ExcelShutdownTiming.ps1')
 $source=[IO.File]::ReadAllText($workerPath)
+$source=ConvertTo-ExcelShutdownTableVariant -Source $source -Mode $TableTraversal
 $generated=ConvertTo-ExcelShutdownTimedWorker $source (Split-Path -Parent $workerPath) $module $root
 $generatedPath=Join-Path $root 'timed-worker.ps1'
 [IO.File]::WriteAllText($generatedPath,$generated,[Text.UTF8Encoding]::new($false))
 $pins=@(Get-ChildItem -LiteralPath $deploy -Filter '*.xlam' -File|ForEach-Object {[pscustomobject]@{File=$_.FullName;Hash=(Get-FileHash -LiteralPath $_.FullName).Hash}})
 if($pins.Count -ne 5){throw 'Five frozen packages required.'}
 $toolingPins=@(Get-ChildItem -LiteralPath (Split-Path -Parent $workerPath) -Filter '*.ps1' -File|ForEach-Object {[pscustomobject]@{File=$_.FullName;Hash=(Get-FileHash -LiteralPath $_.FullName).Hash}})
+$diagnosticPins=@('Invoke-ExcelShutdownDiagnostic.ps1','ExcelShutdownTiming.ps1','ExcelShutdownTableVariant.ps1','Slice4beRecordingLifecycle.ps1'|ForEach-Object {
+    $file=Join-Path $PSScriptRoot $_
+    [pscustomobject]@{File=$file;Hash=(Get-FileHash -LiteralPath $file).Hash}
+})
+$mode=if($TableTraversal -ceq 'Baseline'){'ObservationOnly'}else{'DiagnosticHelperLifetime'}
 [pscustomobject]@{WorkerHash=(Get-FileHash $workerPath).Hash;GeneratedWorkerHash=(Get-FileHash $generatedPath).Hash;
-    TimingModuleHash=(Get-FileHash $module).Hash;Mode='ObservationOnly';Workload='InventoryWorksheetEvidence';
+    TimingModuleHash=(Get-FileHash $module).Hash;Mode=$mode;TableTraversal=$TableTraversal;Workload='InventoryWorksheetEvidence';
     FullAcceptance=$false;AssistedTeardown=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'manifest.json')
 $pins|ConvertTo-Json|Set-Content (Join-Path $root 'package-pins.json')
 $toolingPins|ConvertTo-Json|Set-Content (Join-Path $root 'tooling-pins.json')
+$diagnosticPins|ConvertTo-Json|Set-Content (Join-Path $root 'diagnostic-tooling-pins.json')
 $settings=Get-InvSysTestSettingsSnapshot
 $worker=$null;$watching=$false;$owner=$null;$started=[DateTimeOffset]::UtcNow;$code=1
 Write-Output ('Shutdown diagnostic: '+$root)
@@ -68,10 +77,12 @@ try {
     $restored=Restore-InvSysTestSettingsSnapshot $settings
     $same=@($pins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
     $toolsSame=@($toolingPins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
+    $diagnosticSame=@($diagnosticPins|Where-Object {(Get-FileHash -LiteralPath $_.File).Hash -cne $_.Hash}).Count -eq 0
     [pscustomobject]@{StartUTC=$started.ToString('o');EndUTC=[DateTimeOffset]::UtcNow.ToString('o');WorkerExitCode=$code;
         ExcelClosed=$true;SettingsRestored=$restored;PackagesPreserved=$same;OriginalToolingPreserved=$toolsSame;
+        DiagnosticToolingPreserved=$diagnosticSame;TableTraversal=$TableTraversal;
         NativeObserverStarted=$watching;AssistedTeardown=$false;FullAcceptance=$false}|ConvertTo-Json|Set-Content (Join-Path $root 'closure.json')
-    if(-not($restored -and $same -and $toolsSame)){throw 'Diagnostic preservation failed.'}
+    if(-not($restored -and $same -and $toolsSame -and $diagnosticSame)){throw 'Diagnostic preservation failed.'}
 }
 # Give the observer time to flush its native exit record, without querying COM.
 for($attempt=0;$attempt -lt 20 -and -not(Test-Path (Join-Path $root 'native-exit.json'));$attempt++){Start-Sleep -Milliseconds 100}

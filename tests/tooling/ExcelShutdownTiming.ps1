@@ -87,6 +87,30 @@ function ConvertTo-ExcelShutdownTimedWorker {
         $null -ne $_.Finally -and $_.Finally.Extent.Text.Contains('[GC]::WaitForPendingFinalizers()')})
     if($main.Count -ne 1){throw 'Unique worker shutdown boundary required.'}
     $original=$main[0].Finally.Extent.Text;$body=$original
+    # Accept only the two reviewed layouts, preserving the newer worker's
+    # existing marker. Unknown intervening work still refuses before dispatch.
+    $combined='    [GC]::Collect(); [GC]::WaitForPendingFinalizers()'
+    $splitPattern="(?m)^    \[GC\]::Collect\(\)\r?\n    Write-InventoryShutdownTrace 'AfterCollectBeforeFinalizers'\r?\n    \[GC\]::WaitForPendingFinalizers\(\)"
+    $splitMatches=[regex]::Matches($body,$splitPattern)
+    $combinedCount=[regex]::Matches($body,[regex]::Escape($combined)).Count
+    if(($combinedCount+$splitMatches.Count) -ne 1){throw 'Shutdown GC anchor drift; no workload dispatched.'}
+    foreach($call in @('[GC]::Collect()','[GC]::WaitForPendingFinalizers()')){
+        if([regex]::Matches($body,[regex]::Escape($call)).Count -ne 1){throw 'Shutdown GC call drift; no workload dispatched.'}
+    }
+    $gcAnchor=$combined
+    $gcReplacement=@'
+    Write-ExcelShutdownTiming BeforeGC
+    [GC]::Collect()
+    Write-ExcelShutdownTiming AfterGC
+    Write-ExcelShutdownTiming BeforeFinalizerWait
+    [GC]::WaitForPendingFinalizers()
+    Write-ExcelShutdownTiming AfterFinalizerWait
+'@
+    if($splitMatches.Count -eq 1){
+        $gcAnchor=$splitMatches[0].Value
+        $gcReplacement=$gcReplacement.Replace('    Write-ExcelShutdownTiming BeforeFinalizerWait',
+            "    Write-InventoryShutdownTrace 'AfterCollectBeforeFinalizers'`r`n    Write-ExcelShutdownTiming BeforeFinalizerWait")
+    }
     $edits=@(
         @('    if($null -ne $excel) {',("    Write-ExcelShutdownTiming CleanupStart`r`n"+'    if($null -ne $excel) {')),
         @('            foreach($book in @($excel.Workbooks)){',("            Write-ExcelShutdownTiming BeforeEnumeration`r`n"+'            foreach($book in @($excel.Workbooks)){')),
@@ -107,14 +131,7 @@ function ConvertTo-ExcelShutdownTimedWorker {
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
         Write-ExcelShutdownTiming AfterComRelease
 '@),
-        @('    [GC]::Collect(); [GC]::WaitForPendingFinalizers()',@'
-    Write-ExcelShutdownTiming BeforeGC
-    [GC]::Collect()
-    Write-ExcelShutdownTiming AfterGC
-    Write-ExcelShutdownTiming BeforeFinalizerWait
-    [GC]::WaitForPendingFinalizers()
-    Write-ExcelShutdownTiming AfterFinalizerWait
-'@)
+        @($gcAnchor,$gcReplacement)
     )
     foreach($edit in $edits){
         if([regex]::Matches($body,[regex]::Escape($edit[0])).Count -ne 1){throw 'Shutdown anchor drift; no workload dispatched.'}
