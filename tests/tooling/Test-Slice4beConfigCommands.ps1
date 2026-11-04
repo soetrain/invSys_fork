@@ -3050,12 +3050,20 @@ finally {
                 $book.Close($false)
                 Write-InventoryShutdownTrace ('AfterWorkbookClose'+$closeIndex)
             }
-            if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'BeforeQuit'}
-            Write-InventoryShutdownTrace 'BeforeQuit'
-            $excel.Quit()
-            Write-InventoryShutdownTrace 'AfterQuit'
-            if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'QuitReturned' $false}
-        } catch {}
+        } catch {
+            Check 'Harness.Exception.workbook cleanup' $false
+        } finally {
+            # A failed workbook close must not skip the independent Quit stage.
+            try {
+                if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'BeforeQuit'}
+                Write-InventoryShutdownTrace 'BeforeQuit'
+                $excel.Quit()
+                Write-InventoryShutdownTrace 'AfterQuit'
+                if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'QuitReturned' $false}
+            } catch {
+                Check 'Harness.Exception.Excel quit' $false
+            }
+        }
         Write-InventoryShutdownTrace 'BeforeFinalRelease'
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
         Write-InventoryShutdownTrace 'AfterFinalRelease'
