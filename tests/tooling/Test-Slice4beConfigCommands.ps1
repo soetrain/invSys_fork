@@ -3026,6 +3026,8 @@ catch {
     Write-Output $message
 }
 finally {
+    $inventoryQuitReturned=$false
+    $inventoryExcelOwner=$null
     if($null -ne $excel) {
         if($GuideCaptureSavedWorkbookForTest){
             try {
@@ -3052,7 +3054,12 @@ finally {
             }
             if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'BeforeQuit'}
             Write-InventoryShutdownTrace 'BeforeQuit'
+            if($AdminInventoryEditCreationOnly -and $env:INVSYS_DEFERRED_INVENTORY_SIGNAL){
+                $owners=@(Get-Process EXCEL -ErrorAction SilentlyContinue)
+                if($owners.Count -eq 1){$inventoryExcelOwner=$owners[0]}
+            }
             $excel.Quit()
+            $inventoryQuitReturned=$true
             Write-InventoryShutdownTrace 'AfterQuit'
             if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'QuitReturned' $false}
         } catch {}
@@ -3060,6 +3067,20 @@ finally {
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
         Write-InventoryShutdownTrace 'AfterFinalRelease'
         if($hasSettingsHostEvidence){Write-SettingsHostEvidence 'FinalReleaseReturned' $false}
+    }
+    if($AdminInventoryEditCreationOnly -and $env:INVSYS_DEFERRED_INVENTORY_SIGNAL){
+        try {
+            $signal=$env:INVSYS_DEFERRED_INVENTORY_SIGNAL
+            $temporary=$signal+'.tmp'
+            [pscustomobject]@{
+                Stage='AfterQuit';QuitReturned=$inventoryQuitReturned
+                Checks=$results.Count;Failed=@($results|Where-Object {-not $_.Passed}).Count
+                ExcelProcessId=if($inventoryExcelOwner){$inventoryExcelOwner.Id}else{$null}
+                ExcelStartUTC=if($inventoryExcelOwner){$inventoryExcelOwner.StartTime.ToUniversalTime().ToString('o')}else{$null}
+                UTC=[DateTimeOffset]::UtcNow.ToString('o')
+            }|ConvertTo-Json -Compress|Set-Content -LiteralPath $temporary -Encoding UTF8
+            Move-Item -LiteralPath $temporary -Destination $signal -Force
+        } catch {Check 'Harness.DeferredCompletionSignalWrite' $false}
     }
     Write-InventoryShutdownTrace 'BeforeGarbageCollection'
     [GC]::Collect()

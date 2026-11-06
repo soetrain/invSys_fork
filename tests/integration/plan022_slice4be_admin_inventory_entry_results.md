@@ -3161,3 +3161,27 @@ remain as recorded above. Later product `a9faab9c` comparisons have their own
 provenance and do not fill this gap. Any further diagnosis of an older cohort must
 retain its exact product source, action sequence and independently identified
 diagnostic test; do not relabel newer GREEN observations as older evidence.
+
+## Development-only deferred Inventory cleanup (2026-11-06)
+
+The opt-in `Invoke-InventoryEditCreationDeferred.ps1` returns a **provisional**
+check count after the packaged worker returns from Excel `Quit` and releases its
+application COM reference. A detached controller continues the existing GC,
+settings restoration, package-hash check and natural Excel closure. Its final
+receipt is separate and states `FullAcceptance=false`. A second invocation is
+refused while that receipt is pending or failed, and any live Excel process is
+also refused. The ordinary synchronous controller and Release 1 gates are unchanged.
+
+Focused D13 fake-controller RED: the synchronous scaffold took 7.1 seconds and
+returned only after the simulated cleanup delay. GREEN: **3/3** (provisional
+return before final closure, pending-run refusal, final cleanup receipt). All
+three changed PowerShell files parse and `git diff --check` passes. The live
+packaged `ApplyFailure` run returned **34/34 provisional PASS** at the Quit
+signal while its exact Excel PID remained live; an immediate second invocation
+was refused. The original controller then exited 0 without intervention and
+wrote a final cleanup receipt with Excel closed, settings restored and five
+package hashes preserved. Runtime evidence: deferred run
+`9c53132ae2144d898645195d5ea2861d`, controller
+`green-dcfde1dac8574587bffe49f68017723d`. The desktop monitor stopped
+normally with zero error-5, lock or mouse-failure samples. This is a test-tooling
+result; it does not close 4be-A or replace final acceptance evidence.
