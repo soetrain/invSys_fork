@@ -2,6 +2,8 @@ Attribute VB_Name = "modInventoryEditCommands"
 Option Explicit
 
 Private mPrepared As Object
+Private Const SAVED_CATALOG_PENDING_NOTICE As String = _
+    "Catalog changes and the EDIT receipt were saved; quantity completion is unconfirmed."
 
 ' Whole-selection identity preflight runs before any owning inventory write.
 Public Function CheckSelection(ByVal context As String, ByRef report As String) As Boolean
@@ -160,6 +162,26 @@ Public Function ConfirmPreparedSelection(ByVal context As String, ByRef report A
     ConfirmPreparedSelection = modInventoryCommands.CheckForm(context, report)
 End Function
 
+' A prepared row may carry a confirmed catalog receipt into a later refused
+' upload. Report that saved phase without treating the quantity as applied.
+Public Function SavedCatalogPendingNotice(ByVal context As String, ByVal row As Long, _
+        ByVal reference As String) As String
+    Dim command As String, entry As Object, receipt As Variant
+    On Error GoTo Unavailable
+    If mPrepared Is Nothing Then Exit Function
+    command = modInventoryEditWire.ReferenceField(reference, "Command:")
+    If command = "" Then Exit Function
+    If Not mPrepared.Exists(context & "|" & command) Then Exit Function
+    Set entry = mPrepared(context & "|" & command)
+    receipt = entry("Receipt")
+    If CLng(entry("Row")) <> row Or Not CBool(entry("Saved")) Or CBool(entry("Applied")) Then Exit Function
+    If CStr(receipt(0)) <> command Or _
+        CStr(receipt(7)) <> modInventoryEditWire.ReferenceField(reference, "Event:") Or _
+        CStr(receipt(14)) <> modInventoryEditWire.ReferenceField(reference, "Edit binding:") Then Exit Function
+    SavedCatalogPendingNotice = SAVED_CATALOG_PENDING_NOTICE
+Unavailable:
+End Function
+
 Public Function Execute(ByVal context As String, ByVal row As Long, ByRef report As String, _
                         Optional ByRef observedEvent As String = "") As Boolean
     Dim reference As String, command As String, entry As Object, receipt As Variant, catalog As Variant
@@ -211,7 +233,7 @@ Public Function Execute(ByVal context As String, ByVal row As Long, ByRef report
 Failed:
     report = "Partial result: EDIT completion is unconfirmed. " & report
     If Not entry Is Nothing Then
-        If entry("Saved") Then report = report & vbCrLf & "Catalog changes and the EDIT receipt were saved; quantity completion is unconfirmed."
+        If entry("Saved") Then report = report & vbCrLf & SAVED_CATALOG_PENDING_NOTICE
     End If
     If reference <> "" Then report = report & vbCrLf & reference
     modInventoryCommands.Release context

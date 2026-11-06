@@ -415,6 +415,10 @@ Private mQuantityTarget As Double
 Private mCustomHeader As String, mCustomAccepted As Boolean
 Private mHeaderRefused As Boolean
 Private mLastNotice As String
+Private mLastBoundaryPhase As String
+Public Function LastBoundaryPhase() As String
+    LastBoundaryPhase = mLastBoundaryPhase
+End Function
 Public Sub RecordNotice(ByVal text As String)
     mLastNotice = text
 End Sub
@@ -430,18 +434,19 @@ Public Function PrepareBoundaryTable(ByVal host As String) As Boolean
     Dim context As String, created As Boolean
     Dim phase As String, failureNumber As Long
     On Error GoTo FixtureFailed
+    mLastBoundaryPhase = "ResolveHost"
     phase = "ResolveHost"
     Set wb = Application.Workbooks(host)
     phase = "ActivateHost"
     wb.Activate
     phase = "CaptureAuthority"
     context = modInventoryCommands.Capture(wb.Name)
-    If context = "" Then Exit Function
+    If context = "" Then mLastBoundaryPhase = "CaptureRefused": Exit Function
     phase = "CreateTable"
     created = modAdminInventoryWorksheet.CreateInventoryWorksheetTable(wb, name, report, context)
     phase = "ReleaseAuthority"
     modInventoryCommands.Release context
-    If Not created Then Exit Function
+    If Not created Then mLastBoundaryPhase = "CreateRefused": Exit Function
     phase = "FindTable"
     For Each ws In wb.Worksheets
         For Each lo In ws.ListObjects
@@ -458,13 +463,16 @@ Public Function PrepareBoundaryTable(ByVal host As String) As Boolean
                 phase = "SelectFixture"
                 lo.DataBodyRange.Cells(1, 1).Select
                 PrepareBoundaryTable = True
+                mLastBoundaryPhase = "Ready"
                 Exit Function
             End If
         Next lo
     Next ws
+    mLastBoundaryPhase = "FindRefused"
     Exit Function
 FixtureFailed:
     failureNumber = Err.Number
+    mLastBoundaryPhase = phase & ".Exception"
     Err.Raise vbObjectError + 2199, "PrepareBoundaryTable", _
         "Fixture phase " & phase & "; error " & CStr(failureNumber)
 End Function

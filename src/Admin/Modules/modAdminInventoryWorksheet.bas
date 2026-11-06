@@ -148,6 +148,7 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
     Dim failed As Long
     Dim remaining As Long
     Dim idx As Long, values As Variant, tableName As String, preflightOutcome As String
+    Dim pendingNotice As String
 
     On Error GoTo Failed
     outcome = "REFUSED": observedEvents = ""
@@ -199,8 +200,11 @@ Public Function UploadSelectedInventoryWorksheetTable(ByVal wb As Workbook, _
         SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_ITEM_CODE, CStr(record("ItemCode")), interactiveContext
         SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_STATUS, "READY", interactiveContext
         If CStr(record("EditReference")) <> "" Then
+            pendingNotice = modInventoryEditCommands.SavedCatalogPendingNotice(interactiveContext, _
+                CLng(record("TableRow")), CStr(record("EditReference")))
+            If pendingNotice = "" Then pendingNotice = "Inventory EDIT prepared; application is unconfirmed."
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
-                "Inventory EDIT prepared; application is unconfirmed." & vbCrLf & CStr(record("EditReference")), interactiveContext
+                pendingNotice & vbCrLf & CStr(record("EditReference")), interactiveContext
         ElseIf CStr(record("CreateEventId")) <> "" Then
             SetInventoryWorksheetValue lo, CLng(record("TableRow")), HDR_RESULT, _
                 "Inventory upload prepared; application is unconfirmed." & vbCrLf & "Event: " & CStr(record("CreateEventId")), interactiveContext

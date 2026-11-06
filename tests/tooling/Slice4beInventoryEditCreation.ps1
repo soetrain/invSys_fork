@@ -5,6 +5,31 @@
 . (Join-Path $PSScriptRoot 'Slice4beInventoryEditReceipts.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beInventoryEditBindings.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beInventoryEditCanonicalSave.ps1')
+function Close-ReceiptFixtureInventory($Fixture) {
+    $source=[IO.Path]::GetFullPath((Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')))
+    $ownedRoot=[IO.Path]::GetFullPath($Fixture.Root).TrimEnd('\')+'\'
+    if(-not $source.StartsWith($ownedRoot,[StringComparison]::OrdinalIgnoreCase)){
+        throw 'Receipt fixture Inventory path is outside its owned root.'
+    }
+    $books=$excel.Workbooks
+    try{
+        for($index=$books.Count;$index -ge 1;$index--){
+            $book=$books.Item($index);$match=$false
+            try{
+                $match=[string]::Equals([IO.Path]::GetFullPath([string]$book.FullName),$source,[StringComparison]::OrdinalIgnoreCase)
+                if($match){
+                    if($book.ReadOnly){throw 'Receipt fixture Inventory is open read-only.'}
+                    if(-not $book.Saved){$book.Save();if(-not $book.Saved){throw 'Receipt fixture Inventory save was not confirmed.'}}
+                    $book.Close($false)
+                }
+            }finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($book)}
+            if($match){break}
+        }
+    }finally{[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($books)}
+    if(-not (Test-Path -LiteralPath $source -PathType Leaf) -or (Get-AdminInventoryEntryHash $source) -eq ''){
+        throw 'Receipt fixture Inventory persistence was not confirmed.'
+    }
+}
 function Install-InventoryEditCreationProbe {
     Install-InventoryConfigPreservationProbe
     Install-InventoryWorksheetResultProbe
@@ -242,6 +267,7 @@ function Test-InventoryEditCreation($Fixture,$Other) {
     @('ITEM_CODE,ITEM,UOM,LOCATION,QTY,CONDITION','DEMO-CREATE-BASE,Creation baseline,LB,CLEARVIEW,3,GOOD')|Set-Content $csv -Encoding ASCII
     if(-not [bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.PrepareExactQuantityFixture' @($Fixture.Warehouse,$csv))){throw 'Owning seed unavailable; not RED.'}
     if($AdminInventoryEditCreationCase -eq 'RetainedReceipts'){
+        Close-ReceiptFixtureInventory $Fixture
         Test-InventoryEditReceiptPhases $Fixture $Other 'Phase'
         return
     }

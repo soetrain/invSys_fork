@@ -228,7 +228,10 @@ function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase'
         $sourcePath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
         try{
             $prepared=[bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.PrepareBoundaryTable' @($hostBook.Name))
-            if(-not $prepared){throw 'Owned operator table unavailable; not RED.'}
+            if(-not $prepared){
+                $boundaryPhase=[string](Run 'invSys.Admin.xlam' 'TestInventoryCommands.LastBoundaryPhase')
+                throw ('Owned operator table unavailable at '+$boundaryPhase+'; not RED.')
+            }
             $table=@($hostBook.Worksheets|ForEach-Object {$_.ListObjects}|Where-Object {$_.Name -like 'invSys_Inventory_*'})[0]
             $extra=$table.ListColumns.Add();$extra.Name='USER NOTE';$extra.DataBodyRange.Cells.Item(1,1).Value2='Retained receipt extension'
             $hostBook.Save();$initial=Get-AdminInventoryEntryFacts $Fixture -Persisted

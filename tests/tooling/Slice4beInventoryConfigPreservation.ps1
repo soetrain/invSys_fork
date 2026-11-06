@@ -47,11 +47,11 @@ End Function
     Install-InventoryConfigRetainedProbe
 }
 
-function Set-InventoryConfigPresentation($Fixture) {
+function Set-InventoryConfigPresentation($Fixture,[double]$Width=43,[string]$SheetName='') {
     $book=$excel.Workbooks.Open($Fixture.Config,0,$false)
     try {
-        $sheet=$book.Worksheets.Item(1)
-        $sheet.Columns.Item(1).ColumnWidth=43
+        if($SheetName){$sheet=$book.Worksheets.Item($SheetName)}else{$sheet=$book.Worksheets.Item(1)}
+        $sheet.Columns.Item(1).ColumnWidth=$Width
         $sheet.Rows.Item(1).Font.Bold=$false
         $book.Save()
     } finally {$book.Close($false)}

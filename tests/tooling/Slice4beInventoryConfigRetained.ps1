@@ -5,13 +5,13 @@ function Install-InventoryConfigRetainedProbe {
     $probe=$project.VBComponents.Add(1);$probe.Name='TestInventoryConfigRetained'
     $probe.CodeModule.AddFromString(@'
 Option Explicit
-Public Function Shared(ByVal warehouse As String, ByVal station As String, _
+Public Function EnsureSharedInbox(ByVal warehouse As String, ByVal station As String, _
         ByVal role As String, ByVal config As String) As String
     Dim path As String, report As String
     If modConfig.EnsureStationInbox(warehouse, station, role, config, path, report) Then
-        Shared = "OK|" & path
+        EnsureSharedInbox = "OK|" & path
     Else
-        Shared = "FAIL"
+        EnsureSharedInbox = "FAIL"
     End If
 End Function
 '@)
@@ -26,7 +26,7 @@ function Test-InventoryConfigRetainedShared($Fixture) {
         foreach($role in @('RECEIVE','SHIP','PRODUCTION')){
             $id='InventoryConfigRetained.'+$entry+'.'+$role
             SelectTarget $Fixture
-            Set-InventoryConfigPresentation $Fixture
+            Set-InventoryConfigPresentation $Fixture 71 'WarehouseConfig'
             $before=Get-InventoryConfigDiagnosticSnapshot $Fixture
             $inventoryPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
             $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
@@ -34,7 +34,7 @@ function Test-InventoryConfigRetainedShared($Fixture) {
             [void](Run 'invSys.Core.xlam' 'TestInventoryConfigSave.Reset')
             $arguments=@($Fixture.Warehouse,'S1',$role,$Fixture.Config)
             $macro=switch($entry){
-                'Shared' {'TestInventoryConfigRetained.Shared'}
+                'Shared' {'TestInventoryConfigRetained.EnsureSharedInbox'}
                 'Automation' {'modConfig.EnsureStationInboxForAutomation'}
                 'Packed' {'modConfig.EnsureStationInboxPackedForAutomation'}
             }
@@ -60,9 +60,9 @@ function Test-InventoryConfigRetainedShared($Fixture) {
             $book=$excel.Workbooks.Open($Fixture.Config,0,$true)
             $sheets=$null;$sheet=$null;$columns=$null;$column=$null;$rows=$null;$row=$null;$font=$null
             try{
-                $sheets=$book.Worksheets;$sheet=$sheets.Item(1);$columns=$sheet.Columns;$column=$columns.Item(1)
+                $sheets=$book.Worksheets;$sheet=$sheets.Item('WarehouseConfig');$columns=$sheet.Columns;$column=$columns.Item(1)
                 $rows=$sheet.Rows;$row=$rows.Item(1);$font=$row.Font
-                Check ($id+'.RetainedAutoFit') ([double]$column.ColumnWidth -ne 43)
+                Check ($id+'.RetainedAutoFit') ([double]$column.ColumnWidth -ne 71)
                 Check ($id+'.RetainedHeaderBold') ($font.Bold -eq $true)
             }finally{
                 foreach($ownedCom in @($font,$row,$rows,$column,$columns,$sheet,$sheets)){if($null -ne $ownedCom){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($ownedCom)}}

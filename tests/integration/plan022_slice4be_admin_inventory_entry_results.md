@@ -1,5 +1,61 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-05 focused worksheet CREATE and Config checkpoint
+
+Approved D8-INV-EDIT-01/02 governs this increment; no architecture change was
+introduced. Candidate `deploy/validation-inventory-config-03` built all five
+XLAMs from the working source. The actual packaged Upload handler and headless
+completion ran in five isolated cases: InterveningLocation **33/33**,
+InterveningQuantityMode **33/33**, QueuedLocation **35/35**,
+QueuedQuantityMode **28/28**, and InterveningCatalog **35/35**. Their union is
+the same **140 named checks** as the qualified focused RED: all **131** prior
+passes remain and all **9** prior failures now pass. The fixed saved-catalog
+partial notice was observed through the real Upload result in both relevant
+cases. All five runs compiled five instrumented packages, closed Excel without
+assistance, restored settings, preserved package pins, and had zero delayed
+Excel Application 1000/1001/1002 faults. Monitor samples recorded no error 5,
+desktop lock, or mouse-input failure. Exact run roots and the redacted union
+comparison are under `reports/runtime/inventory-edit-creation/` in the main
+checkout; the comparison file is `focused-quantity-matrix-20261105.json`.
+
+The attempted combined QuantityPhase run remains **unqualified**: it reproduced
+two missing partial-notice failures, then stopped after 81 PASS because the
+fourth case stalled and required assisted teardown. Its result is not substituted
+for the five isolated GREEN runs. The first attempt also exposed an invalid
+test-only VBA probe identifier; renaming that probe made compile meaningful.
+
+The retained Config formatting regression initially checked column A of the
+workbook's empty first sheet, where AutoFit need not change a width. After the
+test targeted populated `WarehouseConfig`, the shared, automation, and packed
+Core entries for RECEIVE, SHIP, and PRODUCTION passed **123/123** in one packaged
+run, with unassisted closure and clean desktop monitoring. This is a test
+correction, not a product-formatting change. The missing-default Config matrix
+passed **54/54** through modal Add, worksheet Add, modal catalog Edit and
+worksheet catalog Edit, preserving unknown columns and formatting while saving
+exactly the missing default. It compiled all five packages and closed Excel
+unassisted after 17 minutes, with settings/pins preserved and a clean desktop
+monitor. Broader 4be-A/release gates remain open. Source guards pass **36/36**;
+the regenerated static scan
+shows 391 components, 6743 procedures, 146209 lines, 9 literal and 45
+unresolved dynamic calls, 191 duplicate-body candidates, and no growth in the
+27 baseline modules over 1000 lines. Generated reports remain ignored and
+redacted; this checkpoint is not full 4be-A acceptance.
+
+**Retained receipt follow-up, interrupted:** the initial `RetainedReceipts`
+dispatches refused before an operator action because Seed left this disposable
+Inventory workbook open and dirty. A test-only fixed-stage probe identified
+Core's correct source refusal. The fixture now saves and closes only its exact
+owned Inventory workbook before the receipt cohort; the extra diagnostic Core
+module was removed. The next packaged run reached actual Add and EDIT for the
+catalog-only receipt scenario and printed **20 PASS**, including reciprocal
+saved command/source binding, one catalog application, operator completion and
+no invented quantity event. At `2026-11-06T00:41:39Z`, the desktop monitor
+recorded one active-input-desktop mismatch and stopped. The worker stopped at
+its next boundary, reporting **20 PASS / 1 harness stop**; the other three
+receipt scenarios did not run. Excel closed unassisted and settings/package
+pins were restored. This is partial evidence only, not retained-receipt GREEN.
+Do not launch another Excel test until the desktop is confirmed unlocked.
+
 ## Perplexity source-only preflight and JSON timestamp tooling repair (2026-11-03 Pacific)
 
 Handoff 216 was the entry point. This increment does not resume or accept the
