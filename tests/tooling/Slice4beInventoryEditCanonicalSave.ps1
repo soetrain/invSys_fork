@@ -2,7 +2,9 @@
 # save boundary. Persisted values stay in memory/ignored owned copies; publish
 # fixed assertion labels and booleans only. No product source or package is saved.
 function Install-InventoryEditCanonicalSaveProbe {
-    $project=$packages['invSys.Admin.xlam'].VBProject
+    $domainOwner=Test-Path (Join-Path $repo 'src/InventoryDomain/Modules/modInventoryEditReceipts.bas')
+    $script:InventoryEditSaveProbePackage=if($domainOwner){'invSys.Inventory.Domain.xlam'}else{'invSys.Admin.xlam'}
+    $project=$packages[$script:InventoryEditSaveProbePackage].VBProject
     $probe=$project.VBComponents.Add(1);$probe.Name='TestInventoryEditSave'
     $probe.CodeModule.AddFromString(@'
 Option Explicit
@@ -55,27 +57,34 @@ Public Function Facts() As String
         CStr(mSaves) & "|" & CStr(sourceSame) & "|" & CStr(hostSame)
 End Function
 '@)
-    $project.VBComponents.Item('TestInventoryCommands').CodeModule.AddFromString(@'
+    $packages['invSys.Admin.xlam'].VBProject.VBComponents.Item('TestInventoryCommands').CodeModule.AddFromString(@'
 Public Function CanonicalSaveUnconfirmedForTest() As Boolean
     CanonicalSaveUnconfirmedForTest = (InStr(1, mLastNotice, "partial", vbTextCompare) > 0 Or _
         InStr(1, mLastNotice, "unconfirmed", vbTextCompare) > 0)
 End Function
 '@)
-    $owner=$project.VBComponents.Item('modAdmin').CodeModule
-    $start=$owner.ProcStartLine('UpdateInventoryItemCatalogForWarehouse',0)
-    $count=$owner.ProcCountLines('UpdateInventoryItemCatalogForWarehouse',0)
+    $ownerName=if($domainOwner){'modInventoryEditReceipts'}else{'modAdmin'}
+    $procedure=if($domainOwner){'SaveCatalog'}else{'UpdateInventoryItemCatalogForWarehouse'}
+    $owner=$project.VBComponents.Item($ownerName).CodeModule
+    $start=$owner.ProcStartLine($procedure,0)
+    $count=$owner.ProcCountLines($procedure,0)
     $body=$owner.Lines($start,$count)
-    $boundary='(?im)^    WriteInventoryCatalogFieldsAdmin lo, rowIndex, fields\r?$'
-    $save='(?im)^    wb\.Save\r?$'
+    $boundary=if($domainOwner){'(?im)^    If Not modInventoryCommands\.BeginCatalogSave\(context, report\) Then GoTo Failed\r?$'}else{'(?im)^    WriteInventoryCatalogFieldsAdmin lo, rowIndex, fields\r?$'}
+    $save=if($domainOwner){'(?im)^    book\.Save\r?$'}else{'(?im)^    wb\.Save\r?$'}
     if([regex]::Matches($body,$boundary).Count -ne 1 -or [regex]::Matches($body,$save).Count -ne 1){throw 'Canonical catalog save seam unavailable; not RED.'}
-    $body=[regex]::Replace($body,$boundary,[Text.RegularExpressions.MatchEvaluator]{param($m) $m.Value.TrimEnd("`r")+"`r`n"+'    TestInventoryEditSave.BeforeSave'})
-    $body=[regex]::Replace($body,$save,'    TestInventoryEditSave.SaveReturn wb')
+    $body=[regex]::Replace($body,$boundary,[Text.RegularExpressions.MatchEvaluator]{
+        param($m)
+        if($domainOwner){'    TestInventoryEditSave.BeforeSave'+"`r`n"+$m.Value.TrimEnd("`r")}
+        else{$m.Value.TrimEnd("`r")+"`r`n"+'    TestInventoryEditSave.BeforeSave'}
+    })
+    $replacement=if($domainOwner){'    TestInventoryEditSave.SaveReturn book'}else{'    TestInventoryEditSave.SaveReturn wb'}
+    $body=[regex]::Replace($body,$save,$replacement)
     $owner.DeleteLines($start,$count);$owner.InsertLines($start,$body)
 }
 function Test-InventoryEditCanonicalSaveOutcome($Fixture,[ref]$HostRef,[string]$HostPath,$Table,$Created,$After,$Snapshot,$Saved,[string]$Sku,[string]$Key,[string]$Item,[string]$Reason,[string]$Case,[string]$Prefix) {
     $id='InventoryEditReceipt.'+$Case
     $sourcePath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
-    $boundary=([string](Run 'invSys.Admin.xlam' 'TestInventoryEditSave.Facts')).Split('|')
+    $boundary=([string](Run $script:InventoryEditSaveProbePackage 'TestInventoryEditSave.Facts')).Split('|')
     $observed=$boundary.Count -eq 6 -and $boundary[0] -ceq 'True' -and $boundary[1] -ceq 'True'
     Check ($id+'.ActualCanonicalSaveBoundaryObserved') $observed
     if(-not $observed){throw 'Canonical save observer unavailable; not RED.'}
@@ -119,7 +128,7 @@ function Test-InventoryEditCanonicalSaveOutcome($Fixture,[ref]$HostRef,[string]$
         SelectTarget $Fixture
         $retryTable=@($retryBook.Worksheets|ForEach-Object {$_.ListObjects}|Where-Object {$_.Name -like 'invSys_Inventory_*'})[0]
         $retryBook.Activate();$retryTable.DataBodyRange.Cells.Item(1,1).Select()
-        [void](Run 'invSys.Admin.xlam' 'TestInventoryEditSave.Arm' @('ObserveRetry',$sourcePath,$HostPath,($Prefix+'-retry')))
+        [void](Run $script:InventoryEditSaveProbePackage 'TestInventoryEditSave.Arm' @('ObserveRetry',$sourcePath,$HostPath,($Prefix+'-retry')))
         [void](Run 'invSys.Core.xlam' 'TestInventoryEditReceipt.Arm' @('Retry',$sourcePath,$HostPath,($Prefix+'-retry')))
         [void](Run 'invSys.Admin.xlam' 'TestInventoryWorksheetResult.Arm' @('CanonicalRetry',$retryBook.Name))
         Invoke-InventoryEditObservedUpload $Fixture $retryBook ($id+'.Retry')
@@ -131,7 +140,7 @@ function Test-InventoryEditCanonicalSaveOutcome($Fixture,[ref]$HostRef,[string]$
         $copy=$Prefix+'-result-retry.xlsx';Copy-Item -LiteralPath $HostPath -Destination $copy
         $retryResult=Get-InventoryEditSavedResult $copy
         $retrySnapshot=Read-InventoryEditReceiptCopy $sourcePath $Sku $retryResult.Command
-        $retryBoundary=([string](Run 'invSys.Admin.xlam' 'TestInventoryEditSave.Facts')).Split('|')
+        $retryBoundary=([string](Run $script:InventoryEditSaveProbePackage 'TestInventoryEditSave.Facts')).Split('|')
         $expectedRetrySaves=1;if($wasSaved){$expectedRetrySaves=0}
         Check ($id+'.FreshRetryOnlyCommitsUnsavedCatalog') ([int]$retryBoundary[3] -eq $expectedRetrySaves)
         Check ($id+'.FreshRetryCatalogAppliedExactlyOnce') ($retrySnapshot.Item -ceq $Item -and $retrySnapshot.Reason -ceq $Reason -and [regex]::Matches($retrySnapshot.History,[regex]::Escape($Reason)).Count -eq 1)
@@ -146,6 +155,6 @@ function Test-InventoryEditCanonicalSaveOutcome($Fixture,[ref]$HostRef,[string]$
         Check ($id+'.FreshRetryPlannedEventHasSavedProof') ($retryEvent -ne '' -and @($retrySnapshot.Applied|Where-Object {$_ -ceq $retryEvent}).Count -eq 1 -and $exact.Count -eq 1)
         Check ($id+'.RetryCustomAndInspectionPreserved') ($retrySnapshot.Custom -ceq 'Retained receipt extension' -and $retrySnapshot.Preserved -and $retryResult.Preserved)
     }finally{
-        [void](Run 'invSys.Admin.xlam' 'TestInventoryEditSave.Arm' @('','','',''))
+        [void](Run $script:InventoryEditSaveProbePackage 'TestInventoryEditSave.Arm' @('','','',''))
     }
 }

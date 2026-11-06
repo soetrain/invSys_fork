@@ -3,6 +3,15 @@
   "reportType": "vba-dynamic-root-registry",
   "roots": [
     {
+      "id": "inventory.worksheet-edit-catalog-receipt",
+      "rootKind": "CROSS_XLAM_BRIDGE",
+      "matchType": "EXACT",
+      "componentPattern": "modInventoryEditReceipts",
+      "procedurePattern": "SaveCatalog",
+      "sourcePathPattern": "src/InventoryDomain/Modules/modInventoryEditReceipts.bas",
+      "reason": "D8-INV-EDIT-01: Core SaveWorksheetEditCatalogBridge dispatches context/command strings to the Inventory Domain owner and receives a primitive saved/report envelope."
+    },
+    {
       "id": "convention.ribbon",
       "rootKind": "RIBBON_CALLBACK",
       "matchType": "REGEX",

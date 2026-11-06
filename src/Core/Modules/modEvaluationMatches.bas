@@ -96,6 +96,9 @@ Public Function CommandCompleted(ByVal record As Object) As Boolean
     Set outcome = modActivityCatalog.Outcome(CStr(record("ControlId")), CStr(record("OutcomeCode")))
     If outcome Is Nothing Then Exit Function
     code = CStr(record("OutcomeCode"))
+    If definition("OwnerId") = "ADMIN_INVENTORY" Then
+        CommandCompleted = modInventoryActivityCodes.PositiveOutcome(CStr(record("ControlId")), code): Exit Function
+    End If
     If definition("OwnerId") = "ADMIN_HQ_AGGREGATION" Then
         CommandCompleted = modAggregationActivityCodes.PositiveOutcome(CStr(record("ControlId")), code): Exit Function
     End If

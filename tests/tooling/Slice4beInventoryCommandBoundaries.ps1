@@ -128,9 +128,27 @@ function Compare-InventoryRevisionPointer([byte[]]$Before,[byte[]]$After) {
     [pscustomobject]@{Parsed=$true;ChangedFields=$changed.ToArray()}
 }
 
+# MS-XLSB BrtBeginList fixed64-byte prefix. Names, comments, values and hashes
+# remain private; this reports changed field labels, never semantic acceptance.
+# https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xlsb/79c53348-6103-431a-810e-3609c491963b
+function Compare-InventoryListPrefix([byte[]]$Before,[byte[]]$After) {
+    if($null -eq $Before -or $null -eq $After -or $Before.Length -lt 64 -or $After.Length -lt 64){
+        return [pscustomobject]@{FixedPrefixAvailable=$false;ChangedFields=@();TailChangedOrUnavailable=$true}
+    }
+    $names=@('FirstRow','LastRow','FirstColumn','LastColumn','TableType','TableId','HeaderRows','TotalRows','Flags',
+        'HeaderFormat','DataFormat','TotalFormat','BorderFormat','HeaderBorderFormat','TotalBorderFormat','ConnectionId')
+    $changed=@()
+    for($i=0;$i -lt $names.Count;$i++){
+        if([BitConverter]::ToUInt32($Before,4*$i) -ne [BitConverter]::ToUInt32($After,4*$i)){$changed+=$names[$i]}
+    }
+    $tailSame=$Before.Length -eq $After.Length
+    for($i=64;$tailSame -and $i -lt $Before.Length;$i++){$tailSame=$Before[$i] -eq $After[$i]}
+    [pscustomobject]@{FixedPrefixAvailable=$true;ChangedFields=$changed;TailChangedOrUnavailable=(-not $tailSame)}
+}
+
 function Compare-InventoryConfigBinaryRecords($Before,$After) {
     if($null -eq $Before -or $null -eq $After -or -not $Before.Parsed -or -not $After.Parsed){return [pscustomobject]@{Parsed=$false}}
-    $types=@{};$viewFields=@{};$revisionFields=@{};$headersSame=$true;$unknownView=$false;$unknownRevision=$false
+    $types=@{};$viewFields=@{};$revisionFields=@{};$headersSame=$true;$unknownView=$false;$unknownRevision=$false;$listChanges=@()
     foreach($key in @($Before.Records.Keys)+@($After.Records.Keys)|Select-Object -Unique){
         if(-not $Before.Records.ContainsKey($key) -or -not $After.Records.ContainsKey($key)){
             $type=[int]($key -split ':')[0];$types[$type]=$true;$headersSame=$false
@@ -141,6 +159,7 @@ function Compare-InventoryConfigBinaryRecords($Before,$After) {
         if($a.HeaderHash -cne $b.HeaderHash){$headersSame=$false}
         if($a.Hash -ceq $b.Hash){continue}
         $types[[int]$a.Type]=$true
+        if($a.Type -eq 343){$listChanges+=Compare-InventoryListPrefix $a.Data $b.Data}
         if($a.Type -eq 3073){
             $revision=Compare-InventoryRevisionPointer $a.Data $b.Data
             if(-not $revision.Parsed){$unknownRevision=$true}
@@ -154,7 +173,7 @@ function Compare-InventoryConfigBinaryRecords($Before,$After) {
             if($a.Data[28] -ne $b.Data[28]){$viewFields['ViewFlags']=$true;if(($a.Data[28] -bxor $b.Data[28]) -band 128){$unknownView=$true}}
         }
     }
-    [pscustomobject]@{Parsed=$true;BeforeRecordCount=$Before.Records.Keys.Count;AfterRecordCount=$After.Records.Keys.Count;RecordOrderPreserved=($Before.Sequence -ceq $After.Sequence);RecordHeadersPreserved=$headersSame;ChangedRecordTypes=@($types.Keys|Sort-Object);ChangedBookViewFields=@($viewFields.Keys|Sort-Object);UnknownBookViewChange=$unknownView;ChangedRevisionPointerFields=@($revisionFields.Keys|Sort-Object);UnknownRevisionPointerChange=$unknownRevision;AllWorkbookSemanticsProven=$false}
+    [pscustomobject]@{Parsed=$true;BeforeRecordCount=$Before.Records.Keys.Count;AfterRecordCount=$After.Records.Keys.Count;RecordOrderPreserved=($Before.Sequence -ceq $After.Sequence);RecordHeadersPreserved=$headersSame;ChangedRecordTypes=@($types.Keys|Sort-Object);ChangedBookViewFields=@($viewFields.Keys|Sort-Object);UnknownBookViewChange=$unknownView;ChangedRevisionPointerFields=@($revisionFields.Keys|Sort-Object);UnknownRevisionPointerChange=$unknownRevision;ListPrefixChanges=$listChanges;AllWorkbookSemanticsProven=$false}
 }
 
 function Get-InventoryConfigDiagnosticSnapshot($Fixture) {
@@ -166,7 +185,7 @@ function Get-InventoryConfigDiagnosticSnapshot($Fixture) {
     }
     $beforeHash=Get-AdminInventoryEntryHash $path
     Add-Type -AssemblyName System.IO.Compression
-    $parts=@{};$binaryRecords=$null;$coreProperties=$null
+    $parts=@{};$binaryRecords=$null;$coreProperties=$null;$partRecords=@{}
     $stream=[IO.FileStream]::new($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
     try {
         $zip=[IO.Compression.ZipArchive]::new($stream,[IO.Compression.ZipArchiveMode]::Read,$true)
@@ -181,6 +200,10 @@ function Get-InventoryConfigDiagnosticSnapshot($Fixture) {
                 if($entry.FullName -ceq 'docProps/core.xml'){
                     $part=$entry.Open();$memory=[IO.MemoryStream]::new()
                     try{$part.CopyTo($memory);$coreProperties=Get-InventoryCorePropertySnapshot $memory.ToArray()}finally{$memory.Dispose();$part.Dispose()}
+                }
+                if($entry.FullName -cmatch '^xl/(worksheets/sheet[0-9]+|tables/table[0-9]+|styles)\.bin$'){
+                    $part=$entry.Open();$memory=[IO.MemoryStream]::new()
+                    try{$part.CopyTo($memory);$partRecords[$entry.FullName]=Get-InventoryConfigBinaryRecords $memory.ToArray()}finally{$memory.Dispose();$part.Dispose()}
                 }
             }
         }finally{$zip.Dispose()}
@@ -207,7 +230,44 @@ function Get-InventoryConfigDiagnosticSnapshot($Fixture) {
         if($null -ne $prior){$prior.Activate()}
     }
     # Values and part hashes are deliberately memory-only; export comparisons below.
-    [pscustomobject]@{Cells=$cells;Shapes=($shapes -join "`n");Parts=$parts;Semantics=$semantics;BinaryRecords=$binaryRecords;CoreProperties=$coreProperties;FileHash=$beforeHash;ReadOnlyProof=($memoryPreserved -and $beforeHash -ceq (Get-AdminInventoryEntryHash $path))}
+    [pscustomobject]@{Cells=$cells;Shapes=($shapes -join "`n");Parts=$parts;Semantics=$semantics;BinaryRecords=$binaryRecords;PartRecords=$partRecords;CoreProperties=$coreProperties;FileHash=$beforeHash;ReadOnlyProof=($memoryPreserved -and $beforeHash -ceq (Get-AdminInventoryEntryHash $path))}
+}
+
+function Get-InventoryHeaderFormatReference($Table,$Styles) {
+    # Memory-only lookup. Never serialize this result: its hash is private.
+    $unavailable=[pscustomobject]@{Kind='Unavailable';Hash=''}
+    if($null -eq $Table -or -not $Table.Parsed -or -not $Table.Records.ContainsKey('343:1')){return $unavailable}
+    $data=$Table.Records['343:1'].Data
+    if($data.Length -lt 64){return $unavailable}
+    $index=[BitConverter]::ToUInt32($data,36)
+    if($index -eq [uint32]::MaxValue){return [pscustomobject]@{Kind='None';Hash=''}}
+    if($null -eq $Styles -or -not $Styles.Parsed){return $unavailable}
+    $key='507:'+([uint64]$index+1).ToString()
+    if(-not $Styles.Records.ContainsKey($key)){return $unavailable}
+    [pscustomobject]@{Kind='Indexed';Hash=$Styles.Records[$key].Hash}
+}
+
+function Compare-InventoryHeaderFormatReferences($Before,$After,$BeforeStyles,$AfterStyles) {
+    $left=Get-InventoryHeaderFormatReference $Before $BeforeStyles
+    $right=Get-InventoryHeaderFormatReference $After $AfterStyles
+    [pscustomobject]@{BeforeKind=$left.Kind;AfterKind=$right.Kind;ExactFormatBytesEqual=($left.Kind -ceq 'Indexed' -and $right.Kind -ceq 'Indexed' -and $left.Hash -ceq $right.Hash)}
+}
+
+function Compare-InventoryConfigPartRecords($Before,$After) {
+    foreach($key in @($Before.Keys)+@($After.Keys)|Sort-Object -Unique){
+        # Export only fixed categories and the existing redacted record comparison.
+        # No part name, byte payload or digest leaves this boundary; no acceptance
+        # predicate consumes this diagnostic evidence.
+        if($key -cnotmatch '^xl/(worksheets/sheet[0-9]+|tables/table[0-9]+|styles)\.bin$'){continue}
+        $comparison=Compare-InventoryConfigBinaryRecords $Before[$key] $After[$key]
+        if($comparison.Parsed -and $comparison.ChangedRecordTypes.Count -eq 0 -and $comparison.RecordOrderPreserved -and $comparison.RecordHeadersPreserved){continue}
+        $category=if($key -clike 'xl/worksheets/*'){'Worksheet'}elseif($key -clike 'xl/tables/*'){'Table'}else{'Styles'}
+        $result=[pscustomobject]@{Category=$category;Comparison=$comparison}
+        if($category -ceq 'Table'){
+            $result|Add-Member -NotePropertyName HeaderFormatReference -NotePropertyValue (Compare-InventoryHeaderFormatReferences $Before[$key] $After[$key] $Before['xl/styles.bin'] $After['xl/styles.bin'])
+        }
+        $result
+    }
 }
 
 function Write-InventoryConfigDiagnosticComparison($Before,$After,[string]$Case,$SavePhase=$null) {
@@ -246,7 +306,10 @@ function Write-InventoryConfigDiagnosticComparison($Before,$After,[string]$Case,
     $cause=Get-InventoryConfigSaveCause $safe $changed ($Before.Shapes -ceq $After.Shapes) $known $unidentified $binary $core $SavePhase
     [void]$script:InventoryConfigReadChecks.Add([pscustomobject]@{Case=$Case;Passed=$safe})
     $script:InventoryConfigLastComparison=[pscustomobject]@{Case=$Case;ReadOnlyExtractionPreserved=$safe;ChangedTableCells=$changed;TableShapesPreserved=($Before.Shapes -ceq $After.Shapes);ChangedPartCategories=$categories;ChangedStandardParts=$known;UnidentifiedChangedPartCount=$unidentified;ObservedConfigSavePhase=$SavePhase;ObservedSemanticComparison=$semantics;ObservedBinaryComparison=$binary;ObservedCorePropertiesComparison=$core;CauseEstablished=$cause;CauseCode=$(if($cause){'InboxBootstrapSaveMetadata'}else{'Unresolved'})}
-    $script:InventoryConfigLastComparison|ConvertTo-Json -Depth 6 -Compress|Add-Content (Join-Path $reportRoot 'inventory-config-diagnosis.jsonl')
+    if($Before.PSObject.Properties['PartRecords'] -and $After.PSObject.Properties['PartRecords']){
+        $script:InventoryConfigLastComparison|Add-Member -NotePropertyName AdditionalBinaryParts -NotePropertyValue @(Compare-InventoryConfigPartRecords $Before.PartRecords $After.PartRecords)
+    }
+    $script:InventoryConfigLastComparison|ConvertTo-Json -Depth 8 -Compress|Add-Content (Join-Path $reportRoot 'inventory-config-diagnosis.jsonl')
 }
 
 function Test-InventoryConfigDiagnosticPreservation {
@@ -320,12 +383,23 @@ End Function
     if([regex]::Matches($saveBody,[regex]::Escape($saveLine)).Count -ne 1){throw 'Config save observation boundary changed; not product RED.'}
     $saveBody=$saveBody.Replace($saveLine,('    TestInventoryConfigSave.BeforeSave wb'+"`r`n"+$saveLine+"`r`n"+'    TestInventoryConfigSave.AfterSave wb'))
     $config.DeleteLines($start,$count);$config.InsertLines($start,$saveBody)
-    $start=$config.ProcStartLine('EnsureStationInbox',0);$count=$config.ProcCountLines('EnsureStationInbox',0)
+    $inboxProcedure='EnsureStationInbox'
+    if($config.Lines(1,$config.CountOfLines) -match '(?im)^Private Function EnsureStationInboxCore\('){$inboxProcedure='EnsureStationInboxCore'}
+    $start=$config.ProcStartLine($inboxProcedure,0);$count=$config.ProcCountLines($inboxProcedure,0)
     $body=$config.Lines($start,$count)
-    $pattern='(?im)^[\t ]*If Not wbCfg Is Nothing Then SaveConfigWorkbookIfWritable wbCfg[\t ]*\r?$'
-    if([regex]::Matches($body,$pattern).Count -ne 1){throw 'Config inbox save call-site observation unavailable.'}
-    $replacement=@('    If Not wbCfg Is Nothing Then','        TestInventoryConfigSave.SetInboxPhase eventType','        SaveConfigWorkbookIfWritable wbCfg','        TestInventoryConfigSave.SetInboxPhase ""','    End If') -join "`r`n"
-    $body=[regex]::Replace($body,$pattern,$replacement)
+    $pattern='(?im)^(?<indent>[\t ]*)(?:If (?<condition>Not wbCfg Is Nothing|formatSurface) Then )?SaveConfigWorkbookIfWritable wbCfg[\t ]*\r?$'
+    $expected=if($inboxProcedure -ceq 'EnsureStationInbox'){1}else{2}
+    if([regex]::Matches($body,$pattern).Count -ne $expected){throw 'Config inbox save call-site observation unavailable.'}
+    $body=[regex]::Replace($body,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($match)
+        $indent=$match.Groups['indent'].Value;$condition=$match.Groups['condition'].Value
+        $lines=@();$inner=$indent
+        if($condition){$lines+=($indent+'If '+$condition+' Then');$inner+='    '}
+        $lines+=($inner+'TestInventoryConfigSave.SetInboxPhase NormalizeRoleToEventTypeConfig(roleDefault)')
+        $lines+=($inner+'SaveConfigWorkbookIfWritable wbCfg')
+        $lines+=($inner+'TestInventoryConfigSave.SetInboxPhase ""')
+        if($condition){$lines+=($indent+'End If')}
+        $lines -join "`r`n"
+    })
     $config.DeleteLines($start,$count);$config.InsertLines($start,$body)
     $project=$packages['invSys.Admin.xlam'].VBProject
     $probe=$project.VBComponents.Add(1);$probe.Name='TestInventoryCommands'
@@ -341,6 +415,10 @@ Private mQuantityTarget As Double
 Private mCustomHeader As String, mCustomAccepted As Boolean
 Private mHeaderRefused As Boolean
 Private mLastNotice As String
+Private mLastBoundaryPhase As String
+Public Function LastBoundaryPhase() As String
+    LastBoundaryPhase = mLastBoundaryPhase
+End Function
 Public Sub RecordNotice(ByVal text As String)
     mLastNotice = text
 End Sub
@@ -354,29 +432,49 @@ End Function
 Public Function PrepareBoundaryTable(ByVal host As String) As Boolean
     Dim name As String, report As String, wb As Workbook, lo As ListObject, ws As Worksheet
     Dim context As String, created As Boolean
+    Dim phase As String, failureNumber As Long
+    On Error GoTo FixtureFailed
+    mLastBoundaryPhase = "ResolveHost"
+    phase = "ResolveHost"
     Set wb = Application.Workbooks(host)
+    phase = "ActivateHost"
     wb.Activate
+    phase = "CaptureAuthority"
     context = modInventoryCommands.Capture(wb.Name)
-    If context = "" Then Exit Function
+    If context = "" Then mLastBoundaryPhase = "CaptureRefused": Exit Function
+    phase = "CreateTable"
     created = modAdminInventoryWorksheet.CreateInventoryWorksheetTable(wb, name, report, context)
+    phase = "ReleaseAuthority"
     modInventoryCommands.Release context
-    If Not created Then Exit Function
+    If Not created Then mLastBoundaryPhase = "CreateRefused": Exit Function
+    phase = "FindTable"
     For Each ws In wb.Worksheets
         For Each lo In ws.ListObjects
             If lo.Name = name Then
+                phase = "PopulateFixture"
                 lo.ListColumns("Action").DataBodyRange.Cells(1, 1).Value2 = "ADD"
                 lo.ListColumns("Item Name").DataBodyRange.Cells(1, 1).Value2 = "Zero worksheet fixture"
                 lo.ListColumns("UOM").DataBodyRange.Cells(1, 1).Value2 = "LB"
                 lo.ListColumns("Qty Mode").DataBodyRange.Cells(1, 1).Value2 = "COUNTED"
                 lo.ListColumns("Quantity").DataBodyRange.Cells(1, 1).Value2 = 0
                 lo.ListColumns("Default Location").DataBodyRange.Cells(1, 1).Value2 = "CLEARVIEW"
+                phase = "SaveFixture"
                 wb.Save
+                phase = "SelectFixture"
                 lo.DataBodyRange.Cells(1, 1).Select
                 PrepareBoundaryTable = True
+                mLastBoundaryPhase = "Ready"
                 Exit Function
             End If
         Next lo
     Next ws
+    mLastBoundaryPhase = "FindRefused"
+    Exit Function
+FixtureFailed:
+    failureNumber = Err.Number
+    mLastBoundaryPhase = phase & ".Exception"
+    Err.Raise vbObjectError + 2199, "PrepareBoundaryTable", _
+        "Fixture phase " & phase & "; error " & CStr(failureNumber)
 End Function
 Public Sub SetSelection(ByVal otherRoot As String, ByVal sku As String)
     mOtherRoot = otherRoot: mSku = sku

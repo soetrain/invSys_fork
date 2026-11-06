@@ -89,7 +89,7 @@ Public Function InventoryCreateResultForTest() As Variant
 End Function
 '@)
     $start=$form.ProcStartLine('mBtnCreateInventoryTable_Click',0);$count=$form.ProcCountLines('mBtnCreateInventoryTable_Click',0)
-    $body=$form.Lines($start,$count);$line='(?im)^    If Not CurrentContextAllowed\(\) Then Exit Sub\r?$'
+    $body=$form.Lines($start,$count);$line='(?im)^    If Not CurrentContextAllowed\(\) Then (?:Exit Sub|GoTo Refused)\r?$'
     if([regex]::Matches($body,$line).Count -ne 1){throw 'Create form entry seam unavailable; not product RED.'}
     $body=[regex]::Replace($body,$line,[Text.RegularExpressions.MatchEvaluator]{param($m) $m.Value.TrimEnd("`r")+"`r`n"+'    TestInventoryCreatePhase.AtPhase "BeforeHelper"'})
     $form.DeleteLines($start,$count);$form.InsertLines($start,$body)

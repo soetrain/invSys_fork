@@ -15,6 +15,11 @@ function Read-Json {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "JSON file not found: $Path"
     }
+    # Preserve JSON string literals on PowerShell 7.5+ without adding a
+    # parameter unsupported by the Windows PowerShell 5.1 execution host.
+    if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) {
+        return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -DateKind String)
+    }
     return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)
 }
 

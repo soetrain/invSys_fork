@@ -34,7 +34,7 @@ $checks["Docs.Slice4alContract"] =
     $controls.Contains('`btnDeleteItem`')
 $checks["Form.RealDeleteHandler"] =
     $form.Contains("Private WithEvents mBtnDeleteItem As MSForms.CommandButton") -and
-    $form.Contains('AddButton("btnDeleteItem"') -and
+    $form.Contains('modInventoryUiText.AddButton(Me.Controls, "btnDeleteItem"') -and
     $form.Contains("Private Sub mBtnDeleteItem_Click()") -and
     $form -match 'TestInventoryDeleteActionContract(?s).*?mBtnDeleteItem_Click'
 $checks["Admin.ExactSkuRetirementService"] =

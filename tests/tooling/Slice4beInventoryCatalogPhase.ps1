@@ -2,13 +2,24 @@
 # module, with deterministic Core guard outcomes. No XLAM is built or saved.
 # This supplements, and never replaces, packaged callback/real-authority gates.
 function Install-InventoryCatalogPhaseProbe {
+    $wirePath=Join-Path $repo 'src/Core/Modules/modInventoryCatalogWire.bas'
+    if(Test-Path -LiteralPath $wirePath){
+        $wire=Get-Content -LiteralPath $wirePath -Raw
+        $wireProject=$packages['invSys.Core.xlam'].VBProject
+        $component=$null
+        foreach($candidate in $wireProject.VBComponents){if($candidate.Name -ceq 'modInventoryCatalogWire'){$component=$candidate;break}}
+        if($null -eq $component){$component=$wireProject.VBComponents.Add(1);$component.Name='modInventoryCatalogWire'}
+        $module=$component.CodeModule
+        if($module.CountOfLines){$module.DeleteLines(1,$module.CountOfLines)}
+        $module.AddFromString($wire.Substring($wire.IndexOf('Option Explicit')))
+    }
     $source=Get-Content (Join-Path $repo 'src/Admin/Modules/modAdmin.bas') -Raw
     $names=@('UpdateInventoryItemCatalogForWarehouse','FindOpenWorkbookByFullNameAdmin',
         'FindListObjectByNameAdminLocal','ColumnIndexAdminLocal','FindCatalogRowBySkuAdmin',
         'CatalogCellAdmin','SetCatalogValueAdmin','EnsureCatalogColumnAdmin',
         'NormalizeCatalogColumnNameAdmin','SetSheetProtectionAdminLocal',
         'SetPictureReferencesInCatalogAdmin','ParsePictureReferencesAdmin','AppendCatalogEditHistoryAdmin',
-        'PlanInventoryCatalogFieldsAdmin','PlanInventoryCatalogValueAdmin','WriteInventoryCatalogFieldsAdmin')
+        'PlanInventoryCatalogFieldsAdmin','WriteInventoryCatalogFieldsAdmin')
     $parts=@('Option Explicit')
     foreach($name in $names){
         $matches=[regex]::Matches($source,('(?ms)^(?:Public|Private) (?:Function|Sub) '+$name+'\b.*?^End (?:Function|Sub)\b'))

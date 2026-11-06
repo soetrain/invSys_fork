@@ -531,7 +531,7 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
     Dim conditionValue As String
     Dim inventoryState As String
     Dim attributesJson As String
-    Dim seenSystemKeys As Object
+    Dim seenSystemKeys As Object, worksheetCreate As Boolean
 
     payloadJson = GetEventString(evt, "PayloadJson")
     If payloadJson = "" Then
@@ -551,7 +551,7 @@ Private Function BuildPayloadLines(ByVal evt As Object, _
         errorMessage = "PayloadJson did not contain any line items."
         Exit Function
     End If
-
+    If Not modInventoryEditReceipts.ReadCreationPhase(wb, evt, eventType, parsedItems, worksheetCreate, errorCode, errorMessage) Then Exit Function
     Set BuildPayloadLines = New Collection
     Set seenSystemKeys = CreateObject("Scripting.Dictionary")
     seenSystemKeys.CompareMode = vbTextCompare
@@ -604,7 +604,7 @@ QtyAccepted:
         If eventType = EVENT_TYPE_MIGRATION_SEED Or eventType = EVENT_TYPE_INVENTORY_CREATE Or _
            eventType = EVENT_TYPE_BOX_BUILD Or eventType = EVENT_TYPE_BOX_UNBOX Or _
            eventType = EVENT_TYPE_PROD_COMPLETE Then
-            EnsureSkuCatalogFromPayloadLineApply wb, rawItem
+            If Not worksheetCreate Then EnsureSkuCatalogFromPayloadLineApply wb, rawItem
         End If
         If Not ValidateSkuExists(wb, sku) Then
             sku = ResolvePayloadSkuByRowApply(wb, rawItem)
@@ -627,7 +627,7 @@ QtyAccepted:
             Set BuildPayloadLines = Nothing
             Exit Function
         End If
-        If PayloadSkuIsNonCountedApply(wb, sku) Then qtyDelta = 0
+        If Not worksheetCreate Then If PayloadSkuIsNonCountedApply(wb, sku) Then qtyDelta = 0
 
         locationVal = SafeTrimApply(GetDictionaryValue(rawItem, "Location"))
         If locationVal = "" Then locationVal = GetEventString(evt, "Location")

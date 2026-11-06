@@ -1,5 +1,17 @@
 # Slice 4be.2 Event Tracking Settings
 
+## Current Inventory navigation candidate,2026-10-21
+
+Catalog44/190 candidate `deploy/validation-inventory-recording-02` retains202/202
+checks in the exact order of prior worker81bd2618379641dd93a5f6661d98ce0b. Current
+worker `slice4be-tracking-settings/61f7ea034d53419f93d26229b5dd0a36`; controller
+`inventory-navigation-regression/settings-cfdc769c1c164795bf312dc792b004c8`, relative
+to main `reports/runtime`. Ten captures reviewed; taskbar previews touch empty
+lower areas without obscuring tested controls. Normal preserved closure and native
+audit04:20:28.138Z qualify. The catalog-size assertion retains41/172,42/179,43/186
+and adds44/190. No other check is removed or relaxed. See the Inventory recording
+record for scope and remaining4be-A work; no Inventory guide acceptance is claimed.
+
 ## Current Inventory candidate regression
 
 Last verified2026-10-21 01:38Z. Unchanged product `a9faab9c` candidate

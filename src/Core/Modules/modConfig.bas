@@ -141,7 +141,7 @@ Public Function ResolveExistingConfigForRead(ByVal warehouseId As String) As Wor
     Else
         root = modRuntimeWorkbooks.GetCoreDataRootOverride()
         If root <> "" And Trim$(warehouseId) <> "" Then
-            path = NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
+            path = modConfigPaths.NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
         End If
     End If
     If path = "" Then
@@ -159,11 +159,11 @@ Public Function ResolveExistingConfigForRead(ByVal warehouseId As String) As Wor
         End If
         root = modRuntimeWorkbooks.ResolveCoreDataRoot("", warehouseId)
         If Trim$(warehouseId) <> "" Then
-            path = NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
+            path = modConfigPaths.NormalizeFolderPathConfig(root, False) & "\" & warehouseId & ".invSys.Config.xlsb"
         Else
-            candidatePath = Dir$(NormalizeFolderPathConfig(root, False) & "\*.invSys.Config.xlsb")
+            candidatePath = Dir$(modConfigPaths.NormalizeFolderPathConfig(root, False) & "\*.invSys.Config.xlsb")
             If candidatePath <> "" Then
-                path = NormalizeFolderPathConfig(root, False) & "\" & candidatePath
+                path = modConfigPaths.NormalizeFolderPathConfig(root, False) & "\" & candidatePath
                 If Dir$() <> "" Then Exit Function
             End If
         End If
@@ -259,7 +259,7 @@ Public Function EnsureStationConfigEntry(Optional ByVal warehouseId As String = 
         SetConfigCellValue loWh, whRow, "WarehouseName", resolvedWh
     End If
     If pathDataRoot <> "" Then
-        SetConfigCellValue loWh, whRow, "PathDataRoot", NormalizeFolderPathConfig(pathDataRoot, False)
+        SetConfigCellValue loWh, whRow, "PathDataRoot", modConfigPaths.NormalizeFolderPathConfig(pathDataRoot, False)
     End If
 
     SetConfigCellValue loSt, stRow, "StationId", resolvedSt
@@ -270,7 +270,7 @@ Public Function EnsureStationConfigEntry(Optional ByVal warehouseId As String = 
         SetConfigCellValue loSt, stRow, "StationName", Environ$("COMPUTERNAME")
     End If
     If pathInboxRoot <> "" Then
-        SetConfigCellValue loSt, stRow, "PathInboxRoot", NormalizeFolderPathConfig(pathInboxRoot, True)
+        SetConfigCellValue loSt, stRow, "PathInboxRoot", modConfigPaths.NormalizeFolderPathConfig(pathInboxRoot, True)
     End If
     If Trim$(roleDefault) <> "" Then
         SetConfigCellValue loSt, stRow, "RoleDefault", UCase$(Trim$(roleDefault))
@@ -332,6 +332,23 @@ Public Function EnsureStationInbox(Optional ByVal warehouseId As String = "", _
                                    Optional ByVal configWorkbookPath As String = "", _
                                    Optional ByRef inboxPathOut As String = "", _
                                    Optional ByRef report As String = "") As Boolean
+    EnsureStationInbox = EnsureStationInboxCore(warehouseId, stationId, roleDefault, _
+        configWorkbookPath, inboxPathOut, report, True)
+End Function
+
+' Interactive Inventory opts in explicitly; setup and automation keep formatting.
+Public Function EnsureStationInboxWithoutFormatting(ByVal warehouseId As String, _
+        ByVal stationId As String, ByVal roleDefault As String, _
+        ByVal configWorkbookPath As String, ByRef inboxPathOut As String, _
+        ByRef report As String, ByVal interactiveContext As String) As Boolean
+    EnsureStationInboxWithoutFormatting = EnsureStationInboxCore(warehouseId, stationId, _
+        roleDefault, configWorkbookPath, inboxPathOut, report, False, interactiveContext)
+End Function
+
+Private Function EnsureStationInboxCore(ByVal warehouseId As String, ByVal stationId As String, _
+        ByVal roleDefault As String, ByVal configWorkbookPath As String, _
+        ByRef inboxPathOut As String, ByRef report As String, ByVal formatSurface As Boolean, _
+        Optional ByVal interactiveContext As String = "") As Boolean
     On Error GoTo FailEnsure
 
     Dim resolvedWh As String
@@ -345,13 +362,43 @@ Public Function EnsureStationInbox(Optional ByVal warehouseId As String = "", _
     Dim stRow As Long
     Dim openedConfig As Boolean
     Dim openedInbox As Boolean
+    Dim configChanged As Boolean
+    Dim authority As String, source As Variant, target As WarehouseTarget
+    Dim priorEvents As Boolean, priorSecurity As Long, suppressEvents As Boolean
+
+    If Not formatSurface Then
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Function
+        source = modInventoryCommands.SourceValues(interactiveContext)
+        If Not IsArray(source) Then Exit Function
+        If CStr(source(0)) <> warehouseId Or CStr(source(1)) <> stationId Then Exit Function
+        Set target = modNasConnection.GetCurrentTarget()
+        If target Is Nothing Then Exit Function
+        If Not modAggregationFiles.SameFile(target.ConfigPath, configWorkbookPath) Then Exit Function
+        If Len(Dir$(configWorkbookPath)) = 0 Then Exit Function
+        authority = modAuthUserCommands.CaptureContext()
+        If authority = "" Then Exit Function
+        priorEvents = Application.EnableEvents: priorSecurity = Application.AutomationSecurity
+        suppressEvents = True: Application.EnableEvents = False: Application.AutomationSecurity = 3
+    End If
 
     resolvedWh = ResolveSeedWarehouseIdConfig(warehouseId, vbNullString)
     resolvedSt = ResolveSeedStationIdConfig(stationId)
 
     Set wbCfg = ResolveConfigWorkbookForSetup(configWorkbookPath, resolvedWh, resolvedSt, report, openedConfig)
-    If wbCfg Is Nothing Then Exit Function
-    If Not EnsureConfigSchema(wbCfg, resolvedWh, resolvedSt, report) Then GoTo CleanExit
+    If wbCfg Is Nothing Then GoTo CleanExit
+    If formatSurface Then
+        If Not EnsureConfigSchema(wbCfg, resolvedWh, resolvedSt, report) Then GoTo CleanExit
+    Else
+        If Not openedConfig Or wbCfg.ReadOnly Or Not wbCfg.Saved Then
+            report = "Config preparation requires an owned, saved, writable workbook."
+            GoTo CleanExit
+        End If
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
+        If Not EnsureConfigTables(wbCfg, configChanged) Then
+            report = "Config tables could not be prepared.": GoTo CleanExit
+        End If
+        SeedConfigDefaults wbCfg, resolvedWh, resolvedSt, configChanged
+    End If
 
     Set loWh = FindListObjectByName(wbCfg, "tblWarehouseConfig")
     Set loSt = FindListObjectByName(wbCfg, "tblStationConfig")
@@ -360,11 +407,19 @@ Public Function EnsureStationInbox(Optional ByVal warehouseId As String = "", _
         GoTo CleanExit
     End If
 
-    whRow = EnsureWarehouseRowConfig(loWh, resolvedWh)
-    stRow = EnsureStationRowConfig(loSt, resolvedWh, resolvedSt)
+    whRow = EnsureWarehouseRowConfig(loWh, resolvedWh, configChanged)
+    stRow = EnsureStationRowConfig(loSt, resolvedWh, resolvedSt, configChanged)
     If whRow = 0 Or stRow = 0 Then
         report = "Config rows were not available for station inbox bootstrap."
         GoTo CleanExit
+    End If
+    If Not formatSurface Then
+        If Not InventoryPreparationAuthority(authority, resolvedWh, resolvedSt) Then GoTo CleanExit
+        If configChanged Then
+            SaveConfigWorkbookIfWritable wbCfg
+            If Not wbCfg.Saved Then GoTo CleanExit
+        End If
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
     End If
 
     eventType = NormalizeRoleToEventTypeConfig(roleDefault)
@@ -380,11 +435,18 @@ Public Function EnsureStationInbox(Optional ByVal warehouseId As String = "", _
     End If
 
     Set wbInbox = FindOpenWorkbookByFullNameConfig(inboxPathOut)
+    If Not formatSurface And Not wbInbox Is Nothing Then
+        report = "Close the station inbox before interactive inventory preparation.": GoTo CleanExit
+    End If
     If wbInbox Is Nothing Then
         Set wbInbox = OpenOrCreateWorkbookByPathConfig(inboxPathOut, report, openedInbox)
         openedInbox = Not wbInbox Is Nothing
     End If
     If wbInbox Is Nothing Then GoTo CleanExit
+    If Not formatSurface Then
+        If Not openedInbox Or wbInbox.ReadOnly Or Not wbInbox.Saved Then GoTo CleanExit
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
+    End If
 
     Select Case eventType
         Case "RECEIVE"
@@ -398,12 +460,21 @@ Public Function EnsureStationInbox(Optional ByVal warehouseId As String = "", _
             GoTo FailSoft
     End Select
 
+    If Not formatSurface Then
+        If Not InventoryPreparationAuthority(authority, resolvedWh, resolvedSt) Then GoTo CleanExit
+    End If
     SaveConfigWorkbookIfWritable wbInbox
+    If Not formatSurface Then
+        If Not wbInbox.Saved Then GoTo CleanExit
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo CleanExit
+    End If
     report = "OK"
-    EnsureStationInbox = True
+    EnsureStationInboxCore = True
 
 CleanExit:
-    If Not wbCfg Is Nothing Then SaveConfigWorkbookIfWritable wbCfg
+    If Not wbCfg Is Nothing Then
+        If formatSurface Then SaveConfigWorkbookIfWritable wbCfg
+    End If
     If openedInbox And Not wbInbox Is Nothing Then
         On Error Resume Next
         wbInbox.Close SaveChanges:=False
@@ -414,6 +485,9 @@ CleanExit:
         wbCfg.Close SaveChanges:=False
         On Error GoTo 0
     End If
+    If suppressEvents Then
+        Application.EnableEvents = priorEvents: Application.AutomationSecurity = priorSecurity
+    End If
     Exit Function
 
 FailSoft:
@@ -422,6 +496,14 @@ FailSoft:
 FailEnsure:
     report = "EnsureStationInbox failed: " & Err.Description
     Resume CleanExit
+End Function
+
+Private Function InventoryPreparationAuthority(ByVal authority As String, ByVal warehouse As String, _
+        ByVal station As String) As Boolean
+    If authority = "" Or authority <> modAuthUserCommands.CaptureContext() Then Exit Function
+    If Not modAuth.LoadAuth(warehouse) Then Exit Function
+    If Not modAuth.CanPerform("ADMIN_MAINT", modAuth.GetCurrentUserId(), warehouse, station, "INVENTORY_COMMAND") Then Exit Function
+    InventoryPreparationAuthority = (authority = modAuthUserCommands.CaptureContext())
 End Function
 
 Public Function GetResolvedWorkbookName() As String
@@ -675,8 +757,8 @@ Private Function ResolveConfigWorkbookForSetup(ByVal configWorkbookPath As Strin
     targetPath = Replace$(targetPath, "/", "\")
     Set wb = FindOpenWorkbookByFullNameConfig(targetPath)
     If wb Is Nothing Then
-        EnsureFolderRecursiveConfig GetParentFolderConfig(targetPath)
-        If FileExistsConfig(targetPath) Then
+        modConfigPaths.EnsureFolderRecursiveConfig modConfigPaths.GetParentFolderConfig(targetPath)
+        If modConfigPaths.FileExistsConfig(targetPath) Then
             Set wb = Application.Workbooks.Open(Filename:=targetPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
             openedForSetup = Not wb Is Nothing
         Else
@@ -967,7 +1049,7 @@ Private Function SafeTrim(ByVal v As Variant) As String
     SafeTrim = Trim$(CStr(v))
 End Function
 
-Private Function EnsureConfigTables(ByVal wb As Workbook) As Boolean
+Private Function EnsureConfigTables(ByVal wb As Workbook, Optional ByRef changed As Boolean = False) As Boolean
     On Error GoTo FailEnsure
 
     Dim whHeaders As Variant
@@ -982,8 +1064,8 @@ Private Function EnsureConfigTables(ByVal wb As Workbook) As Boolean
         "FF_DesignsEnabled", "FF_OutlookAlerts", "FF_AutoSnapshot", "AutoRefreshIntervalSeconds")
     stHeaders = Array("StationId", "WarehouseId", "StationName", "PathInboxRoot", "RoleDefault")
 
-    EnsureListObjectWithHeaders wb, "WarehouseConfig", "tblWarehouseConfig", whHeaders
-    EnsureListObjectWithHeaders wb, "StationConfig", "tblStationConfig", stHeaders
+    EnsureListObjectWithHeaders wb, "WarehouseConfig", "tblWarehouseConfig", whHeaders, changed
+    EnsureListObjectWithHeaders wb, "StationConfig", "tblStationConfig", stHeaders, changed
 
     EnsureConfigTables = True
     Exit Function
@@ -995,7 +1077,7 @@ End Function
 Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
                                         ByVal sheetName As String, _
                                         ByVal tableName As String, _
-                                        ByVal headers As Variant)
+                                        ByVal headers As Variant, Optional ByRef changed As Boolean = False)
     Dim ws As Worksheet
     Dim lo As ListObject
     Dim i As Long
@@ -1003,7 +1085,7 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
     Dim startCell As Range
     Dim surfaceEditable As Boolean
 
-    Set ws = EnsureConfigWorksheet(wb, sheetName, tableName)
+    Set ws = EnsureConfigWorksheet(wb, sheetName, tableName, changed)
     On Error Resume Next
     Set lo = ws.ListObjects(tableName)
     On Error GoTo 0
@@ -1019,6 +1101,7 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
         Set dataRange = ws.Range(startCell, startCell.Offset(1, UBound(headers) - LBound(headers)))
         Set lo = ws.ListObjects.Add(xlSrcRange, dataRange, , xlYes)
         lo.Name = tableName
+        changed = True
         AddValidationIssue "WARN", "CONFIG_TABLE_CREATED", tableName & " created."
     End If
 
@@ -1027,18 +1110,20 @@ Private Sub EnsureListObjectWithHeaders(ByVal wb As Workbook, _
             EnsureWorksheetEditableConfig ws
             surfaceEditable = True
         End If
-        EnsureListColumn lo, CStr(headers(i))
+        EnsureListColumn lo, CStr(headers(i)), changed
     Next i
 
-    EnsureTableHasRow lo
+    EnsureTableHasRow lo, changed
 End Sub
 
-Private Function EnsureConfigWorksheet(ByVal wb As Workbook, ByVal sheetName As String, ByVal tableName As String) As Worksheet
+Private Function EnsureConfigWorksheet(ByVal wb As Workbook, ByVal sheetName As String, ByVal tableName As String, _
+        Optional ByRef changed As Boolean = False) As Worksheet
     Dim ws As Worksheet
 
     Set ws = FindWorksheetByNameConfig(wb, sheetName)
     If ws Is Nothing Then
         Set EnsureConfigWorksheet = EnsureWorksheet(wb, sheetName)
+        changed = True
         Exit Function
     End If
 
@@ -1049,6 +1134,7 @@ Private Function EnsureConfigWorksheet(ByVal wb As Workbook, ByVal sheetName As 
 
     If WorksheetHasUnexpectedContentConfig(ws) Then
         QuarantineConfigWorksheet ws
+        changed = True
         AddValidationIssue "WARN", "CONFIG_SHEET_QUARANTINED", sheetName & " contained unexpected content and was quarantined."
         Set EnsureConfigWorksheet = EnsureWorksheet(wb, sheetName)
     Else
@@ -1107,7 +1193,8 @@ Private Sub QuarantineConfigWorksheet(ByVal ws As Worksheet)
     ws.Name = candidate
 End Sub
 
-Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal stationId As String)
+Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String, ByVal stationId As String, _
+        Optional ByRef changed As Boolean = False)
     Dim loWh As ListObject
     Dim loSt As ListObject
     Dim resolvedWh As String
@@ -1117,47 +1204,48 @@ Private Sub SeedConfigDefaults(ByVal wb As Workbook, ByVal warehouseId As String
     Set loSt = FindListObjectByName(wb, "tblStationConfig")
     If loWh Is Nothing Or loSt Is Nothing Then Exit Sub
 
-    EnsureTableHasRow loWh
-    EnsureTableHasRow loSt
+    EnsureTableHasRow loWh, changed
+    EnsureTableHasRow loSt, changed
 
     resolvedWh = ResolveSeedWarehouseIdConfig(warehouseId, wb.Name)
     resolvedSt = ResolveSeedStationIdConfig(stationId)
 
-    EnsureConfigCellDefault loWh, 1, "WarehouseId", resolvedWh
-    EnsureConfigCellDefault loWh, 1, "WarehouseName", resolvedWh
-    EnsureConfigCellDefault loWh, 1, "Timezone", "UTC"
-    EnsureConfigCellDefault loWh, 1, "DefaultLocation", "A1"
-    EnsureConfigCellDefault loWh, 1, "UomCatalog", "EA|LB|LBS|OZ|KG|G|GAL|QT|PT|L|ML|CS"
-    EnsureConfigCellDefault loWh, 1, "UomConversionCatalog", ""
-    EnsureConfigCellDefault loWh, 1, "UomConversionCatalogVersion", 1
-    EnsureConfigCellDefault loWh, 1, "BatchSize", 500
-    EnsureConfigCellDefault loWh, 1, "LockTimeoutMinutes", 3
-    EnsureConfigCellDefault loWh, 1, "HeartbeatIntervalSeconds", 30
-    EnsureConfigCellDefault loWh, 1, "MaxLockHoldMinutes", 2
-    EnsureConfigCellDefault loWh, 1, "SnapshotCadence", "PER_BATCH"
-    EnsureConfigCellDefault loWh, 1, "BackupCadence", "DAILY"
-    EnsureConfigCellDefault loWh, 1, "PathDataRoot", modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True)
-    EnsureConfigCellDefault loWh, 1, "PathBackupRoot", modDeploymentPaths.DefaultWarehouseBackupRootPath(resolvedWh, True)
-    EnsureConfigCellDefault loWh, 1, "PathSharePointRoot", ""
-    EnsureConfigCellDefault loWh, 1, "WarehouseStatus", "ACTIVE"
-    EnsureConfigCellDefault loWh, 1, "RetiredAtUTC", ""
-    EnsureConfigCellDefault loWh, 1, "DesignsEnabled", False
-    EnsureConfigCellDefault loWh, 1, "PoisonRetryMax", 3
-    EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 28800
-    EnsureConfigCellDefault loWh, 1, "ProcessorServiceUserId", "svc_processor"
-    EnsureConfigCellDefault loWh, 1, "FF_DesignsEnabled", False
-    EnsureConfigCellDefault loWh, 1, "FF_OutlookAlerts", False
-    EnsureConfigCellDefault loWh, 1, "FF_AutoSnapshot", True
-    EnsureConfigCellDefault loWh, 1, "AutoRefreshIntervalSeconds", 0
+    EnsureConfigCellDefault loWh, 1, "WarehouseId", resolvedWh, changed
+    EnsureConfigCellDefault loWh, 1, "WarehouseName", resolvedWh, changed
+    EnsureConfigCellDefault loWh, 1, "Timezone", "UTC", changed
+    EnsureConfigCellDefault loWh, 1, "DefaultLocation", "A1", changed
+    EnsureConfigCellDefault loWh, 1, "UomCatalog", "EA|LB|LBS|OZ|KG|G|GAL|QT|PT|L|ML|CS", changed
+    EnsureConfigCellDefault loWh, 1, "UomConversionCatalog", "", changed
+    EnsureConfigCellDefault loWh, 1, "UomConversionCatalogVersion", 1, changed
+    EnsureConfigCellDefault loWh, 1, "BatchSize", 500, changed
+    EnsureConfigCellDefault loWh, 1, "LockTimeoutMinutes", 3, changed
+    EnsureConfigCellDefault loWh, 1, "HeartbeatIntervalSeconds", 30, changed
+    EnsureConfigCellDefault loWh, 1, "MaxLockHoldMinutes", 2, changed
+    EnsureConfigCellDefault loWh, 1, "SnapshotCadence", "PER_BATCH", changed
+    EnsureConfigCellDefault loWh, 1, "BackupCadence", "DAILY", changed
+    EnsureConfigCellDefault loWh, 1, "PathDataRoot", modDeploymentPaths.DefaultWarehouseRuntimeRootPath(resolvedWh, True), changed
+    EnsureConfigCellDefault loWh, 1, "PathBackupRoot", modDeploymentPaths.DefaultWarehouseBackupRootPath(resolvedWh, True), changed
+    EnsureConfigCellDefault loWh, 1, "PathSharePointRoot", "", changed
+    EnsureConfigCellDefault loWh, 1, "WarehouseStatus", "ACTIVE", changed
+    EnsureConfigCellDefault loWh, 1, "RetiredAtUTC", "", changed
+    EnsureConfigCellDefault loWh, 1, "DesignsEnabled", False, changed
+    EnsureConfigCellDefault loWh, 1, "PoisonRetryMax", 3, changed
+    EnsureConfigCellDefault loWh, 1, "AuthCacheTTLSeconds", 28800, changed
+    EnsureConfigCellDefault loWh, 1, "ProcessorServiceUserId", "svc_processor", changed
+    EnsureConfigCellDefault loWh, 1, "FF_DesignsEnabled", False, changed
+    EnsureConfigCellDefault loWh, 1, "FF_OutlookAlerts", False, changed
+    EnsureConfigCellDefault loWh, 1, "FF_AutoSnapshot", True, changed
+    EnsureConfigCellDefault loWh, 1, "AutoRefreshIntervalSeconds", 0, changed
 
-    EnsureConfigCellDefault loSt, 1, "StationId", resolvedSt
-    EnsureConfigCellDefault loSt, 1, "WarehouseId", resolvedWh
-    EnsureConfigCellDefault loSt, 1, "StationName", Environ$("COMPUTERNAME")
-    EnsureConfigCellDefault loSt, 1, "PathInboxRoot", ""
-    EnsureConfigCellDefault loSt, 1, "RoleDefault", "RECEIVE"
+    EnsureConfigCellDefault loSt, 1, "StationId", resolvedSt, changed
+    EnsureConfigCellDefault loSt, 1, "WarehouseId", resolvedWh, changed
+    EnsureConfigCellDefault loSt, 1, "StationName", Environ$("COMPUTERNAME"), changed
+    EnsureConfigCellDefault loSt, 1, "PathInboxRoot", "", changed
+    EnsureConfigCellDefault loSt, 1, "RoleDefault", "RECEIVE", changed
 End Sub
 
-Private Sub EnsureConfigCellDefault(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, ByVal defaultValue As Variant)
+Private Sub EnsureConfigCellDefault(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal columnName As String, _
+        ByVal defaultValue As Variant, Optional ByRef changed As Boolean = False)
     Dim idx As Long
     Dim existingValue As Variant
 
@@ -1167,6 +1255,7 @@ Private Sub EnsureConfigCellDefault(ByVal lo As ListObject, ByVal rowIndex As Lo
     If IsBlankValue(existingValue) Then
         If IsBlankValue(defaultValue) Then Exit Sub
         lo.DataBodyRange.Cells(rowIndex, idx).Value = defaultValue
+        changed = True
     End If
 End Sub
 
@@ -1198,19 +1287,23 @@ Private Function GetNextTableStartCell(ByVal ws As Worksheet) As Range
     End If
 End Function
 
-Private Sub EnsureListColumn(ByVal lo As ListObject, ByVal columnName As String)
+Private Sub EnsureListColumn(ByVal lo As ListObject, ByVal columnName As String, Optional ByRef changed As Boolean = False)
     Dim idx As Long
     idx = GetColumnIndex(lo, columnName)
     If idx > 0 Then Exit Sub
 
     lo.ListColumns.Add lo.ListColumns.Count + 1
+    changed = True
     lo.ListColumns(lo.ListColumns.Count).Name = columnName
     AddValidationIssue "WARN", "CONFIG_COLUMN_CREATED", lo.Name & "." & columnName & " created."
 End Sub
 
-Private Sub EnsureTableHasRow(ByVal lo As ListObject)
+Private Sub EnsureTableHasRow(ByVal lo As ListObject, Optional ByRef changed As Boolean = False)
     If lo Is Nothing Then Exit Sub
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    If lo.DataBodyRange Is Nothing Then
+        lo.ListRows.Add
+        changed = True
+    End If
 End Sub
 
 Private Sub EnsureWorksheetEditableConfig(ByVal ws As Worksheet)
@@ -1238,7 +1331,8 @@ Private Function GetColumnIndex(ByVal lo As ListObject, ByVal columnName As Stri
     Next i
 End Function
 
-Private Function EnsureWarehouseRowConfig(ByVal lo As ListObject, ByVal warehouseId As String) As Long
+Private Function EnsureWarehouseRowConfig(ByVal lo As ListObject, ByVal warehouseId As String, _
+        Optional ByRef changed As Boolean = False) As Long
     EnsureWarehouseRowConfig = FindRowByValue(lo, "WarehouseId", warehouseId)
     If EnsureWarehouseRowConfig > 0 Then Exit Function
 
@@ -1246,14 +1340,16 @@ Private Function EnsureWarehouseRowConfig(ByVal lo As ListObject, ByVal warehous
         EnsureWarehouseRowConfig = 1
     Else
         EnsureWarehouseRowConfig = lo.ListRows.Add.Index
+        changed = True
     End If
 End Function
 
-Private Function EnsureStationRowConfig(ByVal lo As ListObject, ByVal warehouseId As String, ByVal stationId As String) As Long
+Private Function EnsureStationRowConfig(ByVal lo As ListObject, ByVal warehouseId As String, ByVal stationId As String, _
+        Optional ByRef changed As Boolean = False) As Long
     Dim i As Long
 
     If lo Is Nothing Then Exit Function
-    If lo.DataBodyRange Is Nothing Then lo.ListRows.Add
+    EnsureTableHasRow lo, changed
 
     For i = 1 To lo.ListRows.Count
         If StrComp(SafeTrim(GetConfigCellValue(lo, i, "StationId")), stationId, vbTextCompare) = 0 Then
@@ -1271,6 +1367,7 @@ Private Function EnsureStationRowConfig(ByVal lo As ListObject, ByVal warehouseI
         EnsureStationRowConfig = 1
     Else
         EnsureStationRowConfig = lo.ListRows.Add.Index
+        changed = True
     End If
 End Function
 
@@ -1328,16 +1425,16 @@ Private Function BuildStationInboxWorkbookPathConfig(ByVal loWh As ListObject, _
     fileName = InboxWorkbookNameConfig(eventType, stationId)
     If fileName = "" Then Exit Function
 
-    EnsureFolderRecursiveConfig rootPath
-    BuildStationInboxWorkbookPathConfig = CombinePathConfig(rootPath, fileName)
+    modConfigPaths.EnsureFolderRecursiveConfig rootPath
+    BuildStationInboxWorkbookPathConfig = modConfigPaths.CombinePathConfig(rootPath, fileName)
 End Function
 
 Private Function ExpandConfigPathValueConfig(ByVal rawPath As String, ByVal warehouseId As String, ByVal stationId As String) As String
-    ExpandConfigPathValueConfig = NormalizeFolderPathConfig(rawPath, False)
+    ExpandConfigPathValueConfig = modConfigPaths.NormalizeFolderPathConfig(rawPath, False)
     If ExpandConfigPathValueConfig = "" Then Exit Function
     ExpandConfigPathValueConfig = Replace$(ExpandConfigPathValueConfig, "{WarehouseId}", warehouseId)
     ExpandConfigPathValueConfig = Replace$(ExpandConfigPathValueConfig, "{StationId}", stationId)
-    ExpandConfigPathValueConfig = NormalizeFolderPathConfig(ExpandConfigPathValueConfig, False)
+    ExpandConfigPathValueConfig = modConfigPaths.NormalizeFolderPathConfig(ExpandConfigPathValueConfig, False)
 End Function
 
 Private Function InboxWorkbookNameConfig(ByVal eventType As String, ByVal stationId As String) As String
@@ -1362,8 +1459,8 @@ Private Function OpenOrCreateWorkbookByPathConfig(ByVal fullPath As String, _
     Set OpenOrCreateWorkbookByPathConfig = FindOpenWorkbookByFullNameConfig(fullPath)
     If Not OpenOrCreateWorkbookByPathConfig Is Nothing Then Exit Function
 
-    EnsureFolderRecursiveConfig GetParentFolderConfig(fullPath)
-    If FileExistsConfig(fullPath) Then
+    modConfigPaths.EnsureFolderRecursiveConfig modConfigPaths.GetParentFolderConfig(fullPath)
+    If modConfigPaths.FileExistsConfig(fullPath) Then
         Set OpenOrCreateWorkbookByPathConfig = Application.Workbooks.Open(Filename:=fullPath, UpdateLinks:=0, ReadOnly:=False, IgnoreReadOnlyRecommended:=True, Notify:=False, AddToMru:=False)
         openedForSetup = Not OpenOrCreateWorkbookByPathConfig Is Nothing
     Else
@@ -1443,158 +1540,8 @@ Private Sub CloseTransientConfigAfterLoad(ByVal wb As Workbook, _
     On Error GoTo 0
 End Sub
 
-Private Function GetParentFolderConfig(ByVal pathIn As String) As String
-    Dim sepPos As Long
-
-    sepPos = InStrRev(pathIn, "\")
-    If sepPos > 1 Then GetParentFolderConfig = Left$(pathIn, sepPos - 1)
-End Function
-
-Private Sub EnsureFolderRecursiveConfig(ByVal folderPath As String)
-    Dim parentPath As String
-    Dim sepPos As Long
-    Dim fso As Object
-
-    folderPath = NormalizeFolderPathConfig(folderPath, False)
-    If folderPath = "" Then Exit Sub
-    If FolderExistsConfig(folderPath) Then Exit Sub
-    If IsUncShareRootConfig(folderPath) Then Exit Sub
-
-    sepPos = InStrRev(folderPath, "\")
-    If sepPos > 1 Then
-        parentPath = Left$(folderPath, sepPos - 1)
-        If Right$(parentPath, 1) = ":" Then parentPath = parentPath & "\"
-        If parentPath <> "" And Not FolderExistsConfig(parentPath) Then EnsureFolderRecursiveConfig parentPath
-    End If
-
-    If FolderExistsConfig(folderPath) Then Exit Sub
-
-    If IsUncPathConfig(folderPath) Then
-        Set fso = CreateObject("Scripting.FileSystemObject")
-        fso.CreateFolder folderPath
-    Else
-        MkDir folderPath
-    End If
-End Sub
-
-Private Function NormalizeFolderPathConfig(ByVal folderPath As String, ByVal withTrailingSlash As Boolean) As String
-    folderPath = CollapseBackslashesConfig(Trim$(Replace$(folderPath, "/", "\")))
-    If folderPath = "" Then Exit Function
-
-    Do While Len(folderPath) > 3 And Right$(folderPath, 1) = "\"
-        folderPath = Left$(folderPath, Len(folderPath) - 1)
-    Loop
-
-    NormalizeFolderPathConfig = folderPath
-    If withTrailingSlash And Right$(NormalizeFolderPathConfig, 1) <> "\" Then
-        NormalizeFolderPathConfig = NormalizeFolderPathConfig & "\"
-    End If
-End Function
-
 Public Function NormalizeFolderPathForRuntime(ByVal folderPath As String, Optional ByVal withTrailingSlash As Boolean = False) As String
-    NormalizeFolderPathForRuntime = NormalizeFolderPathConfig(folderPath, withTrailingSlash)
-End Function
-
-Private Function CombinePathConfig(ByVal basePath As String, ByVal childName As String) As String
-    If basePath = "" Then
-        CombinePathConfig = childName
-    ElseIf Right$(basePath, 1) = "\" Then
-        CombinePathConfig = basePath & childName
-    Else
-        CombinePathConfig = basePath & "\" & childName
-    End If
-End Function
-
-Private Function FileExistsConfig(ByVal fullPath As String) As Boolean
-    Dim fso As Object
-
-    fullPath = Trim$(Replace$(fullPath, "/", "\"))
-    If fullPath = "" Then Exit Function
-
-    On Error Resume Next
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso Is Nothing Then FileExistsConfig = fso.FileExists(fullPath)
-    If Err.Number <> 0 Then
-        Err.Clear
-        FileExistsConfig = (Len(Dir$(fullPath, vbNormal)) > 0)
-    End If
-    On Error GoTo 0
-End Function
-
-Private Function FolderExistsConfig(ByVal folderPath As String) As Boolean
-    Dim fso As Object
-
-    folderPath = NormalizeFolderPathConfig(folderPath, False)
-    If folderPath = "" Then Exit Function
-
-    On Error Resume Next
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso Is Nothing Then FolderExistsConfig = fso.FolderExists(folderPath)
-    If Err.Number <> 0 Then
-        Err.Clear
-        FolderExistsConfig = (Len(Dir$(folderPath, vbDirectory)) > 0)
-    End If
-    On Error GoTo 0
-End Function
-
-Private Function IsUncPathConfig(ByVal folderPath As String) As Boolean
-    folderPath = Trim$(Replace$(folderPath, "/", "\"))
-    IsUncPathConfig = (Left$(folderPath, 2) = "\\")
-End Function
-
-Private Function IsUncShareRootConfig(ByVal folderPath As String) As Boolean
-    Dim trimmedPath As String
-    Dim parts() As String
-
-    trimmedPath = NormalizeFolderPathConfig(folderPath, False)
-    If Left$(trimmedPath, 2) <> "\\" Then Exit Function
-
-    trimmedPath = Mid$(trimmedPath, 3)
-    If trimmedPath = "" Then Exit Function
-
-    parts = Split(trimmedPath, "\")
-    IsUncShareRootConfig = (UBound(parts) = 1)
-End Function
-
-Private Function CollapseBackslashesConfig(ByVal pathIn As String) As String
-    Dim prefix As String
-    Dim body As String
-
-    pathIn = Trim$(pathIn)
-    If pathIn = "" Then Exit Function
-
-    If Left$(pathIn, 2) = "\\" Then
-        prefix = "\\"
-        body = Mid$(pathIn, 3)
-        Do While InStr(body, "\\") > 0
-            body = Replace$(body, "\\", "\")
-        Loop
-        CollapseBackslashesConfig = prefix & body
-        Exit Function
-    End If
-
-    If Len(pathIn) >= 2 And Mid$(pathIn, 2, 1) = ":" Then
-        prefix = Left$(pathIn, 2)
-        body = Mid$(pathIn, 3)
-        Do While Left$(body, 1) = "\"
-            body = Mid$(body, 2)
-        Loop
-        Do While InStr(body, "\\") > 0
-            body = Replace$(body, "\\", "\")
-        Loop
-        If body <> "" Then
-            CollapseBackslashesConfig = prefix & "\" & body
-        Else
-            CollapseBackslashesConfig = prefix & "\"
-        End If
-        Exit Function
-    End If
-
-    body = pathIn
-    Do While InStr(body, "\\") > 0
-        body = Replace$(body, "\\", "\")
-    Loop
-    CollapseBackslashesConfig = body
+    NormalizeFolderPathForRuntime = modConfigPaths.NormalizeFolderPathConfig(folderPath, withTrailingSlash)
 End Function
 
 Private Sub SaveConfigWorkbookIfWritable(ByVal wb As Workbook)

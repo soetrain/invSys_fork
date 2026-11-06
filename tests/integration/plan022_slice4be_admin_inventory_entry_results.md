@@ -1,5 +1,474 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-05 packaged worksheet EDIT creation QueueFailure regression
+
+The isolated actual Upload `QueueFailure` case on unchanged candidate
+`validation-inventory-config-03` passed **34/34**. The catalog/CREATE receipt,
+operator reference, planned event and exact new `System_Key` were saved before
+the failed queue; no entity was created or falsely marked imported. Reopened
+retry kept those identities, created the entity exactly once and did not repeat
+the catalog application. Config/Auth bytes, presentation, unknown columns and
+read-only inspection were preserved. Five instrumented XLAMs compiled.
+Controller `green-f8fda55c6c1645cb99b72222ec7d7058` / worker
+`afe9d79a354a4a47a1a7db9c023f219d` exited 0 at
+`2026-11-06T01:35:24.4863193Z`; Excel closed unassisted and settings/package
+pins were restored. Shutdown instrumentation shows `AfterCollectBeforeFinalizers`
+at `01:31:39.552Z` and `AfterGarbageCollection` at `01:35:23.763Z`, so this run
+still spent about 3 minutes 44 seconds in finalization. The desktop monitor
+reported zero error-5, lock or mouse-input failures. This is a qualified
+focused regression; the delayed Excel Application 1000/1001/1002 audit found
+zero faults. It does not resolve the general shutdown cause or close 4be-A.
+
+## 2026-11-05 packaged worksheet EDIT creation Success regression
+
+The unchanged `validation-inventory-config-03` candidate passed **88/88** in
+the isolated actual Upload `Success` case. It proved a saved CREATE receipt,
+distinct immutable command/event/`System_Key` identities, one catalog
+application, exact fresh creation, an imported operator result, and reopened
+retry without duplicate application. Six identity-loss cases refused canonical
+writes and replacement identities while preserving the original command.
+Config cells, shapes, bytes, widths and fonts, Auth bytes, the unknown operator
+column, and read-only inspection were preserved. Five instrumented XLAMs
+compiled. Controller `green-fc0444a923084b5a844aea183d06d86e` / worker
+`178e220df41d41ed9256907668b603e7` exited 0 at
+`2026-11-06T01:23:47.4262540Z`; Excel closed unassisted, settings and package
+pins were preserved, the desktop monitor stayed clear, and the delayed Excel
+Application 1000/1001/1002 audit found zero faults. This is one broader
+regression case, not full Inventory or 4be-A acceptance.
+
+## 2026-11-05 retained worksheet EDIT receipt GREEN
+
+After the interrupted run below, a fresh unlocked-desktop/cursor check and
+unchanged candidate `validation-inventory-config-03` qualified a complete
+packaged `RetainedReceipts` run. The actual captured Add/Upload handlers passed
+**81/81** checks across catalog-only, no-op quantity, applied quantity change,
+and failed queue followed by reopened retry. The saved operator command and
+Inventory receipt confirmed one another; the planned quantity event was saved
+before queueing, and exact applied-event/log proof established completion by
+event ID. Queue failure did not mark quantity imported, and retry reused the
+planned event without reapplying the catalog edit. Config cells/shapes, Auth
+bytes, unknown user columns, and read-only inspection bytes were preserved.
+All five instrumented XLAMs compiled. Controller
+`green-d5c80885c6c84984900e1f463fcb8120` / worker
+`f4eda0ba4a3241809d53b23eea95fdab` exited 0 at
+`2026-11-06T01:12:27.6191090Z`; Excel closed unassisted, settings and five
+package hashes were preserved, desktop monitor error-5/lock/mouse counts were
+zero, and the delayed Excel Application 1000/1001/1002 audit found zero faults.
+Generated evidence is ignored and remains local. This closes this focused
+receipt cohort only; broader Inventory and 4be-A acceptance remain open.
+
+## 2026-11-05 focused worksheet CREATE and Config checkpoint
+
+Approved D8-INV-EDIT-01/02 governs this increment; no architecture change was
+introduced. Candidate `deploy/validation-inventory-config-03` built all five
+XLAMs from the working source. The actual packaged Upload handler and headless
+completion ran in five isolated cases: InterveningLocation **33/33**,
+InterveningQuantityMode **33/33**, QueuedLocation **35/35**,
+QueuedQuantityMode **28/28**, and InterveningCatalog **35/35**. Their union is
+the same **140 named checks** as the qualified focused RED: all **131** prior
+passes remain and all **9** prior failures now pass. The fixed saved-catalog
+partial notice was observed through the real Upload result in both relevant
+cases. All five runs compiled five instrumented packages, closed Excel without
+assistance, restored settings, preserved package pins, and had zero delayed
+Excel Application 1000/1001/1002 faults. Monitor samples recorded no error 5,
+desktop lock, or mouse-input failure. Exact run roots and the redacted union
+comparison are under `reports/runtime/inventory-edit-creation/` in the main
+checkout; the comparison file is `focused-quantity-matrix-20261105.json`.
+
+The attempted combined QuantityPhase run remains **unqualified**: it reproduced
+two missing partial-notice failures, then stopped after 81 PASS because the
+fourth case stalled and required assisted teardown. Its result is not substituted
+for the five isolated GREEN runs. The first attempt also exposed an invalid
+test-only VBA probe identifier; renaming that probe made compile meaningful.
+
+The retained Config formatting regression initially checked column A of the
+workbook's empty first sheet, where AutoFit need not change a width. After the
+test targeted populated `WarehouseConfig`, the shared, automation, and packed
+Core entries for RECEIVE, SHIP, and PRODUCTION passed **123/123** in one packaged
+run, with unassisted closure and clean desktop monitoring. This is a test
+correction, not a product-formatting change. The missing-default Config matrix
+passed **54/54** through modal Add, worksheet Add, modal catalog Edit and
+worksheet catalog Edit, preserving unknown columns and formatting while saving
+exactly the missing default. It compiled all five packages and closed Excel
+unassisted after 17 minutes, with settings/pins preserved and a clean desktop
+monitor. Broader 4be-A/release gates remain open. Source guards pass **36/36**;
+the regenerated static scan
+shows 391 components, 6743 procedures, 146209 lines, 9 literal and 45
+unresolved dynamic calls, 191 duplicate-body candidates, and no growth in the
+27 baseline modules over 1000 lines. Generated reports remain ignored and
+redacted; this checkpoint is not full 4be-A acceptance.
+
+**Retained receipt follow-up, interrupted:** the initial `RetainedReceipts`
+dispatches refused before an operator action because Seed left this disposable
+Inventory workbook open and dirty. A test-only fixed-stage probe identified
+Core's correct source refusal. The fixture now saves and closes only its exact
+owned Inventory workbook before the receipt cohort; the extra diagnostic Core
+module was removed. The next packaged run reached actual Add and EDIT for the
+catalog-only receipt scenario and printed **20 PASS**, including reciprocal
+saved command/source binding, one catalog application, operator completion and
+no invented quantity event. At `2026-11-06T00:41:39Z`, the desktop monitor
+recorded one active-input-desktop mismatch and stopped. The worker stopped at
+its next boundary, reporting **20 PASS / 1 harness stop**; the other three
+receipt scenarios did not run. Excel closed unassisted and settings/package
+pins were restored. This is partial evidence only, not retained-receipt GREEN.
+Do not launch another Excel test until the desktop is confirmed unlocked.
+
+## Perplexity source-only preflight and JSON timestamp tooling repair (2026-11-03 Pacific)
+
+Handoff 216 was the entry point. This increment does not resume or accept the
+packaged Inventory GREEN result, does not complete 4be-A, and does not resolve
+the shutdown cause. No VBA, XLAM, architecture, Plan, or Controls changes were
+made. The unchanged implementation baseline was
+`2c9c3b775b737484243a3a5780dc97a269436091`.
+
+### Tooling defect and bounded correction
+
+The full static scanner failed on PowerShell 7.6.9 because `ConvertFrom-Json`
+materialized an ISO timestamp as a date object. Its schema validator requires
+a JSON string, but the reader had changed the representation before validation.
+The same defect was reproduced in `validate-json-contract.ps1`.
+
+Both JSON readers now request `-DateKind String` when that parameter is
+available (PowerShell 7.5+). Windows PowerShell 5.1 keeps its existing read path.
+No schema, type-validation, format-validation, or constant-validation rule was
+weakened. This is a tooling compatibility correction, not a product-contract
+amendment.
+
+`tests/tooling/Test-JsonLiteralTypes.ps1` exercises the production reader
+functions, preserving UTC text, offset/fractional text, nested timestamp
+strings, and other JSON types. It also checks standalone validator acceptance
+and rejection. It writes synthetic fixtures only beneath ignored
+`reports/runtime/json-literal-types/`.
+
+### Executed evidence
+
+- New regression on PowerShell 7.6.9: RED **5 PASS / 7 FAIL**, then GREEN
+  **12 PASS / 0 FAIL**.
+- New regression on X1 Windows PowerShell 5.1.26100.9711: **12 PASS / 0 FAIL**.
+- Existing `Test-Slice0ToolContracts.ps1 -Mode Static`: **10 PASS / 0 FAIL**
+  on each host, including all four deterministic-output checks.
+- Existing Inventory source guards (4ah, 4ai, 4ak, 4al, 4am): **36 PASS** on
+  the X1. These are source checks, not packaged behavioral acceptance.
+- Existing `test_inventory_primitive_boundaries.py`: **4 PASS** on the
+  isolated source snapshot.
+- Forty Inventory-named PowerShell tooling files parsed without syntax errors
+  on Windows before this tooling change; the new regression itself executed
+  successfully on both hosts.
+- Full scan completed on PowerShell 7.6.9: **6 packages, 391 components,
+  6,742 procedures, 146,183 source lines, 9 literal and 45 unresolved
+  Application.Run sites, 19 retired ROW warnings**. Generated reports remain
+  diagnostic/review-only; they are not Excel-runtime proof.
+
+The source snapshot came from the clean local implementation checkout, not a
+replacement remote checkout. Archive SHA-256:
+`968679271b4a7466df34bff74595cfea814138185f7878893883a6eb7026b0ec`.
+It includes source, tooling, tests, and three authoritative text specifications;
+no workbooks, credentials, or Windows settings were included.
+
+### Runtime boundary and next action
+
+Selected workspace access permits local file work and Git. Commands execute
+as `PerplexitySandbox`, not the interactive Windows user, and a full local
+static invocation hit the desktop executor's 120-second limit without
+producing reports. Do not run the existing long-lived Excel controller under
+that identity or treat its settings/desktop observations as the user's.
+
+Excel remained closed. All five candidate XLAM hashes matched the original
+GREEN package pins at preflight. The retained QuantityPhase baseline contains
+152 rows with 140 unique checks: **131 prior PASS / 9 RED**, with no conflicting
+duplicate outcomes. The next product gate is still the fresh monitored
+QuantityPhase run in the correct interactive Windows context, then the broader
+Inventory slice if that gate passes. Do not rerun already-complete RED work.
+
+Local source-scan evidence is under
+`reports/runtime/perplexity-inventory-preflight-20261104/`; the date in that
+directory is UTC, while this entry uses the X1's Pacific date.
+
+## Approved worksheet completion implementation — 2026-11-03
+
+User chat approval authorizes D8-INV-EDIT-02; the linked GitHub review recommends
+approval but is not itself approval. Architecture4.11/Plan022/Controls1.720 record
+the decision. The original increment deadline remains22:14:05Z.
+
+Expanded test `a9316318` runs against unchanged
+`deploy/validation-inventory-receipts-01` (build47d2ac5c/producta9faab9c): controller
+`reports/runtime/inventory-edit-creation/red-ea97035f3c2742f185c2167e7c57cc0c`, worker
+`reports/runtime/slice4be-admin-inventory-entry/e46798089aeb4ea7bf6eea1fb31d5a0e`.
+It finishes **98 PASS / 17 FAIL**. All eight cases reach actual captured Upload;
+all five instrumented packages compile. Four positive/failure cases each lack the
+required CREATE receipt, catalog history/custom-field application and queue entry
+(16 failures). The later authority-yield checkpoint is unreachable after this
+preflight refusal (one failure), not evidence of an unauthorized write. Zero
+quantity, duplicate rows and retired catalog selections refuse without canonical
+changes. All eight read-only extractions and Config/Auth/unknown-column checks pass.
+Refusal-path Config preservation is not CREATE-path formatting GREEN.
+
+No bound receipt was fabricated: dependent applied/reopened/identity-loss checks
+are explicitly not executed on this baseline. Follow-up tests6c4780bd/a194686b
+add canonical-save uncertainty, replaced sessions/warehouses, retired history,
+intervening entities and preservation of later catalog/custom edits. Those deeper
+checks remain candidate gates. c1e9286c adds fixed shutdown timestamps only,
+including a separate finalizer-wait boundary; teardown policy is unchanged.
+
+Initial source draft retains Admin key generation and extends the private receipt
+with CREATE, saved event/key proof and quantity-only retry. Config-preserving
+inbox preparation keeps shared/automation callers on their original path. Nine
+Config path helpers move without body changes to keep the large module from
+growing. Static draft evidence:391 components/6737 procedures, Run9/unresolved45,
+duplicates191 (previous194); no baseline oversized-module growth. Five retained
+source guards pass36/36 with explicit RepoRoot. These are source checks, not
+packaged acceptance. Source review identifies a pending test-first correction:
+the preliminary CREATE payload must not overwrite later catalog edits on retry.
+
+Baseline closure completes unassisted at19:03:20Z; settings and frozen packages
+are preserved. The delayed audit at19:03:40Z finds zero Excel fault events and
+no Excel process. Fresh bounded cursor movement/restoration passes.
+
+Candidate `deploy/validation-inventory-config-01`, source28c8ad2f, builds and cold
+compiles all five packages. Evidence is in the implementation worktree's
+`reports/runtime/inventory-config-build-01`; build and compile close unassisted,
+preserve sources/frozen packages/settings and pass delayed zero native audits.
+The first focused run (`red-8ffcd4ce61894e8abb603cdc439a691e`) stops at a Config
+save-observer seam mismatch:0/1 is a harness exception, not behavioral RED. It
+closes normally with preservation and a zero delayed audit. Test fea86900 observes
+both new save sites without changing their conditions or product behavior.
+
+The corrected focused run uses controller
+`reports/runtime/inventory-edit-creation/red-447fe7313967463ba38527c692135d8d`, worker
+`reports/runtime/slice4be-admin-inventory-entry/51965112c33646198e69aa2e83b92267`.
+All five instrumented compiles and actual captured Upload pass. It records
+**34 PASS / 1 FAIL**: the original CREATE receipt/event/key survive reopened retry,
+exact creation applies once, and Config bytes/presentation survive with zero
+Config saves, but the quantity payload overwrites a later catalog edit. This is
+behavioral RED for quantity-only retry. The source correction removes old catalog
+fields from that payload; its GREEN remains pending. Related location/counting-mode
+cases already exist and gain a focused `InterveningInputs` selector for their RED.
+That run closes unassisted at19:14:41Z with preservation; delayed audit19:15:01Z
+finds zero Excel faults. Its finalizer wait is139.688s, after Quit and explicit
+release returned.
+
+Candidate01 with tests80059cb0, controller
+`reports/runtime/inventory-edit-creation/red-4f35394b295c4d77991938237e347f36`, worker
+`reports/runtime/slice4be-admin-inventory-entry/f880437461fd44c8acd15c23a7b0bb29`,
+finishes assertions **56 PASS / 4 FAIL**. Both actual reopened Uploads fail safe
+refusal and saved-catalog partial reporting after a location/counting-mode change.
+Core92ec422c adds pending-plan checks and requires the eight known creation fields;
+its GREEN remains pending. Closure completes unassisted at19:41:22Z with settings
+and packages preserved; delayed audit19:41:42Z finds zero faults. Finalizers take
+824.305s. A guarded assisted-close attempt stops before any termination because
+the finalizer stage had already completed; no assisted teardown occurred.
+
+Testsfc8a6c3f add headless processing of genuinely queued Upload events after later
+catalog/location or counting-mode changes. Candidate01, controller
+`reports/runtime/inventory-edit-creation/red-4b26543e938e45e68e0707f636af4a2d`, worker
+`reports/runtime/slice4be-admin-inventory-entry/b7eebd7b612f43ca8c684acc0a2ce028`,
+finishes assertions **53 PASS / 4 FAIL**. Exact queued event/key identities remain,
+but both later-catalog preservation checks fail, as do post-application catalog
+preservation on reopened retry and refusal of a changed counting-mode effect.
+All five instrumented packages compile; actual captured Upload supplies the events.
+Closure completes unassisted at19:59:02Z with settings and packages preserved;
+the delayed audit at19:59:34Z finds zero Excel faults and no remaining Excel.
+
+Sourcef38d0370 enforces D8-INV-EDIT-01/02's quantity-only phase in Domain: an exact
+existing private CREATE receipt binds source, payload, event, key and target before
+application; its saved catalog phase is not reapplied. Current canonical catalog
+state must still support positive counted first-entity creation. Ordinary CREATE
+callers retain their existing path. No new payload field, store, permission,
+control or architecture decision is introduced. Five retained source guards pass
+36/36. Static evidence `reports/runtime/inventory-edit-creation-static-02` records
+391 components/6742 procedures/146183 lines, Run9/unresolved45 and191 duplicate
+body candidates (baseline194), with no growth in the27 oversized baseline modules.
+Candidate `deploy/validation-inventory-config-02`, source27a05408/productf38d0370,
+builds and cold compiles all five packages. Evidence
+`reports/runtime/inventory-config-build-02` confirms unassisted closure20:00:44Z,
+preserved sources/frozen packages/settings and a zero delayed native audit20:01:04Z.
+Fresh bounded cursor movement/restoration passes before combined packaged GREEN.
+GREEN and wider gates remain; no promotion or4be-A acceptance is claimed.
+
+Additional Config test selectors are prepared, not yet executed: `MissingDefault`
+uses all four actual Add/Edit handlers to restore a missing Timezone default with
+one necessary save, preserved Config extensions and presentation; `RetainedShared`
+exercises the original shared entry and both automation wrappers for all three
+roles, checking formatting, save behavior, schemas, destination/value consistency
+and canonical-data preservation. These supplement the named owning-caller matrix;
+they do not replace it. PowerShell parsing and diff checks pass. No product change
+accompanies these test additions (983d7c3c,81d418d7,cf11c5f3).
+
+Candidate02 combined run, tests27a05408, controller
+`reports/runtime/inventory-edit-creation/green-7a879d5cf8a941ccb8695faed591c8ab`, worker
+`reports/runtime/slice4be-admin-inventory-entry/141e7806f8014df5893b12822372d99a`,
+prints **158 PASS** through Success, six identity-loss mutations, QueueFailure,
+ApplyFailure and ResultSaveFailure, including reopened retries. It is intentionally
+cancelled at the next guarded call boundary to preserve the original deadline;
+the resulting stale-monitor harness exception is cancellation, not product RED
+or a desktop failure. The full cohort remains incomplete.
+
+AuthorityLost reaches the real cProvisioningActivity tracking warning and waits
+for acknowledgement. Fresh cursor movement/restoration passes. The exact owned
+warning is acknowledged, then Quit returns20:51:47Z and finalizers begin20:51:48Z;
+closure/native audit remain pending. Native process inspection at21:06Z reports
+exit code0 but an unsignaled handle (WAIT_TIMEOUT258); this does not prove exit.
+Termination of the exact owned Excel process fails with Win32 error5. The isolated
+worker is terminated at21:07:20Z after Quit/release, while the parent controller
+retains its in-memory settings snapshot and waits for Excel. This is assisted
+development cleanup, not release qualification. A separate bounded cursor check
+passes exact movement/restoration with the active input desktop and no error5;
+the process-cleanup error is not a verified input failure. Finalizer waiting is
+observed, but the continuing Excel process after worker termination leaves the
+underlying shutdown cause unresolved. Ignored controller evidence:
+`assisted-teardown.json`, `assisted-worker-teardown.json`; cursor evidence:
+`reports/runtime/cleanup-cursor-20261103.json`. Test9f2bb64c
+adds the existing Create/Tester notice-observer pattern and asserts the warning;
+it does not suppress production wording or establish authority-case acceptance.
+
+User-authorized recovery at21:22Z attaches to the exact live cleanup controller
+and preserves its original seven-key/seven-value settings snapshot using Windows
+CurrentUser DPAPI outside the repositories, with access restricted to that user
+and SYSTEM. In-memory comparison verifies the encrypted round trip; an independent
+process verifies decryption, registry scope and the restoration-helper hash.
+No settings values are logged or committed. Registry restoration has not run:
+Excel still remains. Ignored `settings-recovery.json` records fixed verification
+facts; `reports/runtime/restore-cleanup-settings.ps1` validates by default and
+requires explicit `-Apply`, no Excel process and successful readback to restore.
+The debugger is detached. This recovery work changes no product contract and
+provides no release qualification; native cleanup and focused GREEN remain open.
+
+After the user-approved Windows restart, recovery completes at23:05Z (3:05 PM
+Pacific). Boot-time comparison confirms the restart; no Excel process remains.
+Explicit recovery restores all seven original keys/seven values and verifies
+readback. All five candidate package hashes match their saved pins. The available
+Application1000/1001/1002 audit finds zero Excel fault events from the test start
+through recovery. Evidence: the controller's `recovered-settings-restoration.json`
+and `restart-recovery-closure.json`. This closes the environment recovery blocker,
+not the interrupted test: it remains assisted/restart cleanup, not unassisted
+release closure or full GREEN. No product tests run after restart; the user ends
+the workday and hands off. Do not reapply the historical settings snapshot after
+new work or user configuration changes.
+
+Focused `QuantityPhase` selects the five previously failing cases. Their prior
+reports contain140 unique checks:131 PASS to retain and9 FAIL to correct. Its
+packaged result remains pending. Opt-in harness timing198d291e records fixed macro
+names and Started/Ready/Finished times, with no arguments or return payloads;
+PowerShell parsing and a four-record metadata check pass. The current interrupted
+run did not use this timing. No D13 behavioral RED is claimed for timing metadata.
+
+## Config preservation resume — 2026-11-03
+
+D8-INV-CONFIG-01 is approved, including interactive catalog-only completion.
+Product remains the unchanged `validation-inventory-receipts-01` package set
+(build source `47d2ac5c`, product `a9faab9c`). The partial Core implementation is
+not built. Controllers below are under main `reports/runtime/inventory-config-preservation/`;
+workers are under `reports/runtime/slice4be-admin-inventory-entry/`.
+
+| Controller / worker | Test source | Result and exclusion |
+|---|---|---|
+| `red-25a2015cb8e04cdfbcb6710cd11f1b19` / `aef2144f957b43449647bf5d974c08ce` | `99e06ae9` plus the numeric fixture correction and observer compatibility later committed in `5c294dd9` | 11 PASS / 4 FAIL. Modal Add independently saves its exact entity but fails zero Config saves, byte preservation and header-font preservation. Worksheet preparation fails with HRESULT `0x800A9C68`; that failure is not behavioral RED. |
+| `red-52c50108aabc46d18b4a7ed884b100b0` / `890f3b16fc184fa0bde866ffea45dca8` | `5c294dd9` (same contents at launch) | 26 PASS / 10 FAIL. Modal Add, worksheet ADD and modal catalog-only Edit each reproduce the three Config failures while exact business results pass. Worksheet catalog-only EDIT stops before dispatch on a Double-to-String COM assignment exception; not behavioral RED for that path. |
+
+Both cohorts compile all five instrumented packages, restore settings, preserve
+package hashes and close Excel unassisted. Closures are17:32:59Z and17:39:17Z;
+delayed native audits through17:39:53Z find zero Excel faults. The first fixture
+HRESULT did not recur in the second cohort; its cause remains unresolved.
+Changing Int32 to Double did not fix the worksheet EDIT fixture. Test commit
+`6610aaa1` moves its mixed-type staging assignments into a typed VBA helper and
+adds case selection; it changes no product behavior.
+
+**Config diagnosis:** the three completed cases observe three Config saves,
+one per inbox role, with unchanged table cells/shapes, preserved Auth bytes and
+read-only diagnostic extraction. Header-font changes directly violate the
+approved presentation contract. Earlier controlled formatting comparisons below
+establish the formatting cause; the resumed strict binary classifier still reports
+unresolved additional differences, so these cohorts do not establish blanket
+serialization equivalence. No product GREEN or 4be-A acceptance is claimed.
+
+**Typed fixture result:** test `6610aaa1`, controller
+`red-0c4172f29fc344e087e744598a62c6d3`, worker
+`165f2955f75f4f2c838789b8ca9b4227`, selects only WorksheetCatalogEdit and completes
+**16 PASS / 3 FAIL**. All five instrumented packages compile and the actual
+Upload handler/captured owner are reached. ExactEntityAndQuantitySaved,
+ExactCatalogItemCompleted and ImportedStatus fail; Config bytes/presentation,
+Auth bytes, the unknown operator column and diagnostic reads are preserved.
+Closure17:42:19Z restores settings, preserves packages and closes Excel unassisted;
+the delayed native audit reports zero Excel faults. No Config-formatting RED is
+claimed for this refused completion.
+
+Source confirms a routing mismatch: interactive
+`modAdmin.ApplyInventoryWorksheetRecordForWarehouse` exits through Core
+`modInventoryEditCommands.Execute`, whose `modInventoryEditPlan.Build` requires
+`ResolveSingleEntity`. Zero managed entities cannot reach Admin
+`CompleteCatalogItem`. The planner is unchanged from the frozen product; later
+recording edits do not explain this refusal. Architecture D8-INV-CONFIG-01 explicitly
+requires this worksheet completion but describes the superseded Admin route.
+Proposed D8-INV-EDIT-02 resolves the named routing/receipt contract, retaining the
+existing authority and durable retry rules. Approval is pending; no product edits
+beyond the previously preserved partial Core draft, no build and no GREEN follow.
+
+## Config diagnosis — worksheet recording,2026-10-21
+
+Product remains catalog46 `validation-inventory-uom-02` from `bd438789`; the
+catalog47 draft is not built. Controller paths below are under main
+`reports/runtime/`; each run pins and preserves the five package hashes.
+
+- Expanded worksheet attempt: controller
+  `inventory-worksheet-evidence-recording/red-9627fe790ca544509b986217023d9aa4`,
+  worker `slice4be-admin-inventory-entry/17184532fae7486aa3acfd6f44d9d8ba`, loaded
+  tests at `55d89c41`. Normal and failed-save Upload preserve Auth bytes and
+  table cells/shapes, but change Config bytes beyond the established metadata
+  classifier. Reopened retry preserves Inventory/Config/Auth bytes. The queue
+  failure probe misses local staging and invalidates completion of that cohort;
+  corrected coverage is in `41915975`. Native cleanup eventually completes
+  unassisted15:31:18Z; preservation and delayed audit pass.
+- Isolated normal comparison: controller
+  `inventory-worksheet-config-diagnostic/red-161946cc11954732878ae8836b435d42`,
+  worker `slice4be-admin-inventory-entry/bea18691278b4d9e80c5065456661223`, reports
+  21 PASS/18 FAIL. Its diagnostic source was uncommitted at launch and subsequently
+  included in `41915975`; exact test-commit-based acceptance is not claimed.
+  Auth and diagnostic reads preserve bytes; Config changes within three observed
+  Receiving/Shipping/Production inbox-setup saves. Table cells/shapes remain equal.
+  Additional binary differences include style records505/507, table343/347 and
+  worksheet0/7/60. No exception or unknown caller/window is hidden. Closure and
+  preservation pass15:34:47Z; delayed audit15:35:48Z is clear.
+- Controlled formatting comparison, tests `41915975`: controller
+  `inventory-worksheet-noformat-diagnostic/red-23fc1cc0b5fe482b896fd77755e0c8db`,
+  worker `slice4be-admin-inventory-entry/587471f2d0ac4a1a89fda708a0e2cab9`, reports
+  21 PASS/18 FAIL. Only the existing EnsureStationInbox call's formatting argument
+  is suppressed in the unsaved test package. Worksheet/style differences disappear,
+  while two table343 records still differ; only one of three observed saves changes
+  bytes. Auth/table cells/shapes/read extraction remain preserved. Closure and
+  preservation pass15:39:14Z; delayed audit15:40:13Z is clear. This is causal
+  diagnostic evidence, not product GREEN or authorization to change formatting.
+
+- Field comparison, tests `3ca37b0f`: controller
+  `inventory-worksheet-noformat-diagnostic/red-088395f263a94862a75e5495a535e9d6`,
+  worker `slice4be-admin-inventory-entry/2cfe3654659145c195c798da38d50d20`, again
+  reports21/18. Both remaining table343 changes are HeaderFormat references only;
+  their string tails and other fixed fields are unchanged. Auth/cells/shapes/read
+  preservation pass. Unassisted closure/settings/package preservation15:43:17Z
+  and delayed audit15:43:37Z pass.
+
+- Reference comparison, tests `30b13465`: controller
+  `inventory-worksheet-noformat-diagnostic/red-68f0a73039494193a1620add4207b516`,
+  worker `slice4be-admin-inventory-entry/b82deb2afac24cec871a349b4e7952f2`, reports
+  21/18. Both old/new HeaderFormat references are indexed and resolve to identical
+  format-record bytes. The other fixed fields/string tails stay equal. Auth,
+  table cells/shapes and read-only extraction remain preserved. Closure/settings/
+  packages pass15:48:17Z; delayed audit15:48:37Z is clear. The comparison emits
+  only kinds/equality, never indices, payloads or hashes; synthetic guards33/33 pass.
+
+**Diagnosis:** inbox preparation applies Config presentation formatting; removing
+that call in the diagnostic eliminates worksheet/style changes. Remaining table
+reference renumbering in that diagnostic is byte-equivalent formatting. The strict
+acceptance classifier is unchanged and still fails these runs. Architecture
+D8-INV-CONFIG-01 proposes nonformatting Inventory inbox preparation and awaits
+approval; no product implementation or GREEN is claimed. Future classification
+must independently prove every changed part and retain unknown-change refusal.
+This diagnosis does not close older cohorts' evidence gaps or accept4be-A.
+
+The record labels follow Microsoft's
+[MS-XLSB record table](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xlsb/30e2eaae-0b1e-4e8e-a465-e1ce5575868d).
+Exact worksheet recording/cleanup exclusions are in
+`plan022_slice4be_inventory_worksheet_recording_results.md`.
+
 **Packaged Production layout qualified, 2026-10-21 01:30Z:** unchanged candidate
 `validation-inventory-receipts-01` passes all 18 size/page geometry checks and five
 native-window checks. All six Run List/Settings screenshots were reviewed: labels,
@@ -374,6 +843,22 @@ preserved. Audit17:19:37.188Z records zero Excel events; no intervention occurre
 Read-only cleanup samples showed increasing CPU with one remaining Excel thread
 despite HasExited=True; the slow teardown's cause remains unresolved.
 The corrected full cohort must pass; partial results do not replace it.
+
+**D8-INV-EDIT-01 implementation draft,2026-10-20 Pacific:** isolated branch
+`work/d8-inv-edit-receipts` adds Core preparation/binding and Inventory Domain
+ownership of the single catalog/receipt save. The existing operator result keeps
+the command reference; quantity completion uses the exact saved event/log proof.
+The receipt stores the immutable quantity plan, without a second mutable success
+flag. Canonical-save tests observe the Domain owner. Modal catalog and quantity
+paths are retained; catalog field planning and read-only entity resolution are
+shared. No new recording ControlId or replay adapter.
+
+Five instrumented compiles, ownership and binding/mutation GREEN qualify.
+Receipt phase/result/save GREENs, retained regressions and packaged/native/visible
+acceptance remain open. The older combined baseline's Config observations remain
+unqualified. Initial draft5d15970c/testb19676af static baseline was385 components/
+6710 procedures with Run9/unresolved45/duplicates194/oversized27 in
+`reports/runtime/edit-receipts-b19676af-static`; final ownership metrics are below.
 
 **EDIT ownership GREEN qualified66/66,2026-10-20 Pacific:**
 draft fixfe4b5fb4 adds Core pending-write ownership checks in EDIT preparation,
@@ -2676,3 +3161,45 @@ remain as recorded above. Later product `a9faab9c` comparisons have their own
 provenance and do not fill this gap. Any further diagnosis of an older cohort must
 retain its exact product source, action sequence and independently identified
 diagnostic test; do not relabel newer GREEN observations as older evidence.
+
+## Development-only deferred Inventory cleanup (2026-11-06)
+
+The opt-in `Invoke-InventoryEditCreationDeferred.ps1` returns a **provisional**
+check count after the packaged worker returns from Excel `Quit` and releases its
+application COM reference. A detached controller continues the existing GC,
+settings restoration, package-hash check and natural Excel closure. Its final
+receipt is separate and states `FullAcceptance=false`. A second invocation is
+refused while that receipt is pending or cleanup failed, and any live Excel
+process is also refused. A failed test may be followed by another run only when
+Excel closure, settings restoration and package preservation are all confirmed.
+The ordinary synchronous controller and Release 1 gates are unchanged.
+
+Focused D13 fake-controller RED: the synchronous scaffold took 7.1 seconds and
+returned only after the simulated cleanup delay. Initial GREEN was **3/3**.
+An expanded RED showed refusal after a failed test whose cleanup had completed;
+the corrected GREEN is **4/4** (safe failed-test continuation, provisional return
+before final closure, pending-run refusal, final cleanup receipt). All four
+changed PowerShell files parse and `git diff --check` passes. The first live
+packaged `ApplyFailure` run returned **34/34 provisional PASS** at the Quit
+signal while its exact Excel PID remained live; an immediate second invocation
+was refused. The original controller then exited 0 without intervention and
+wrote a final cleanup receipt with Excel closed, settings restored and five
+package hashes preserved. Runtime evidence: deferred run
+`9c53132ae2144d898645195d5ea2861d`, controller
+`green-dcfde1dac8574587bffe49f68017723d`. The desktop monitor stopped
+normally with zero error-5, lock or mouse-failure samples. This is a test-tooling
+result; it does not close 4be-A or replace final acceptance evidence.
+
+The tracked controller's first dispatch failed before Excel creation because it
+passed an absolute deploy path to a worker requiring a root-relative path. Its
+receipt `02a3bd5afc074d82a30ccbff860983c4` retained controller exit 1,
+Excel closed, settings restored and package hashes preserved; it is not GREEN.
+After correcting that path and the cleanup gate, the tracked-controller run
+`a96ec7ab642c4ad197a5d2af1291022d` returned **34/34 provisional PASS**
+while its exact Excel PID still existed. The original controller
+`green-b92d54b2292b4c2790e932941f904e78` then exited 0 unassisted. Its
+final receipt records `TestPassed=true`, `CleanupComplete=true`,
+`FullAcceptance=false`, settings restored, packages preserved and Excel closed;
+the final receipt followed the provisional Quit signal by about 197 seconds;
+the monitor again stopped normally with zero desktop faults. No product source,
+XLAM, Architecture, Plan or Controls changed.
