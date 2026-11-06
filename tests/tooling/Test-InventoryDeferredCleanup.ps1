@@ -1,12 +1,18 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $wrapper=Join-Path $PSScriptRoot 'Invoke-InventoryEditCreationDeferred.ps1'
+$trackedController=Join-Path $PSScriptRoot 'Run-InventoryEditCreationController.ps1'
+if(-not(Test-Path -LiteralPath $trackedController -PathType Leaf)){throw 'Tracked Inventory controller is missing.'}
 $root=Join-Path $env:TEMP ('invsys-deferred-test-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root|Out-Null
+$prior=Join-Path $root 'run-prior-failed-test'
+New-Item -ItemType Directory -Path $prior|Out-Null
+[pscustomobject]@{State='FAILED';CleanupComplete=$false;ControllerExitCode=1;ExcelClosed=$true;SettingsRestored=$true;PackagesPreserved=$true}|
+    ConvertTo-Json|Set-Content -LiteralPath (Join-Path $prior 'final.json')
 $fake=Join-Path $root 'fake-controller.ps1'
 @'
 param([string]$Phase,[string]$Case,[string]$Deploy)
-$controllerRoot=Join-Path $env:TEMP ('invsys-deferred-controller-'+[guid]::NewGuid().ToString('N'))
+$controllerRoot=Join-Path (Split-Path $env:INVSYS_DEFERRED_INVENTORY_SIGNAL -Parent) 'controller-evidence'
 New-Item -ItemType Directory -Path $controllerRoot|Out-Null
 Write-Output ('Inventory recording controller: '+$controllerRoot)
 Start-Sleep -Milliseconds 200
@@ -33,19 +39,20 @@ function Run-Wrapper([string]$Label){
 $completed=$false
 try {
     $first=Run-Wrapper 'first'
+    if($first.Error -match 'Previous Inventory cleanup failed'){throw 'RED: completed cleanup from a failed test was refused.'}
     $early=$first.Output|ConvertFrom-Json
     if($early.State -cne 'PROVISIONAL' -or $early.FullAcceptance -or $early.Checks -ne 3 -or $early.Failed -ne 0 -or (Test-Path -LiteralPath (Join-Path $early.RunRoot 'final.json'))){throw 'RED: launcher did not return a provisional result before final cleanup.'}
     $second=Run-Wrapper 'second'
     if($second.Output -match 'PROVISIONAL' -or $second.Error -notmatch 'cleanup is pending'){throw 'RED: a second Excel test was not refused while cleanup is pending.'}
     $deadline=[DateTimeOffset]::UtcNow.AddSeconds(10)
     do {
-        $final=@(Get-ChildItem -LiteralPath $root -Recurse -Filter final.json -File -ErrorAction SilentlyContinue)
-        if($final.Count -gt 0){break}
+        $finalPath=Join-Path $early.RunRoot 'final.json'
+        if(Test-Path -LiteralPath $finalPath){break}
         Start-Sleep -Milliseconds 200
     }while([DateTimeOffset]::UtcNow -lt $deadline)
-    if($final.Count -ne 1 -or -not ((Get-Content $final[0].FullName -Raw|ConvertFrom-Json).CleanupComplete)){throw ('GREEN: final cleanup qualification missing. Root='+$root)}
+    if(-not(Test-Path -LiteralPath $finalPath) -or -not ((Get-Content $finalPath -Raw|ConvertFrom-Json).CleanupComplete)){throw ('GREEN: final cleanup qualification missing. Root='+$root)}
     $completed=$true
-    Write-Output 'Deferred cleanup: 3/3 PASS (early result, pending gate, final closure)'
+    Write-Output 'Deferred cleanup: 4/4 PASS (failed test with safe cleanup, early result, pending gate, final closure)'
 } finally {
     # The fake controller is test-owned and must finish before removing its files.
     Start-Sleep -Seconds 1

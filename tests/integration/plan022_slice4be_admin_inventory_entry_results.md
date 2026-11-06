@@ -3169,13 +3169,17 @@ check count after the packaged worker returns from Excel `Quit` and releases its
 application COM reference. A detached controller continues the existing GC,
 settings restoration, package-hash check and natural Excel closure. Its final
 receipt is separate and states `FullAcceptance=false`. A second invocation is
-refused while that receipt is pending or failed, and any live Excel process is
-also refused. The ordinary synchronous controller and Release 1 gates are unchanged.
+refused while that receipt is pending or cleanup failed, and any live Excel
+process is also refused. A failed test may be followed by another run only when
+Excel closure, settings restoration and package preservation are all confirmed.
+The ordinary synchronous controller and Release 1 gates are unchanged.
 
 Focused D13 fake-controller RED: the synchronous scaffold took 7.1 seconds and
-returned only after the simulated cleanup delay. GREEN: **3/3** (provisional
-return before final closure, pending-run refusal, final cleanup receipt). All
-three changed PowerShell files parse and `git diff --check` passes. The live
+returned only after the simulated cleanup delay. Initial GREEN was **3/3**.
+An expanded RED showed refusal after a failed test whose cleanup had completed;
+the corrected GREEN is **4/4** (safe failed-test continuation, provisional return
+before final closure, pending-run refusal, final cleanup receipt). All four
+changed PowerShell files parse and `git diff --check` passes. The first live
 packaged `ApplyFailure` run returned **34/34 provisional PASS** at the Quit
 signal while its exact Excel PID remained live; an immediate second invocation
 was refused. The original controller then exited 0 without intervention and
@@ -3185,3 +3189,17 @@ package hashes preserved. Runtime evidence: deferred run
 `green-dcfde1dac8574587bffe49f68017723d`. The desktop monitor stopped
 normally with zero error-5, lock or mouse-failure samples. This is a test-tooling
 result; it does not close 4be-A or replace final acceptance evidence.
+
+The tracked controller's first dispatch failed before Excel creation because it
+passed an absolute deploy path to a worker requiring a root-relative path. Its
+receipt `02a3bd5afc074d82a30ccbff860983c4` retained controller exit 1,
+Excel closed, settings restored and package hashes preserved; it is not GREEN.
+After correcting that path and the cleanup gate, the tracked-controller run
+`a96ec7ab642c4ad197a5d2af1291022d` returned **34/34 provisional PASS**
+while its exact Excel PID still existed. The original controller
+`green-b92d54b2292b4c2790e932941f904e78` then exited 0 unassisted. Its
+final receipt records `TestPassed=true`, `CleanupComplete=true`,
+`FullAcceptance=false`, settings restored, packages preserved and Excel closed;
+the final receipt followed the provisional Quit signal by about 197 seconds;
+the monitor again stopped normally with zero desktop faults. No product source,
+XLAM, Architecture, Plan or Controls changed.

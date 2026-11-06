@@ -6,6 +6,7 @@
 # -Phase GREEN -Case ApplyFailure -Deploy deploy/validation-inventory-config-03
 # PROVISIONAL is not release GREEN. Inspect RunRoot/final.json before another
 # Excel test; this launcher refuses a second run while cleanup is pending.
+# The existing controller requires a fresh desktop-monitor report before dispatch.
 param(
     [string]$ControllerScript = '',
     [string]$WorkingDirectory = '',
@@ -43,8 +44,10 @@ if($Supervisor){
             if(Test-Path -LiteralPath $closurePath){$closure=Get-Content -LiteralPath $closurePath -Raw|ConvertFrom-Json}
         }
         $excelClosed=(@(Get-Process EXCEL -ErrorAction SilentlyContinue).Count -eq 0)
-        $cleanupComplete=($controller.ExitCode -eq 0 -and $null -ne $closure -and $closure.ExitCode -eq 0 -and $closure.ExcelClosed -eq $true -and $closure.SettingsRestored -eq $true -and $closure.PackagesPreserved -eq $true -and $excelClosed)
-        Write-AtomicJson (Join-Path $RunRoot 'final.json') ([pscustomobject]@{State=if($cleanupComplete){'CLEANUP_COMPLETE'}else{'FAILED'};CleanupComplete=$cleanupComplete;FullAcceptance=$false;ControllerExitCode=$controller.ExitCode;ExcelClosed=$excelClosed;SettingsRestored=($null -ne $closure -and $closure.SettingsRestored -eq $true);PackagesPreserved=($null -ne $closure -and $closure.PackagesPreserved -eq $true);UTC=[DateTimeOffset]::UtcNow.ToString('o')})
+        $cleanupComplete=($null -ne $closure -and $closure.ExcelClosed -eq $true -and $closure.SettingsRestored -eq $true -and $closure.PackagesPreserved -eq $true -and $excelClosed)
+        $testPassed=($cleanupComplete -and $controller.ExitCode -eq 0 -and $closure.ExitCode -eq 0)
+        $state=if(-not $cleanupComplete){'CLEANUP_FAILED'}elseif($testPassed){'TEST_PASSED_CLEANUP_COMPLETE'}else{'TEST_FAILED_CLEANUP_COMPLETE'}
+        Write-AtomicJson (Join-Path $RunRoot 'final.json') ([pscustomobject]@{State=$state;CleanupComplete=$cleanupComplete;TestPassed=$testPassed;FullAcceptance=$false;ControllerExitCode=$controller.ExitCode;ExcelClosed=$excelClosed;SettingsRestored=($null -ne $closure -and $closure.SettingsRestored -eq $true);PackagesPreserved=($null -ne $closure -and $closure.PackagesPreserved -eq $true);UTC=[DateTimeOffset]::UtcNow.ToString('o')})
     } catch {
         Write-AtomicJson (Join-Path $RunRoot 'final.json') ([pscustomobject]@{State='FAILED';CleanupComplete=$false;FullAcceptance=$false;FailureType=$_.Exception.GetType().FullName;ControllerId=if($controller){$controller.Id}else{$null};UTC=[DateTimeOffset]::UtcNow.ToString('o')})
     }
@@ -54,7 +57,7 @@ if($Supervisor){
 $sourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $codeRoot=if((Split-Path $sourceRoot -Leaf) -ceq 'invSys_fork'){$sourceRoot}else{Join-Path (Split-Path $sourceRoot -Parent) 'invSys_fork'}
 if(-not $WorkingDirectory){$WorkingDirectory=$codeRoot}
-if(-not $ControllerScript){$ControllerScript=Join-Path $codeRoot 'reports/runtime/run-inventory-edit-creation.ps1'}
+if(-not $ControllerScript){$ControllerScript=Join-Path $PSScriptRoot 'Run-InventoryEditCreationController.ps1'}
 if(-not $RootDirectory){$RootDirectory=Join-Path $codeRoot 'reports/runtime/deferred-inventory-edit-creation'}
 if(-not(Test-Path -LiteralPath $ControllerScript -PathType Leaf)){throw 'Inventory controller script is unavailable.'}
 if(-not(Test-Path -LiteralPath $WorkingDirectory -PathType Container)){throw 'Controller working directory is unavailable.'}
@@ -63,7 +66,8 @@ foreach($prior in @(Get-ChildItem -LiteralPath $RootDirectory -Directory -Filter
     $finalPath=Join-Path $prior.FullName 'final.json'
     if(-not(Test-Path -LiteralPath $finalPath)){throw ('Previous Inventory cleanup is pending: '+$prior.FullName)}
     $priorFinal=Get-Content -LiteralPath $finalPath -Raw|ConvertFrom-Json
-    if($priorFinal.CleanupComplete -ne $true){throw ('Previous Inventory cleanup failed; inspect before another test: '+$prior.FullName)}
+    $priorCleanupSafe=($priorFinal.CleanupComplete -eq $true -or ($priorFinal.ExcelClosed -eq $true -and $priorFinal.SettingsRestored -eq $true -and $priorFinal.PackagesPreserved -eq $true))
+    if(-not $priorCleanupSafe){throw ('Previous Inventory cleanup failed; inspect before another test: '+$prior.FullName)}
 }
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Excel must be closed before an Inventory test.'}
 $RunRoot=Join-Path $RootDirectory ('run-'+[guid]::NewGuid().ToString('N'))
