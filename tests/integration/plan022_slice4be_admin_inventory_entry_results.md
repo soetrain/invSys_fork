@@ -1,5 +1,22 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-05 packaged worksheet EDIT creation Success regression
+
+The unchanged `validation-inventory-config-03` candidate passed **88/88** in
+the isolated actual Upload `Success` case. It proved a saved CREATE receipt,
+distinct immutable command/event/`System_Key` identities, one catalog
+application, exact fresh creation, an imported operator result, and reopened
+retry without duplicate application. Six identity-loss cases refused canonical
+writes and replacement identities while preserving the original command.
+Config cells, shapes, bytes, widths and fonts, Auth bytes, the unknown operator
+column, and read-only inspection were preserved. Five instrumented XLAMs
+compiled. Controller `green-fc0444a923084b5a844aea183d06d86e` / worker
+`178e220df41d41ed9256907668b603e7` exited 0 at
+`2026-11-06T01:23:47.4262540Z`; Excel closed unassisted, settings and package
+pins were preserved, the desktop monitor stayed clear, and the delayed Excel
+Application 1000/1001/1002 audit found zero faults. This is one broader
+regression case, not full Inventory or 4be-A acceptance.
+
 ## 2026-11-05 retained worksheet EDIT receipt GREEN
 
 After the interrupted run below, a fresh unlocked-desktop/cursor check and
