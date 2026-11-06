@@ -1,5 +1,26 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-05 retained worksheet EDIT receipt GREEN
+
+After the interrupted run below, a fresh unlocked-desktop/cursor check and
+unchanged candidate `validation-inventory-config-03` qualified a complete
+packaged `RetainedReceipts` run. The actual captured Add/Upload handlers passed
+**81/81** checks across catalog-only, no-op quantity, applied quantity change,
+and failed queue followed by reopened retry. The saved operator command and
+Inventory receipt confirmed one another; the planned quantity event was saved
+before queueing, and exact applied-event/log proof established completion by
+event ID. Queue failure did not mark quantity imported, and retry reused the
+planned event without reapplying the catalog edit. Config cells/shapes, Auth
+bytes, unknown user columns, and read-only inspection bytes were preserved.
+All five instrumented XLAMs compiled. Controller
+`green-d5c80885c6c84984900e1f463fcb8120` / worker
+`f4eda0ba4a3241809d53b23eea95fdab` exited 0 at
+`2026-11-06T01:12:27.6191090Z`; Excel closed unassisted, settings and five
+package hashes were preserved, desktop monitor error-5/lock/mouse counts were
+zero, and the delayed Excel Application 1000/1001/1002 audit found zero faults.
+Generated evidence is ignored and remains local. This closes this focused
+receipt cohort only; broader Inventory and 4be-A acceptance remain open.
+
 ## 2026-11-05 focused worksheet CREATE and Config checkpoint
 
 Approved D8-INV-EDIT-01/02 governs this increment; no architecture change was
