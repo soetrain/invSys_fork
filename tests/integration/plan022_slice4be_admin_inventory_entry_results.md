@@ -1,5 +1,24 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-05 packaged worksheet EDIT creation QueueFailure regression
+
+The isolated actual Upload `QueueFailure` case on unchanged candidate
+`validation-inventory-config-03` passed **34/34**. The catalog/CREATE receipt,
+operator reference, planned event and exact new `System_Key` were saved before
+the failed queue; no entity was created or falsely marked imported. Reopened
+retry kept those identities, created the entity exactly once and did not repeat
+the catalog application. Config/Auth bytes, presentation, unknown columns and
+read-only inspection were preserved. Five instrumented XLAMs compiled.
+Controller `green-f8fda55c6c1645cb99b72222ec7d7058` / worker
+`afe9d79a354a4a47a1a7db9c023f219d` exited 0 at
+`2026-11-06T01:35:24.4863193Z`; Excel closed unassisted and settings/package
+pins were restored. Shutdown instrumentation shows `AfterCollectBeforeFinalizers`
+at `01:31:39.552Z` and `AfterGarbageCollection` at `01:35:23.763Z`, so this run
+still spent about 3 minutes 44 seconds in finalization. The desktop monitor
+reported zero error-5, lock or mouse-input failures. This is a qualified
+focused regression; the delayed Excel Application 1000/1001/1002 audit found
+zero faults. It does not resolve the general shutdown cause or close 4be-A.
+
 ## 2026-11-05 packaged worksheet EDIT creation Success regression
 
 The unchanged `validation-inventory-config-03` candidate passed **88/88** in
