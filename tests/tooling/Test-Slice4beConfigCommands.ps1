@@ -267,6 +267,7 @@ param(
     [switch]$CaptureGuideEvidence,
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
+    [switch]$VisibleExcelForTest,
     [switch]$TraceViewerStartupForTest,
     [switch]$ViewerStartupSavedWorkbookForTest,
     [ValidateSet('None','Caption','Status','Config','ShownConfig','ConfigSteps','ConfigCloseVisible')]
@@ -405,6 +406,9 @@ if($CheckGuidePresentation){$CheckGuideEvaluation=$true}
 if($CheckGuideEvaluation){$CheckGuideExpectation=$true}
 if($GuideCaptureVisibleExcelForTest -and -not $TraceViewerStartupForTest -and (-not $GuideDraftOnly -or (-not $CaptureGuideEvidence -and -not $TraceGuideResourcesForTest))){
     throw 'Visible-Excel diagnosis requires Viewer startup tracing, or GuideDraftOnly with capture/resource tracing.'
+}
+if($VisibleExcelForTest -and $GuideCaptureVisibleExcelForTest){
+    throw 'VisibleExcelForTest is the test-host opt-in (VT-EXCEL-01); do not combine it with GuideCaptureVisibleExcelForTest.'
 }
 if($TraceViewerStartupForTest -and ($Phase -ne 'RED' -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest)){
     throw 'Viewer startup tracing requires RED and the published-Viewer fixture with instrumented compilation.'
@@ -1605,7 +1609,13 @@ try {
     $excel=New-Object -ComObject Excel.Application
     $initialExcelWindow=[long]$excel.Hwnd
     $initialExcelProcessIds = @(Get-Process EXCEL -ErrorAction Stop | Select-Object -ExpandProperty Id)
-    $excel.Visible=[bool]$GuideCaptureVisibleExcelForTest; $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
+    $excel.Visible=[bool]($GuideCaptureVisibleExcelForTest -or $VisibleExcelForTest); $excel.DisplayAlerts=$false; $excel.EnableEvents=$false; $excel.AutomationSecurity=1
+    if($VisibleExcelForTest){
+        # VT-EXCEL-01: visible test host avoids the hidden-Excel DirectComposition exit stall. Verification throws
+        # instead of adding a Check so existing check counts and order are unchanged.
+        $hostVisible=$excel.Visible
+        if($hostVisible -isnot [bool] -or -not $hostVisible){throw 'VisibleExcelForTest host visibility was not established.'}
+    }
     if($GuideCaptureVisibleExcelForTest){
         $visible=$excel.Visible
         Check 'Harness.GuideCaptureVisibleExcelVerified' ($visible -is [bool] -and $visible)
