@@ -2,7 +2,17 @@
 # save boundary. Persisted values stay in memory/ignored owned copies; publish
 # fixed assertion labels and booleans only. No product source or package is saved.
 function Install-InventoryEditCanonicalSaveProbe {
-    $domainOwner=Test-Path (Join-Path $repo 'src/InventoryDomain/Modules/modInventoryEditReceipts.bas')
+    # Choose the probe owner from the loaded Inventory Domain package (the code that runs), not from $repo's source
+    # tree: -RepoRoot may be a checkout without src/InventoryDomain. If the package cannot be inspected, stop clearly.
+    $domainPackage='invSys.Inventory.Domain.xlam'
+    if(-not $packages.ContainsKey($domainPackage)){throw 'EDIT save probe: '+$domainPackage+' is not loaded; cannot choose the probe owner.'}
+    try{$domainProject=$packages[$domainPackage].VBProject;$domainComponents=if($null -ne $domainProject){$domainProject.VBComponents}else{$null}}catch{throw 'EDIT save probe: cannot inspect '+$domainPackage+' VBProject: '+$_.Exception.Message}
+    if($null -eq $domainComponents){throw 'EDIT save probe: '+$domainPackage+' VBProject is not inspectable (check VBA project access); cannot choose the probe owner.'}
+    $domainNames=@($domainComponents|ForEach-Object {[string]$_.Name})
+    if($domainNames.Count -eq 0){throw 'EDIT save probe: '+$domainPackage+' VBProject returned no components; cannot choose the probe owner.'}
+    # PR 4 packages own the EDIT catalog save in Inventory Domain; never fall back to the legacy Admin seam silently.
+    if(-not ($domainNames -ccontains 'modInventoryEditReceipts')){throw 'EDIT save probe: '+$domainPackage+' has no modInventoryEditReceipts; refusing to fall back to the legacy Admin save seam.'}
+    $domainOwner=$true
     $script:InventoryEditSaveProbePackage=if($domainOwner){'invSys.Inventory.Domain.xlam'}else{'invSys.Admin.xlam'}
     $project=$packages[$script:InventoryEditSaveProbePackage].VBProject
     $probe=$project.VBComponents.Add(1);$probe.Name='TestInventoryEditSave'
