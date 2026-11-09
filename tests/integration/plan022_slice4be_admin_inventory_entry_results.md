@@ -1,5 +1,29 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## 2026-11-08 PR4-BASE-02 edit-creation and Config gate
+
+The PR 4 worker at e2c8a06f on frozen PR4-BASE-02 passed four sequential
+visible packaged runs: EditCreation.All **545/545** (including the 140
+QuantityPhase checks), ConfigPreservation.All **50/50**, MissingDefault
+**54/54**, and RetainedShared **123/123**. Every expected check name appeared
+once with PASS; there were no failed, missing, duplicate or unexpected checks.
+All four workers exited 0. Run 01's AfterQuit-to-native-Excel-exit was 14.95 s.
+The Config selectors have no AfterQuit trace; their informational
+stdout-quiet-to-Excel-exit times were 8.75, 8.81 and 1.92 s.
+
+All four workers and Excel instances exited naturally. Test settings were
+restored, all 538 frozen inputs and unchanged package hashes were preserved,
+and no process was terminated. The delayed Application audit found zero Excel
+faults and Excel was closed. Local ignored evidence is under
+reports/runtime/inventory-gate-v16-pr4-base-02-20261108/. The earlier
+catalog-save failures were a test probe-owner fault: v15's Domain-owner
+diagnostic passed both isolated cases, and this fresh combined run passed
+without combining results from v13.1. This closes only the combined
+edit-creation/Config gate; broad Inventory GREEN, early Receiving B0,
+full Release 1 chain, live-role and visible-operator evidence, and 4be-A
+acceptance remain open. No product contract, control or displayed wording
+changed.
+
 ## 2026-11-05 packaged worksheet EDIT creation QueueFailure regression
 
 The isolated actual Upload `QueueFailure` case on unchanged candidate
