@@ -2,27 +2,50 @@
 
 ## 2026-11-08 PR4-BASE-02 edit-creation and Config gate
 
-The PR 4 worker at e2c8a06f on frozen PR4-BASE-02 passed four sequential
-visible packaged runs: EditCreation.All **545/545** (including the 140
-QuantityPhase checks), ConfigPreservation.All **50/50**, MissingDefault
-**54/54**, and RetainedShared **123/123**. Every expected check name appeared
-once with PASS; there were no failed, missing, duplicate or unexpected checks.
-All four workers exited 0. Run 01's AfterQuit-to-native-Excel-exit was 14.95 s.
-The Config selectors have no AfterQuit trace; their informational
-stdout-quiet-to-Excel-exit times were 8.75, 8.81 and 1.92 s.
+v14 ran the two catalog-save failure cases separately on unchanged PR 4
+tooling. BeforeCatalogSaveThrows repeated v13.1 with 17 PASS, 2 FAIL and
+9 missing checks; AfterCatalogSaveThrows repeated it with 17 PASS,
+2 FAIL and 14 missing. Both failed ActualCanonicalSaveBoundaryReached
+and NoCreationAfterUnconfirmedSave. The combined session was not the cause.
 
-All four workers and Excel instances exited naturally. Test settings were
-restored, all 538 frozen inputs and unchanged package hashes were preserved,
-and no process was terminated. The delayed Application audit found zero Excel
-faults and Excel was closed. Local ignored evidence is under
-reports/runtime/inventory-gate-v16-pr4-base-02-20261108/. The earlier
-catalog-save failures were a test probe-owner fault: v15's Domain-owner
-diagnostic passed both isolated cases, and this fresh combined run passed
-without combining results from v13.1. This closes only the combined
-edit-creation/Config gate; broad Inventory GREEN, early Receiving B0,
-full Release 1 chain, live-role and visible-operator evidence, and 4be-A
-acceptance remain open. No product contract, control or displayed wording
-changed.
+v15 identified the test-setup fault: the probe selected its owner by looking
+for a Domain module in the main checkout source tree, which lacks that module.
+It therefore attached to the old Admin save path while the loaded Domain XLAM
+owned the actual save. Selecting the owner from the loaded Domain package made
+the isolated cases pass 28/28 and 33/33, with exact check identities. PR 4
+commit e2c8a06f changes only
+tests/tooling/Slice4beInventoryEditCanonicalSave.ps1: it selects the loaded
+Domain package and fails clearly if that package cannot be inspected, instead
+of silently falling back to Admin. Product code, packages and contract did not
+change.
+
+Justin approved a separate PR4-BASE-02 manifest (SHA256 F2DE6B82...) for
+this test-only fix. Of its 538 frozen inputs, only that tooling file was
+re-pinned (SHA256 E0428CB0...); the five XLAM pins were unchanged. The
+PR4-BASE-01 manifest (SHA256 6FDE11C2...) remains untouched.
+
+On PR4-BASE-02, v16 passed four sequential visible packaged runs:
+EditCreation.All 545/545 (including 140 QuantityPhase checks),
+ConfigPreservation.All 50/50, MissingDefault 54/54 and RetainedShared
+123/123. All 772 expected check names matched exactly once with PASS;
+there were no failed, missing, duplicate or unexpected checks. All four
+workers exited 0 and Excel exited naturally. Run 01's
+AfterQuit-to-native-Excel-exit was 14.95 s. The Config selectors have no
+AfterQuit trace; their informational stdout-quiet-to-Excel-exit times were
+8.75, 8.81 and 1.92 s. Test settings were restored, all frozen inputs
+were preserved, no process was terminated, and the delayed Application
+audit found zero Excel faults with Excel closed. Local ignored evidence:
+reports/runtime/inventory-creation-save-v14-20261108/,
+reports/runtime/inventory-creation-save-v15-20261108/ and
+reports/runtime/inventory-gate-v16-pr4-base-02-20261108/.
+
+v16 stands alone; its passes are not added to v13.1's failed combined run.
+RetainedShared does not finish coverage of every retained-formatting caller.
+Other Inventory selectors and broad Inventory GREEN, recording and guides,
+early Receiving B0, live-role, restart, full Release 1 chain, final
+compile/layout/static and visible-operator evidence, and 4be-A acceptance
+remain open. The slowdown across Execute calls and the underlying Excel
+native-exit defect are unresolved. No control or displayed wording changed.
 
 ## 2026-11-05 packaged worksheet EDIT creation QueueFailure regression
 
