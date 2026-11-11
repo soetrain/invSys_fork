@@ -64,7 +64,7 @@ Public Function Choices(ByVal context As String, ByVal draftId As String, ByVal 
             Choices = Choices & CStr(id) & vbTab & SafeCaption(CStr(definition("Surface")) & " > " & CStr(definition("Caption"))) & vbCrLf
         Next id
     Else
-        For Each id In Array("REQUESTED", "COMPLETED", "UNCHANGED", "DENIED", "REJECTED", "FAILED", _
+        For Each id In Array("REQUESTED", "COMPLETED", "UNCHANGED", "DENIED", "REFUSED", "REJECTED", "FAILED", _
                              "CONFIRMED", "VERIFIED", "SAVED", "APPLIED", "PENDING", "STAGED", "REFRESHED", "STALE", "CLEARED", "EMPTY", _
                              "OPENED", "REUSED", "CLOSED", "SELECTED", "CANCELLED", "VALIDATED", "PRESENTED", "PREVIEW_RETURNED", _
                              "REMEMBERED_REFRESHED", "REMEMBERED_REFRESH_FAILED", "UNCONFIRMED_REFRESHED", "UNCONFIRMED_REFRESH_FAILED", _

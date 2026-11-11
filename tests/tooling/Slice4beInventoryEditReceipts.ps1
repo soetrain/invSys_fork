@@ -139,7 +139,7 @@ function Get-InventoryEditRows($Table) {
 function Read-InventoryEditReceiptCopy([string]$Path,[string]$Sku,[string]$Command='') {
     $hash=Get-AdminInventoryEntryHash $Path
     $book=$excel.Workbooks.Open($Path,0,$true)
-    $result=[pscustomobject]@{CatalogMatches=0;Item='';Reason='';History='';Custom='';Receipts=@();Applied=@();AppliedRecords=@();Log=@();Preserved=$false}
+    $result=[pscustomobject]@{CatalogMatches=0;Item='';Reason='';History='';Custom='';Location='';TrackQty='';ItemKind='';Receipts=@();Applied=@();AppliedRecords=@();Log=@();Preserved=$false}
     try{
         foreach($sheet in $book.Worksheets){foreach($table in $sheet.ListObjects){
             if($table.Name -notin @('tblSkuCatalog','tblAppliedEvents','tblInventoryLog','tblInventoryEditReceipts')){continue}
@@ -151,6 +151,9 @@ function Read-InventoryEditReceiptCopy([string]$Path,[string]$Sku,[string]$Comma
                     $result.Reason=Get-InventoryEditCell $row $table 'LAST_EDIT_REASON'
                     $result.History=Get-InventoryEditCell $row $table 'EDIT_HISTORY'
                     $result.Custom=Get-InventoryEditCell $row $table 'USER NOTE'
+                    $result.Location=Get-InventoryEditCell $row $table 'LOCATION'
+                    $result.TrackQty=Get-InventoryEditCell $row $table 'TRACK_QTY'
+                    $result.ItemKind=Get-InventoryEditCell $row $table 'ITEM_KIND'
                 }}
             }elseif($table.Name -ieq 'tblAppliedEvents'){
                 foreach($row in $rows){
@@ -175,6 +178,9 @@ function Read-InventoryEditReceiptCopy([string]$Path,[string]$Sku,[string]$Comma
                             Station=(Get-InventoryEditCell $row $table 'StationId')
                             User=(Get-InventoryEditCell $row $table 'UserId')
                             Event=(Get-InventoryEditCell $row $table 'PlannedEventId')
+                            Key=(Get-InventoryEditCell $row $table 'System_Key')
+                            Intent=(Get-InventoryEditCell $row $table 'QuantityIntent')
+                            Binding=(Get-InventoryEditCell $row $table 'BindingHash')
                         }
                     }
                 }
@@ -184,14 +190,14 @@ function Read-InventoryEditReceiptCopy([string]$Path,[string]$Sku,[string]$Comma
     $result.Preserved=((Get-AdminInventoryEntryHash $Path) -ceq $hash)
     return $result
 }
-function Get-InventoryEditSavedResult([string]$Path) {
+function Get-InventoryEditSavedResult([string]$Path,[int]$Row=1) {
     $hash=Get-AdminInventoryEntryHash $Path;$book=$excel.Workbooks.Open($Path,0,$true)
     try{
         $table=@($book.Worksheets|ForEach-Object {$_.ListObjects}|Where-Object {$_.Name -like 'invSys_Inventory_*'})[0]
-        $text=[string]$table.ListColumns.Item('Upload Result').DataBodyRange.Cells.Item(1,1).Value2
+        $text=[string]$table.ListColumns.Item('Upload Result').DataBodyRange.Cells.Item($Row,1).Value2
         $match=[regex]::Match($text,'(?im)^Command:\s*([^\r\n]+)')
         $command='';if($match.Success){$command=$match.Groups[1].Value.Trim()}
-        $status=[string]$table.ListColumns.Item('Upload Status').DataBodyRange.Cells.Item(1,1).Value2
+        $status=[string]$table.ListColumns.Item('Upload Status').DataBodyRange.Cells.Item($Row,1).Value2
     }finally{$book.Close($false)}
     return [pscustomobject]@{Command=$command;Status=$status;Text=$text;Preserved=((Get-AdminInventoryEntryHash $Path) -ceq $hash)}
 }
@@ -202,13 +208,14 @@ function Test-InventoryEditBinding($Snapshot,$Saved,$Fixture,[string]$Sku) {
     $receipt=$boundReceipts[0]
     return ($receipt.Command -ceq $Saved.Command -and $receipt.Sku -ceq $Sku -and $receipt.Warehouse -ceq $Fixture.Warehouse -and $receipt.Station -ceq 'S1' -and $receipt.User -ceq 'config-admin')
 }
-function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase','Result','Canonical')][string]$Cohort='') {
+function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase','Result','Canonical','Ownership')][string]$Cohort='') {
     if($Cohort -ne ''){
         $AdminInventoryEditReceiptResultsOnly=($Cohort -eq 'Result')
         $AdminInventoryEditCanonicalSaveOnly=($Cohort -eq 'Canonical')
     }
     $script:InventoryConfigReadChecks=[Collections.Generic.List[object]]::new()
     $caseCohort='Phase'
+    if($Cohort -eq 'Ownership'){$caseCohort='Ownership'}
     if($AdminInventoryEditReceiptResultsOnly){$caseCohort='Result'}
     if($AdminInventoryEditCanonicalSaveOnly){$caseCohort='Canonical'}
     $cases=@(Get-InventoryReceiptScenarios -Cohort $caseCohort -Scenario $AdminInventoryReceiptScenarioForTest)
@@ -221,7 +228,10 @@ function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase'
         $sourcePath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
         try{
             $prepared=[bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.PrepareBoundaryTable' @($hostBook.Name))
-            if(-not $prepared){throw 'Owned operator table unavailable; not RED.'}
+            if(-not $prepared){
+                $boundaryPhase=[string](Run 'invSys.Admin.xlam' 'TestInventoryCommands.LastBoundaryPhase')
+                throw ('Owned operator table unavailable at '+$boundaryPhase+'; not RED.')
+            }
             $table=@($hostBook.Worksheets|ForEach-Object {$_.ListObjects}|Where-Object {$_.Name -like 'invSys_Inventory_*'})[0]
             $extra=$table.ListColumns.Add();$extra.Name='USER NOTE';$extra.DataBodyRange.Cells.Item(1,1).Value2='Retained receipt extension'
             $hostBook.Save();$initial=Get-AdminInventoryEntryFacts $Fixture -Persisted
@@ -246,7 +256,7 @@ function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase'
             $hostBook.Save();$table.DataBodyRange.Cells.Item(1,1).Select()
             $prefix=Join-Path $runRoot ('before-queue-'+$case)
             if($AdminInventoryEditCanonicalSaveOnly){
-                [void](Run 'invSys.Admin.xlam' 'TestInventoryEditSave.Arm' @($case,$sourcePath,$hostPath,$prefix))
+                [void](Run $script:InventoryEditSaveProbePackage 'TestInventoryEditSave.Arm' @($case,$sourcePath,$hostPath,$prefix))
             }
             [void](Run 'invSys.Core.xlam' 'TestInventoryEditReceipt.Arm' @($case,$sourcePath,$hostPath,$prefix))
             $resultMode='ReceiptEdit'
@@ -308,6 +318,9 @@ function Test-InventoryEditReceiptPhases($Fixture,$Other,[ValidateSet('','Phase'
                 $table=@($hostBook.Worksheets|ForEach-Object {$_.ListObjects}|Where-Object {$_.Name -like 'invSys_Inventory_*'})[0]
                 SelectTarget $Fixture;$hostBook.Activate();$table.DataBodyRange.Cells.Item(1,1).Select()
                 $retryBefore=$after;$retryTarget=5;$retryDelta=1
+                if($case -eq 'QueueFailure' -and ($AdminInventoryEditReceiptAllOnly -or $AdminInventoryEditOwnershipOnly)){
+                    Test-InventoryEditPendingOwnership $Fixture $hostBook $sourcePath $after
+                }
                 if($AdminInventoryEditReceiptResultsOnly){$retryDelta=0}
                 if($case -eq 'OperatorSaveThrowsLaterQuantity'){
                     [void](Run 'invSys.Core.xlam' 'TestInventoryEditReceipt.Arm' @('','','',''))

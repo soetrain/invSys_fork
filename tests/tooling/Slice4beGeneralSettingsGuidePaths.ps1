@@ -1,12 +1,12 @@
 # Authored intent compared with independent recordings through packaged controls.
-function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActions,[switch]$WorksheetScale,[switch]$SettingsNavigation,[switch]$Reconcile,[switch]$VerifyAddins,[switch]$AdminConsole,[switch]$Users,[switch]$Seed,[switch]$DirectoryActions,[switch]$RootActions,[switch]$CreateActions,[switch]$TesterActions,[switch]$AggregationActions) {
-    if(@($CloseActions,$WorksheetScale,$SettingsNavigation,$Reconcile,$VerifyAddins,$AdminConsole,$Users,$Seed,$DirectoryActions,$RootActions,$CreateActions,$TesterActions,$AggregationActions|Where-Object{$_}).Count -gt 1){throw 'Choose one independent guide fixture.'}
+function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActions,[switch]$WorksheetScale,[switch]$SettingsNavigation,[switch]$Reconcile,[switch]$VerifyAddins,[switch]$AdminConsole,[switch]$Users,[switch]$Seed,[switch]$DirectoryActions,[switch]$RootActions,[switch]$CreateActions,[switch]$TesterActions,[switch]$AggregationActions,[switch]$InventoryActions,[switch]$InventorySelections,[switch]$InventoryUom) {
+    if(@($CloseActions,$WorksheetScale,$SettingsNavigation,$Reconcile,$VerifyAddins,$AdminConsole,$Users,$Seed,$DirectoryActions,$RootActions,$CreateActions,$TesterActions,$AggregationActions,$InventoryActions|Where-Object{$_}).Count -gt 1){throw 'Choose one independent guide fixture.'}
     function Delivered([string]$Value){if($Value -cne 'DELIVERED'){throw 'Actual General guide control unavailable; not product RED.'}}
     function Author([string]$Name,[string]$Action,[string]$Value=''){BoundControl $Name $Action $Value 'frmActionPathGuide'}
     function View([string]$Name,[string]$Action,[string]$Value=''){BoundControl $Name $Action $Value 'frmActionPathView'}
     function Retained($Before,$After){foreach($path in $Before.Keys){if(-not $After.ContainsKey($path) -or $After[$path] -cne $Before[$path]){return $false}};return $true}
-    $prefix=if($AggregationActions){'AggregationGuide'}elseif($TesterActions){'TesterGuide'}elseif($CreateActions){'CreateGuide'}elseif($RootActions){'RootGuide'}elseif($DirectoryActions){'DirectoryGuide'}elseif($Seed){'SeedGuide'}elseif($Users){'UsersGuide'}elseif($AdminConsole){'AdminConsoleGuide'}elseif($VerifyAddins){'AdminVerifyGuide'}elseif($Reconcile){'ReconcileGuide'}elseif($SettingsNavigation){'SettingsNavigationGuide'}elseif($WorksheetScale){'WorksheetScaleGuide'}elseif($CloseActions){'AdminCloseGuide'}else{'GeneralGuide'}
-    $capturePrefix=if($AggregationActions){'aggregation-guide-'}elseif($TesterActions){'tester-guide-'}elseif($CreateActions){'create-guide-'}elseif($RootActions){'root-guide-'}elseif($DirectoryActions){'directory-guide-'}elseif($Seed){'seed-guide-'}elseif($Users){'users-guide-'}elseif($AdminConsole){'admin-console-guide-'}elseif($VerifyAddins){'admin-verify-guide-'}elseif($Reconcile){'reconcile-guide-'}elseif($SettingsNavigation){'settings-navigation-guide-'}elseif($WorksheetScale){'worksheet-scale-guide-'}elseif($CloseActions){'admin-close-guide-'}else{'general-guide-'}
+    $prefix=if($InventoryUom){'InventoryUomGuide'}elseif($InventorySelections){'InventorySelectionGuide'}elseif($InventoryActions){'InventoryGuide'}elseif($AggregationActions){'AggregationGuide'}elseif($TesterActions){'TesterGuide'}elseif($CreateActions){'CreateGuide'}elseif($RootActions){'RootGuide'}elseif($DirectoryActions){'DirectoryGuide'}elseif($Seed){'SeedGuide'}elseif($Users){'UsersGuide'}elseif($AdminConsole){'AdminConsoleGuide'}elseif($VerifyAddins){'AdminVerifyGuide'}elseif($Reconcile){'ReconcileGuide'}elseif($SettingsNavigation){'SettingsNavigationGuide'}elseif($WorksheetScale){'WorksheetScaleGuide'}elseif($CloseActions){'AdminCloseGuide'}else{'GeneralGuide'}
+    $capturePrefix=if($InventoryUom){'inventory-uom-guide-'}elseif($InventorySelections){'inventory-selection-guide-'}elseif($InventoryActions){'inventory-guide-'}elseif($AggregationActions){'aggregation-guide-'}elseif($TesterActions){'tester-guide-'}elseif($CreateActions){'create-guide-'}elseif($RootActions){'root-guide-'}elseif($DirectoryActions){'directory-guide-'}elseif($Seed){'seed-guide-'}elseif($Users){'users-guide-'}elseif($AdminConsole){'admin-console-guide-'}elseif($VerifyAddins){'admin-verify-guide-'}elseif($Reconcile){'reconcile-guide-'}elseif($SettingsNavigation){'settings-navigation-guide-'}elseif($WorksheetScale){'worksheet-scale-guide-'}elseif($CloseActions){'admin-close-guide-'}else{'general-guide-'}
     function Pass([string]$Name,[bool]$Value){Check ($prefix+'.'+$Name) $Value|Out-Host}
     $source=@($Runs|Where-Object Kind -CEQ 'Source')[0]
     $observed=@($Runs|Where-Object Kind -CEQ 'Observed')[0]
@@ -20,6 +20,9 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
     if($Reconcile){$instruction="Open Shipment Reconcile in the training warehouse and inspect the selected exact inventory entity's shipment.`r`nRead the current quantity, balance after shipment and proposed correction. Supply a repair narrative and confirm only the intended correction.`r`nA queued correction proves command completion, not inventory application. An interrupted recording cannot borrow completion from this guide."}
     if($VerifyAddins){$instruction="Use Verify Add-ins Published twice and read each result.`r`nSuccess means the five required files are present and nonempty. It does not validate hashes, promote a deployment or apply inventory events.`r`nAn interrupted recording cannot borrow completion from this guide."}
     if($AdminConsole){$instruction="Open Admin Console twice and review its status before continuing.`r`nThese observations prove console presentation. They do not prove inventory processing or Domain application.`r`nAn interrupted recording cannot borrow completion from this guide."}
+    if($InventoryActions){$instruction="Open Add/Edit Inventory, select Edit Item, Add Item Mode, Edit Item again, then Close.`r`nThese steps prove navigation and dismissal only. They do not add, edit or retire inventory.`r`nAn interrupted recording cannot borrow completion from this guide."}
+    if($InventorySelections){$instruction="Choose the training item from its dropdown and search results. Select UOM, quantity mode, location and category.`r`nDemonstrate an invalid additional field, then add and update a valid local field, select it, remove it and demonstrate Remove with no selection. Close the form.`r`nThese actions change only the local draft. They do not save inventory. An interrupted recording cannot borrow completion from this guide."}
+    if($InventoryUom){$instruction="Use Add UOM to select a new local UOM and then the same UOM again. Cancel the next two prompts, choose an existing UOM and close the form.`r`nThe choices affect only this draft; no warehouse UOM catalog or inventory is saved.`r`nAn interrupted recording cannot borrow missing actions from this guide."}
     if($DirectoryActions){$instruction="Use View Warehouses twice and review the directory after each action.`r`nOpening the directory does not create a warehouse, change the selected target, or prove complete discovery.`r`nAn interrupted recording cannot borrow completion from this guide."}
     if($RootActions){$instruction="Use Add Warehouse Root twice with generated training folders and read each result.`r`nA confirmed preference and refreshed directory do not create a warehouse, select a target or apply inventory events.`r`nAn interrupted recording cannot borrow completion from this guide."}
     if($Users){$instruction="In a generated training warehouse, use Users & Roles to update a training account, deactivate it, then delete it.`r`nRead each owner result before continuing. SAVED proves Auth persistence, not inventory application.`r`nAn interrupted recording cannot borrow completion from this guide."}
@@ -33,9 +36,9 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
         Delivered (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Exact General guide source unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
-        Delivered (Author 'txtGuideName' 'Write' $(if($AggregationActions){'Aggregation source-set guide'}elseif($TesterActions){'Test Environment Setup guide'}elseif($CreateActions){'Create Warehouse training'}elseif($RootActions){'Add Warehouse Root training'}elseif($DirectoryActions){'View Warehouses training'}elseif($Seed){'Seed Demo Inventory training'}elseif($Users){'Users and Roles training'}elseif($AdminConsole){'Admin Console training'}elseif($VerifyAddins){'Verify Add-ins Published training'}elseif($Reconcile){'Shipment Reconcile training'}elseif($SettingsNavigation){'Settings navigation training'}elseif($WorksheetScale){'Worksheet Scale training'}elseif($CloseActions){'Settings Close training'}else{'General Settings training'}))
+        Delivered (Author 'txtGuideName' 'Write' $(if($InventoryUom){'Inventory UOM prompt training'}elseif($InventoryActions){'Inventory navigation training'}elseif($AggregationActions){'Aggregation source-set guide'}elseif($TesterActions){'Test Environment Setup guide'}elseif($CreateActions){'Create Warehouse training'}elseif($RootActions){'Add Warehouse Root training'}elseif($DirectoryActions){'View Warehouses training'}elseif($Seed){'Seed Demo Inventory training'}elseif($Users){'Users and Roles training'}elseif($AdminConsole){'Admin Console training'}elseif($VerifyAddins){'Verify Add-ins Published training'}elseif($Reconcile){'Shipment Reconcile training'}elseif($SettingsNavigation){'Settings navigation training'}elseif($WorksheetScale){'Worksheet Scale training'}elseif($CloseActions){'Settings Close training'}else{'General Settings training'}))
         Delivered (Author 'txtGuideInstructions' 'Write' $instruction)
-        Pass $(if($Users){'ThreeObservedGuideSteps'}elseif($SettingsNavigation){'SevenObservedGuideSteps'}elseif($CloseActions -or $WorksheetScale -or $Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){'TwoObservedGuideSteps'}else{'NineObservedGuideSteps'}) ((Author 'lstGuideSteps' 'Rows') -ceq [string]$Steps.Count)
+        Pass $(if($InventoryUom){'SevenObservedGuideSteps'}elseif($InventorySelections){'FifteenObservedGuideSteps'}elseif($InventoryActions){'FiveObservedGuideSteps'}elseif($Users){'ThreeObservedGuideSteps'}elseif($SettingsNavigation){'SevenObservedGuideSteps'}elseif($CloseActions -or $WorksheetScale -or $Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){'TwoObservedGuideSteps'}else{'NineObservedGuideSteps'}) ((Author 'lstGuideSteps' 'Rows') -ceq [string]$Steps.Count)
         for($index=0;$index -lt $Steps.Count;$index++){
             if((Author 'lstGuideSteps' 'Select' ([string]$index)) -cne 'SELECTED'){throw 'General guide step unavailable.'}
             Delivered (Author 'txtGuideStepInstruction' 'Write' ('Use '+$Steps[$index][0]+'. Read the owner result before continuing.'))
@@ -46,8 +49,16 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
             if((BoundControl 'lstExpectedSteps' 'Select' ([string]$index) 'frmActionPathExpectation') -cne 'SELECTED'){throw 'Expectation removal selection unavailable.'}
             Delivered (BoundControl 'btnRemoveExpectedStep' 'Click' '' 'frmActionPathExpectation')
         }
+        $uomChoicesChecked=$false
         foreach($step in $Steps){
             Delivered (BoundControl 'cboExpectedControl' 'Write' $step[1] 'frmActionPathExpectation')
+            if($InventoryUom -and -not $uomChoicesChecked -and $step[1] -ceq 'ADMIN_INVENTORY_UOM_ADD'){
+                $choices=@((BoundControl 'cboExpectedOutcome' 'Values' '' 'frmActionPathExpectation') -split "`n"|Where-Object {$_ -cne ''})
+                $expected=@('REQUESTED','STAGED','CANCELLED','REFUSED','FAILED')
+                $offered=@($expected|Where-Object {$_ -cnotin $choices}).Count -eq 0 -and @($choices|Where-Object {$_ -cnotin $expected}).Count -eq 0
+                Pass 'UomOwnerOutcomesSelectable' $offered
+                $uomChoicesChecked=$true
+            }
             if($AggregationActions){
                 $choices=@((BoundControl 'cboExpectedOutcome' 'Values' '' 'frmActionPathExpectation') -split "`n"|Where-Object {$_ -cne ''})
                 $expected=@('REQUESTED','COMPLETED','REJECTED','DENIED','FAILED','CANCELLED','INDETERMINATE','COMPLETED_STOPPED')
@@ -98,7 +109,7 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
         Pass 'ExactSourceAndAuthoredIntent' $exact
         CloseRecordingViewer;SelectTarget $Fixture 'config-reader';OpenRecordingViewer
         Pass 'ReaderCannotAuthor' (-not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-reader',$Fixture.Warehouse,'S1')))
-        $kinds=if($RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){@('Observed','Interrupted','Unconfirmed')}elseif($CloseActions -or $WorksheetScale -or $SettingsNavigation -or $Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){@('Observed','Interrupted')}else{@('Observed','Interrupted','Denied')}
+        $kinds=if($InventoryActions){@('Observed','Interrupted')}elseif($RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){@('Observed','Interrupted','Unconfirmed')}elseif($CloseActions -or $WorksheetScale -or $SettingsNavigation -or $Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){@('Observed','Interrupted')}else{@('Observed','Interrupted','Denied')}
         foreach($kind in $kinds){
             $run=@($Runs|Where-Object Kind -CEQ $kind)[0];$journal=$run.Journal
             Delivered (BoundLibrary 'Open')
@@ -118,7 +129,7 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
             Pass ($kind+'.NoDomainApplicationClaim') (@($result.TerminalSources).Count -eq 0 -and $result.ExpectedConclusion.TerminalKind -ceq 'CommandCompleted')
             # Incomplete/failed conclusions retain the actions actually completed.
             # Interruption follows Reload; denial still permits four selections.
-            $ordinals=@(if($run.Success){1..$Steps.Count}elseif($run.Incomplete -and $Users){1,2}elseif($run.Incomplete -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){1}else{2,3,6,8})
+            $ordinals=@(if($run.Success){1..$Steps.Count}elseif($run.Incomplete -and $InventoryUom){1..3}elseif($run.Incomplete -and $InventorySelections){1..13}elseif($run.Incomplete -and $InventoryActions){1..4}elseif($run.Incomplete -and $Users){1,2}elseif($run.Incomplete -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions){1}else{2,3,6,8})
             $exactMatches=@($result.Matches).Count -eq $ordinals.Count
             foreach($ordinal in $ordinals){
                 $expected=@($run.Records|Where-Object {$_.Ordinal -eq $ordinal -and $_.OutcomeCode -ceq $Steps[$ordinal-1][2]})
@@ -129,7 +140,7 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
             Pass ($kind+'.OnlyObservedRunCanMatch') $exactMatches
             # Reconcile loses CONFIRMED after REQUESTED was saved; the attempted
             # terminal step has an unmatched outcome. Capture remains Incomplete.
-            $missing=if($run.Incomplete -and -not ($Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions)){$Steps.Count-1}else{0}
+            $missing=if($run.Incomplete -and $InventoryUom){4}elseif($run.Incomplete -and $InventorySelections){2}elseif($run.Incomplete -and $InventoryActions){1}elseif($run.Incomplete -and -not ($Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions)){$Steps.Count-1}else{0}
             $failed=if(($Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions) -and $run.Incomplete){1}elseif(($RootActions -or $CreateActions -or $TesterActions -or $AggregationActions) -and -not $run.Success){1}elseif(-not $run.Success -and -not $run.Incomplete){5}else{0}
             $unmatched=@($result.MissingSteps).Count -eq $missing -and @($result.FailedSteps).Count -eq $failed -and @($result.UnavailableSteps).Count -eq 0
             if(($Reconcile -or $VerifyAddins -or $AdminConsole -or $Users -or $Seed -or $DirectoryActions -or $RootActions -or $CreateActions -or $TesterActions -or $AggregationActions) -and $run.Incomplete){$unmatched=$unmatched -and $result.FailedSteps[0] -ceq $guide.ExpectedConclusion.TerminalStepId -and 'REQUIRED_OUTCOME_MISMATCH' -cin @($result.ReasonCodes)}
@@ -150,7 +161,8 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
                 Pass ($kind+'.Layout.'+$method) ((BoundControl '' 'Fit' 'Current' 'frmActionPathView') -ceq 'True')
                 if($kind -ceq 'Observed' -or $method -ceq 'Compare both'){CaptureOwnedFormByCaptionEvidence 'Action Path view' ($capturePrefix+$kind.ToLowerInvariant()+'-'+$method.Replace(' ','-').ToLowerInvariant()+'.png')}
             }
-            Delivered (View 'txtActionPathDiagnostic' 'ViewportText' ($caption+"`r`nSaved diagnostic result: "+$result.EvaluationId))
+            $viewport=if($InventoryActions){'Saved diagnostic result: '+$result.EvaluationId}else{$caption+"`r`nSaved diagnostic result: "+$result.EvaluationId}
+            Delivered (View 'txtActionPathDiagnostic' 'ViewportText' $viewport)
             CaptureOwnedFormByCaptionEvidence 'Action Path view' ($capturePrefix+$kind.ToLowerInvariant()+'-conclusion.png')
             Pass ($kind+'.ViewsPreserveTrainingEvidence') (BoundSame $pins (BoundPins $journalRoot))
             Delivered (View 'btnCloseActionPathView' 'Click')

@@ -46,6 +46,10 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
     End If
     sourceControl = (controlId = "RECEIVING_CONFIRM_WRITES" Or controlId = "DISPOSITION_CONFIRM" Or _
                      controlId = "RECEIVING_WORKSHEET_CONFIRM" Or controlId = "ADMIN_RECONCILE_INSPECT" Or controlId = "ADMIN_DEMO_SEED")
+    If controlId = "ADMIN_INVENTORY_UPLOAD_TABLE" Then
+        If outcomeCode = "REFUSED" Or outcomeCode = "EMPTY" Then Valid = (references.Count = 0): Exit Function
+        sourceControl = True
+    End If
     If controlId = "PRODUCTION_RUN_COMPLETE" Then
         Set outcome = modProductionCompleteCodes.Outcome(controlId, outcomeCode)
         If outcome Is Nothing Then Exit Function
@@ -83,7 +87,7 @@ Public Function Valid(ByVal warehouseId As String, ByVal controlId As String, _
         Exit Function
     End If
     If outcomeCode = "CONFIRMED" Or outcomeCode = "PENDING" Then
-        If references.Count = 0 Then Exit Function
+        If references.Count = 0 And controlId <> "ADMIN_INVENTORY_UPLOAD_TABLE" Then Exit Function
     End If
     Set seen = CreateObject("Scripting.Dictionary")
     For Each reference In references

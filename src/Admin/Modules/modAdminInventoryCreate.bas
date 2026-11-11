@@ -2,6 +2,18 @@ Attribute VB_Name = "modAdminInventoryCreate"
 Option Explicit
 Option Private Module
 
+' The owning Admin boundary generates a fresh entity identity only when Core
+' has independently verified a new catalog-only worksheet completion.
+Public Function PrepareWorksheetEdit(ByVal context As String, ByVal row As Long, _
+        ByRef reference As String, ByRef report As String) As Boolean
+    Dim needsKey As Boolean, systemKey As String
+    PrepareWorksheetEdit = modInventoryEditCommands.Prepare(context, row, reference, report, "", needsKey)
+    If PrepareWorksheetEdit Or Not needsKey Then Exit Function
+    If Not modInventoryCommands.CheckForm(context, report) Then Exit Function
+    systemKey = modRoleEventWriter.CreateSystemKey()
+    PrepareWorksheetEdit = modInventoryEditCommands.Prepare(context, row, reference, report, systemKey, needsKey)
+End Function
+
 ' Explicit completion of the retained catalog-only case. This never revives a
 ' retired key or allocates quantity among existing entities.
 Public Function CompleteCatalogItem(ByVal warehouseId As String, ByVal stationId As String, _
@@ -15,11 +27,15 @@ Public Function CompleteCatalogItem(ByVal warehouseId As String, ByVal stationId
     If targetQty <= 0 Or Trim$(editReason) = "" Or Trim$(sku) = "" Then
         report = "An exact catalog item, positive target and edit reason are required.": Exit Function
     End If
+    If interactiveContext <> "" Then
+        If Not modInventoryCommands.PrepareCreationInboxes(interactiveContext, report) Then Exit Function
+    Else
     For Each role In Array("RECEIVE", "SHIP", "PRODUCTION")
         If Not CommandCurrent(interactiveContext, warehouseId, stationId, userId, report) Then Exit Function
         If Not modConfig.EnsureStationInbox(warehouseId, stationId, CStr(role), "", inboxPath, report) Then Exit Function
         If Not CommandCurrent(interactiveContext, warehouseId, stationId, userId, report) Then Exit Function
     Next role
+    End If
     systemKey = modRoleEventWriter.CreateSystemKey()
     noteText = "Admin completed catalog-only inventory item. Reason: " & editReason & _
                "; SubmittedQty=" & CStr(targetQty)

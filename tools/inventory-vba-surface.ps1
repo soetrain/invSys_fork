@@ -116,6 +116,12 @@ function Get-StringSha256 {
 
 function Read-Json {
     param([string]$Path)
+    # PowerShell 7.5+ otherwise materializes ISO timestamps as DateTime values,
+    # although the JSON contract declares them as strings. Preserve their text;
+    # Windows PowerShell 5.1 has no DateKind parameter and retains its reader.
+    if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) {
+        return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json -DateKind String)
+    }
     return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)
 }
 

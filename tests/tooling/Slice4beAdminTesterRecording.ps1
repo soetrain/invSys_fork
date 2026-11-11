@@ -150,13 +150,18 @@ function Test-AdminTesterRecording($Fixture,$Other) {
             Check ('Tester.Recording.'+$Label+'.SeverityAndEffect') ($result[0].Severity -ceq $severity -and $result[0].DataEffect -ceq $(if($Outcome -ceq 'CANCELLED'){'Unchanged'}else{'Unknown'}))
         }
     }
+    # Visible test host (VT-EXCEL-01): show Excel only while it is hidden and before the host workbook exists. Setting
+    # Application.Visible=True on an already-visible Excel with a workbook open recreates the SDI frame and leaves
+    # Workbook.Windows and Application.Windows empty until Excel next runs a macro (PR4-BASE-02 v17.3/v17.4 evidence).
+    if(-not [bool]$excel.Visible){$excel.Visible=$true}
     $book=$excel.Workbooks.Add()
     $id='TEST'+[guid]::NewGuid().ToString('N').Substring(0,8).ToUpperInvariant()
     $root=[IO.Path]::GetFullPath((Join-Path $runRoot 'recording-tester'))
     $operator=Join-Path $root ($id+'.Receiving.Operator.xlsm')
     $keep=Join-Path $root 'unknown-preserved.txt'
     try{
-        $book.Windows.Item(1).Visible=$true;$excel.Visible=$true
+        $bookWindow=$book.Windows.Item(1);if(-not [bool]$bookWindow.Visible){$bookWindow.Visible=$true}
+        if(-not [bool]$excel.Visible){$excel.Visible=$true}
         SelectTarget $Fixture
         if(-not [bool](Probe 'SetPolicy')){throw 'Tester recording policy prerequisite unavailable.'}
         if($AdminTesterGuideOnly){

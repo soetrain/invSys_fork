@@ -15,6 +15,8 @@ Attribute VB_Exposed = False
 '@RuntimeStubUserFormCode
 Option Explicit
 
+Private mActivity As cProvisioningActivity
+
 Private WithEvents mBtnAddField As MSForms.CommandButton
 Attribute mBtnAddField.VB_VarHelpID = -1
 Private WithEvents mBtnRemoveField As MSForms.CommandButton
@@ -63,16 +65,19 @@ Private mLblCustomValue As MSForms.Label
 Private mLblGenerated As MSForms.Label
 Private mLblStatus As MSForms.Label
 Private mTxtItemName As MSForms.TextBox
-Private mCmbLocation As MSForms.ComboBox
+Private WithEvents mCmbLocation As MSForms.ComboBox
+Attribute mCmbLocation.VB_VarHelpID = -1
 Private mTxtDescription As MSForms.TextBox
-Private mCmbCategory As MSForms.ComboBox
+Private WithEvents mCmbCategory As MSForms.ComboBox
+Attribute mCmbCategory.VB_VarHelpID = -1
 Private mTxtVendorName As MSForms.TextBox
 Private mTxtVendorCode As MSForms.TextBox
 Private mTxtExternalCode As MSForms.TextBox
 Private mTxtEditReason As MSForms.TextBox
 Private mTxtCustomName As MSForms.TextBox
 Private mTxtCustomValue As MSForms.TextBox
-Private mLstCustomFields As MSForms.ListBox
+Private WithEvents mLstCustomFields As MSForms.ListBox
+Attribute mLstCustomFields.VB_VarHelpID = -1
 
 Private mAccepted As Boolean
 Private mGeneratedSku As String
@@ -89,6 +94,7 @@ Private mFilteringEditItems As Boolean
 Private mPreviousUom As String
 Private mInitStep As String
 Private mAllowUomPrompt As Boolean
+Private mSkipUomClick As Boolean
 Private mImagePlaceholderActive As Boolean
 Private mOperatorWorkbook As Workbook
 Private mInteractiveContext As String
@@ -108,6 +114,10 @@ Private Const IMAGE_PATH_PLACEHOLDER As String = "Paste picture file path(s) or 
 Private Const QTY_OPTION_UTILITY As String = "Utility"
 Private Const QTY_OPTION_SERVICE As String = "Service"
 Private Const QTY_OPTION_NOT_COUNTED As String = "Not counted"
+
+Public Sub ObserveWith(ByVal activity As cProvisioningActivity)
+    If mActivity Is Nothing Then Set mActivity = activity
+End Sub
 
 Public Property Get Accepted() As Boolean
     Accepted = mAccepted
@@ -147,7 +157,7 @@ Public Property Get StartingQty() As Double
 End Property
 
 Public Property Get NonCountedItem() As Boolean
-    NonCountedItem = QuantityModeIsNonCounted(QuantityModeText())
+    NonCountedItem = modInventoryUiText.QuantityModeIsNonCounted(QuantityModeText())
 End Property
 
 Public Property Get LocationValue() As String
@@ -192,7 +202,7 @@ Public Property Get CustomFields() As Object
     result.CompareMode = vbTextCompare
     If NonCountedItem Then
         result("TRACK_QTY") = "FALSE"
-        result("ITEM_KIND") = NonCountedItemKind()
+        result("ITEM_KIND") = modInventoryUiText.NonCountedItemKind(QuantityModeText())
     Else
         result("TRACK_QTY") = "TRUE"
         result("ITEM_KIND") = "INVENTORY"
@@ -284,11 +294,11 @@ Public Function TestAddItemVisibilityDropdownContract() As String
         "", "", "", "FINISHED", "", "", "TRUE", "INVENTORY", "5"
 
     locationDropdown = (TypeName(mCmbLocation) = "ComboBox" And _
-        ComboContainsValue(mCmbLocation, "CLEARVIEW") And _
-        ComboContainsValue(mCmbLocation, "SECONDARY"))
+        modInventoryUiText.ComboContainsValue(mCmbLocation, "CLEARVIEW") And _
+        modInventoryUiText.ComboContainsValue(mCmbLocation, "SECONDARY"))
     categoryDropdown = (TypeName(mCmbCategory) = "ComboBox" And _
-        ComboContainsValue(mCmbCategory, "RAW") And _
-        ComboContainsValue(mCmbCategory, "FINISHED"))
+        modInventoryUiText.ComboContainsValue(mCmbCategory, "RAW") And _
+        modInventoryUiText.ComboContainsValue(mCmbCategory, "FINISHED"))
 
     testStage = "SubmitHandler"
     mTxtItemName.Value = "Honey"
@@ -550,6 +560,7 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Private Sub UserForm_Activate()
+    If Not mActivity Is Nothing Then mActivity.Presented Me.Visible
     mAllowUomPrompt = True
     If mAnchors Is Nothing Then InitializeAddInventoryAnchors
     If Not mResizeInitialized Then
@@ -566,13 +577,13 @@ End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
-        mAccepted = False
         Cancel = True
-        Me.Hide
+        mBtnCancel_Click
     End If
 End Sub
 
 Private Sub UserForm_Terminate()
+    Set mActivity = Nothing
     Set mAnchors = Nothing
     Set mOperatorWorkbook = Nothing
 End Sub
@@ -584,80 +595,80 @@ Private Sub EnsureControls()
     Me.Width = 575
     Me.Height = 665
 
-    Set mBtnAddMode = AddButton("btnAddMode", 14, 10, 118, 24, "Add Item Mode")
-    Set mBtnEditMode = AddButton("btnEditMode", 138, 10, 118, 24, "Edit Item")
-    Set mBtnDeleteItem = AddButton("btnDeleteItem", 262, 10, 100, 24, "Delete Item")
+    Set mBtnAddMode = modInventoryUiText.AddButton(Me.Controls, "btnAddMode", 14, 10, 118, 24, "Add Item Mode")
+    Set mBtnEditMode = modInventoryUiText.AddButton(Me.Controls, "btnEditMode", 138, 10, 118, 24, "Edit Item")
+    Set mBtnDeleteItem = modInventoryUiText.AddButton(Me.Controls, "btnDeleteItem", 262, 10, 100, 24, "Delete Item")
 
-    Set mLblTitle = AddLabel("lblTitle", 14, 44, 530, 20, "Add inventory item")
+    Set mLblTitle = modInventoryUiText.AddLabel(Me.Controls, "lblTitle", 14, 44, 530, 20, "Add inventory item")
     mLblTitle.Font.Bold = True
-    Set mLblContext = AddLabel("lblContext", 14, 66, 530, 18, "Fill the required fields. Internal item code is generated by invSys.")
-    Set mLblGenerated = AddLabel("lblGenerated", 14, 90, 530, 32, "")
+    Set mLblContext = modInventoryUiText.AddLabel(Me.Controls, "lblContext", 14, 66, 530, 18, "Fill the required fields. Internal item code is generated by invSys.")
+    Set mLblGenerated = modInventoryUiText.AddLabel(Me.Controls, "lblGenerated", 14, 90, 530, 32, "")
     mLblGenerated.WordWrap = True
-    Set mLblEditItem = AddLabel("lblEditItem", 14, 128, 126, 18, "Inventory item")
-    Set mCmbEditItem = AddCombo("cmbEditItem", 146, 124, 392, 22)
+    Set mLblEditItem = modInventoryUiText.AddLabel(Me.Controls, "lblEditItem", 14, 128, 126, 18, "Inventory item")
+    Set mCmbEditItem = modInventoryUiText.AddCombo(Me.Controls, "cmbEditItem", 146, 124, 392, 22)
     mCmbEditItem.ColumnCount = 2
     mCmbEditItem.ColumnWidths = "360 pt;0 pt"
     mCmbEditItem.Style = fmStyleDropDownCombo
     mCmbEditItem.MatchEntry = fmMatchEntryNone
     mCmbEditItem.AutoWordSelect = False
     mCmbEditItem.ListRows = 12
-    Set mLstEditItemResults = AddListBox("lstEditItemResults", 146, 148, 392, 96)
+    Set mLstEditItemResults = modInventoryUiText.AddListBox(Me.Controls, "lstEditItemResults", 146, 148, 392, 96)
     mLstEditItemResults.ColumnCount = 2
     mLstEditItemResults.ColumnWidths = "360 pt;0 pt"
     mLstEditItemResults.Visible = False
 
-    Set mLblItemName = AddLabel("lblItemName", 14, 158, 126, 18, "Item name *")
-    Set mTxtItemName = AddTextBox("txtItemName", 146, 154, 392, 22)
-    Set mLblUom = AddLabel("lblUom", 14, 190, 126, 18, "UOM *")
-    Set mCmbUom = AddCombo("cmbUom", 146, 186, 120, 22)
+    Set mLblItemName = modInventoryUiText.AddLabel(Me.Controls, "lblItemName", 14, 158, 126, 18, "Item name *")
+    Set mTxtItemName = modInventoryUiText.AddTextBox(Me.Controls, "txtItemName", 146, 154, 392, 22)
+    Set mLblUom = modInventoryUiText.AddLabel(Me.Controls, "lblUom", 14, 190, 126, 18, "UOM *")
+    Set mCmbUom = modInventoryUiText.AddCombo(Me.Controls, "cmbUom", 146, 186, 120, 22)
     LoadUomOptions
-    Set mLblQty = AddLabel("lblQty", 288, 190, 92, 18, "Starting qty *")
-    Set mTxtQty = AddCombo("txtQty", 386, 186, 152, 22)
+    Set mLblQty = modInventoryUiText.AddLabel(Me.Controls, "lblQty", 288, 190, 92, 18, "Starting qty *")
+    Set mTxtQty = modInventoryUiText.AddCombo(Me.Controls, "txtQty", 386, 186, 152, 22)
     LoadQuantityOptions
 
-    Set mLblLocation = AddLabel("lblLocation", 14, 222, 126, 18, "Default location")
-    Set mCmbLocation = AddCombo("cmbLocation", 146, 218, 120, 22)
+    Set mLblLocation = modInventoryUiText.AddLabel(Me.Controls, "lblLocation", 14, 222, 126, 18, "Default location")
+    Set mCmbLocation = modInventoryUiText.AddCombo(Me.Controls, "cmbLocation", 146, 218, 120, 22)
     mCmbLocation.Style = fmStyleDropDownCombo
     mCmbLocation.MatchEntry = fmMatchEntryComplete
-    Set mLblCategory = AddLabel("lblCategory", 288, 222, 92, 18, "Category")
-    Set mCmbCategory = AddCombo("cmbCategory", 386, 218, 152, 22)
+    Set mLblCategory = modInventoryUiText.AddLabel(Me.Controls, "lblCategory", 288, 222, 92, 18, "Category")
+    Set mCmbCategory = modInventoryUiText.AddCombo(Me.Controls, "cmbCategory", 386, 218, 152, 22)
     mCmbCategory.Style = fmStyleDropDownCombo
     mCmbCategory.MatchEntry = fmMatchEntryComplete
 
-    Set mLblDescription = AddLabel("lblDescription", 14, 254, 126, 18, "Description")
-    Set mTxtDescription = AddTextBox("txtDescription", 146, 250, 392, 22)
-    Set mLblVendorName = AddLabel("lblVendorName", 14, 286, 126, 18, "Vendor(s)")
-    Set mTxtVendorName = AddTextBox("txtVendorName", 146, 282, 392, 22)
-    Set mLblVendorCode = AddLabel("lblVendorCode", 14, 318, 126, 18, "Vendor code")
-    Set mTxtVendorCode = AddTextBox("txtVendorCode", 146, 314, 120, 22)
-    Set mLblExternalCode = AddLabel("lblExternalCode", 288, 318, 92, 18, "External code")
-    Set mTxtExternalCode = AddTextBox("txtExternalCode", 386, 314, 152, 22)
-    Set mLblImagePath = AddLabel("lblImagePath", 14, 350, 126, 18, "Picture path/URL")
-    Set mTxtImagePath = AddTextBox("txtImagePath", 146, 346, 392, 22)
+    Set mLblDescription = modInventoryUiText.AddLabel(Me.Controls, "lblDescription", 14, 254, 126, 18, "Description")
+    Set mTxtDescription = modInventoryUiText.AddTextBox(Me.Controls, "txtDescription", 146, 250, 392, 22)
+    Set mLblVendorName = modInventoryUiText.AddLabel(Me.Controls, "lblVendorName", 14, 286, 126, 18, "Vendor(s)")
+    Set mTxtVendorName = modInventoryUiText.AddTextBox(Me.Controls, "txtVendorName", 146, 282, 392, 22)
+    Set mLblVendorCode = modInventoryUiText.AddLabel(Me.Controls, "lblVendorCode", 14, 318, 126, 18, "Vendor code")
+    Set mTxtVendorCode = modInventoryUiText.AddTextBox(Me.Controls, "txtVendorCode", 146, 314, 120, 22)
+    Set mLblExternalCode = modInventoryUiText.AddLabel(Me.Controls, "lblExternalCode", 288, 318, 92, 18, "External code")
+    Set mTxtExternalCode = modInventoryUiText.AddTextBox(Me.Controls, "txtExternalCode", 386, 314, 152, 22)
+    Set mLblImagePath = modInventoryUiText.AddLabel(Me.Controls, "lblImagePath", 14, 350, 126, 18, "Picture path/URL")
+    Set mTxtImagePath = modInventoryUiText.AddTextBox(Me.Controls, "txtImagePath", 146, 346, 392, 22)
     ShowImagePathPlaceholder
 
-    Set mLblEditReason = AddLabel("lblEditReason", 14, 382, 126, 18, "Why the edit? *")
-    Set mTxtEditReason = AddTextBox("txtEditReason", 146, 378, 392, 22)
+    Set mLblEditReason = modInventoryUiText.AddLabel(Me.Controls, "lblEditReason", 14, 382, 126, 18, "Why the edit? *")
+    Set mTxtEditReason = modInventoryUiText.AddTextBox(Me.Controls, "txtEditReason", 146, 378, 392, 22)
     mLblEditReason.Visible = False
     mTxtEditReason.Visible = False
 
-    Set mLblCustomName = AddLabel("lblCustomName", 14, 382, 126, 18, "Additional field")
-    Set mTxtCustomName = AddTextBox("txtCustomName", 146, 378, 144, 22)
-    Set mLblCustomValue = AddLabel("lblCustomValue", 298, 382, 42, 18, "Value")
-    Set mTxtCustomValue = AddTextBox("txtCustomValue", 342, 378, 132, 22)
-    Set mBtnAddField = AddButton("btnAddField", 484, 377, 54, 24, "Add")
+    Set mLblCustomName = modInventoryUiText.AddLabel(Me.Controls, "lblCustomName", 14, 382, 126, 18, "Additional field")
+    Set mTxtCustomName = modInventoryUiText.AddTextBox(Me.Controls, "txtCustomName", 146, 378, 144, 22)
+    Set mLblCustomValue = modInventoryUiText.AddLabel(Me.Controls, "lblCustomValue", 298, 382, 42, 18, "Value")
+    Set mTxtCustomValue = modInventoryUiText.AddTextBox(Me.Controls, "txtCustomValue", 342, 378, 132, 22)
+    Set mBtnAddField = modInventoryUiText.AddButton(Me.Controls, "btnAddField", 484, 377, 54, 24, "Add")
 
-    Set mLstCustomFields = AddListBox("lstCustomFields", 146, 408, 328, 134)
+    Set mLstCustomFields = modInventoryUiText.AddListBox(Me.Controls, "lstCustomFields", 146, 408, 328, 134)
     mLstCustomFields.ColumnCount = 2
     mLstCustomFields.ColumnWidths = "130 pt;190 pt"
-    Set mBtnRemoveField = AddButton("btnRemoveField", 484, 446, 54, 24, "Remove")
+    Set mBtnRemoveField = modInventoryUiText.AddButton(Me.Controls, "btnRemoveField", 484, 446, 54, 24, "Remove")
 
-    Set mLblStatus = AddLabel("lblStatus", 146, 550, 328, 28, "")
+    Set mLblStatus = modInventoryUiText.AddLabel(Me.Controls, "lblStatus", 146, 550, 328, 28, "")
     mLblStatus.ForeColor = 255
-    Set mBtnCreateInventoryTable = AddButton("btnCreateInventoryTable", 14, 594, 154, 28, "Create Inventory Table")
-    Set mBtnUploadInventoryTable = AddButton("btnUploadInventoryTable", 174, 594, 192, 28, "Upload Selected Inventory Table")
-    Set mBtnOK = AddButton("btnOK", 374, 594, 78, 28, "Add Item")
-    Set mBtnCancel = AddButton("btnCancel", 460, 594, 78, 28, "Cancel")
+    Set mBtnCreateInventoryTable = modInventoryUiText.AddButton(Me.Controls, "btnCreateInventoryTable", 14, 594, 154, 28, "Create Inventory Table")
+    Set mBtnUploadInventoryTable = modInventoryUiText.AddButton(Me.Controls, "btnUploadInventoryTable", 174, 594, 192, 28, "Upload Selected Inventory Table")
+    Set mBtnOK = modInventoryUiText.AddButton(Me.Controls, "btnOK", 374, 594, 78, 28, "Add Item")
+    Set mBtnCancel = modInventoryUiText.AddButton(Me.Controls, "btnCancel", 460, 594, 78, 28, "Cancel")
 
     ApplyModeLayout
 End Sub
@@ -706,7 +717,7 @@ Private Sub LoadUomOptions()
     AddUomOption seen, "KG"
     If Not mCatalogItems Is Nothing Then
         For Each item In mCatalogItems
-            uomValue = CatalogField(item, "UOM")
+            uomValue = modInventoryUiText.CatalogField(item, "UOM")
             If uomValue <> "" Then AddUomOption seen, uomValue
         Next item
     End If
@@ -735,19 +746,19 @@ Private Sub LoadEditItemOptions(Optional ByVal filterText As String = "")
     If mCatalogItems Is Nothing Then Exit Sub
     normalizedFilter = AdminNormalizeSearchText(filterText)
     For Each item In mCatalogItems
-        sku = CatalogField(item, "SKU")
-        itemName = CatalogField(item, "ITEM")
+        sku = modInventoryUiText.CatalogField(item, "SKU")
+        itemName = modInventoryUiText.CatalogField(item, "ITEM")
         If sku <> "" Then
             If normalizedFilter <> "" Then
                 If Not AdminAnyTextMatchesSearch(normalizedFilter, sku, itemName, _
-                                                 CatalogField(item, "UOM"), CatalogField(item, "LOCATION"), _
-                                                 CatalogField(item, "DESCRIPTION"), CatalogField(item, "VENDOR(s)"), _
-                                                 CatalogField(item, "VENDOR_CODE"), CatalogField(item, "CATEGORY"), _
-                                                 CatalogField(item, "EXTERNAL_CODE")) Then GoTo NextItem
+                                                 modInventoryUiText.CatalogField(item, "UOM"), modInventoryUiText.CatalogField(item, "LOCATION"), _
+                                                 modInventoryUiText.CatalogField(item, "DESCRIPTION"), modInventoryUiText.CatalogField(item, "VENDOR(s)"), _
+                                                 modInventoryUiText.CatalogField(item, "VENDOR_CODE"), modInventoryUiText.CatalogField(item, "CATEGORY"), _
+                                                 modInventoryUiText.CatalogField(item, "EXTERNAL_CODE")) Then GoTo NextItem
             End If
             displayText = itemName
             If displayText = "" Then displayText = sku
-            If CatalogField(item, "UOM") <> "" Then displayText = displayText & " [" & CatalogField(item, "UOM") & "]"
+            If modInventoryUiText.CatalogField(item, "UOM") <> "" Then displayText = displayText & " [" & modInventoryUiText.CatalogField(item, "UOM") & "]"
             If sku <> "" Then displayText = displayText & "  " & sku
             mCmbEditItem.AddItem displayText
             rowIndex = mCmbEditItem.ListCount - 1
@@ -775,39 +786,18 @@ Private Sub LoadInventoryDimensionOptions()
 
     mCmbLocation.Clear
     mCmbCategory.Clear
-    AddDimensionOption mCmbLocation, seenLocations, mConfiguredDefaultLocation
+    modInventoryUiText.AddDimensionOption mCmbLocation, seenLocations, mConfiguredDefaultLocation
     If Not mCatalogItems Is Nothing Then
         For Each item In mCatalogItems
-            AddDimensionOption mCmbLocation, seenLocations, CatalogField(item, "LOCATION")
-            AddDimensionOption mCmbCategory, seenCategories, CatalogField(item, "CATEGORY")
+            modInventoryUiText.AddDimensionOption mCmbLocation, seenLocations, modInventoryUiText.CatalogField(item, "LOCATION")
+            modInventoryUiText.AddDimensionOption mCmbCategory, seenCategories, modInventoryUiText.CatalogField(item, "CATEGORY")
         Next item
     End If
     If selectedLocation <> "" Then mCmbLocation.Value = selectedLocation
     If selectedCategory <> "" Then mCmbCategory.Value = selectedCategory
 End Sub
 
-Private Sub AddDimensionOption(ByVal targetCombo As MSForms.ComboBox, _
-                               ByVal seen As Object, _
-                               ByVal valueText As String)
-    valueText = Trim$(valueText)
-    If valueText = "" Then Exit Sub
-    If seen.Exists(valueText) Then Exit Sub
-    seen.Add valueText, True
-    targetCombo.AddItem valueText
-End Sub
 
-Private Function ComboContainsValue(ByVal targetCombo As MSForms.ComboBox, _
-                                    ByVal valueText As String) As Boolean
-    Dim i As Long
-
-    If targetCombo Is Nothing Then Exit Function
-    For i = 0 To targetCombo.ListCount - 1
-        If StrComp(Trim$(CStr(targetCombo.List(i))), Trim$(valueText), vbTextCompare) = 0 Then
-            ComboContainsValue = True
-            Exit Function
-        End If
-    Next i
-End Function
 
 Private Sub ShowEditItemSearchResults(ByVal searchText As String)
     Dim i As Long
@@ -862,91 +852,32 @@ Private Sub RefreshGeneratedLabel()
     End If
 End Sub
 
-Private Function AddLabel(ByVal controlName As String, _
-                          ByVal leftPos As Single, _
-                          ByVal topPos As Single, _
-                          ByVal widthVal As Single, _
-                          ByVal heightVal As Single, _
-                          ByVal captionText As String) As MSForms.Label
-    Set AddLabel = Me.Controls.Add("Forms.Label.1", controlName, True)
-    AddLabel.Left = leftPos
-    AddLabel.Top = topPos
-    AddLabel.Width = widthVal
-    AddLabel.Height = heightVal
-    AddLabel.Caption = captionText
-End Function
-
-Private Function AddTextBox(ByVal controlName As String, _
-                            ByVal leftPos As Single, _
-                            ByVal topPos As Single, _
-                            ByVal widthVal As Single, _
-                            ByVal heightVal As Single) As MSForms.TextBox
-    Set AddTextBox = Me.Controls.Add("Forms.TextBox.1", controlName, True)
-    AddTextBox.Left = leftPos
-    AddTextBox.Top = topPos
-    AddTextBox.Width = widthVal
-    AddTextBox.Height = heightVal
-End Function
-
-Private Function AddCombo(ByVal controlName As String, _
-                          ByVal leftPos As Single, _
-                          ByVal topPos As Single, _
-                          ByVal widthVal As Single, _
-                          ByVal heightVal As Single) As MSForms.ComboBox
-    Set AddCombo = Me.Controls.Add("Forms.ComboBox.1", controlName, True)
-    AddCombo.Left = leftPos
-    AddCombo.Top = topPos
-    AddCombo.Width = widthVal
-    AddCombo.Height = heightVal
-End Function
-
-Private Function AddListBox(ByVal controlName As String, _
-                            ByVal leftPos As Single, _
-                            ByVal topPos As Single, _
-                            ByVal widthVal As Single, _
-                            ByVal heightVal As Single) As MSForms.ListBox
-    Set AddListBox = Me.Controls.Add("Forms.ListBox.1", controlName, True)
-    AddListBox.Left = leftPos
-    AddListBox.Top = topPos
-    AddListBox.Width = widthVal
-    AddListBox.Height = heightVal
-End Function
-
-Private Function AddButton(ByVal controlName As String, _
-                           ByVal leftPos As Single, _
-                           ByVal topPos As Single, _
-                           ByVal widthVal As Single, _
-                           ByVal heightVal As Single, _
-                           ByVal captionText As String) As MSForms.CommandButton
-    Set AddButton = Me.Controls.Add("Forms.CommandButton.1", controlName, True)
-    AddButton.Left = leftPos
-    AddButton.Top = topPos
-    AddButton.Width = widthVal
-    AddButton.Height = heightVal
-    AddButton.Caption = captionText
-End Function
-
 Private Sub mBtnAddField_Click()
     Dim fieldName As String
     Dim fieldValue As String
     Dim rowIndex As Long
+    Dim action As String, outcome As String
+    If mLoading Then Exit Sub
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("CUSTOM_FIELD_ADD")
+    outcome = "REJECTED"
 
-    fieldName = NormalizeCustomFieldName(Trim$(CStr(mTxtCustomName.Value)))
+    fieldName = modInventoryUiText.NormalizeCustomFieldName(Trim$(CStr(mTxtCustomName.Value)))
     fieldValue = Trim$(CStr(mTxtCustomValue.Value))
     If fieldName = "" Then
         mLblStatus.Caption = "Additional field name is required."
-        Exit Sub
+        GoTo Finished
     End If
-    If IsReservedCustomField(fieldName) Then
+    If modInventoryUiText.IsReservedCustomField(fieldName) Then
         mLblStatus.Caption = "That field is already handled by the form."
-        Exit Sub
+        GoTo Finished
     End If
     If fieldValue = "" Then
         mLblStatus.Caption = "Additional field value is required."
-        Exit Sub
+        GoTo Finished
     End If
 
-    rowIndex = FindCustomFieldRow(fieldName)
+    mLoading = True
+    rowIndex = modInventoryUiText.FindCustomFieldRow(mLstCustomFields, fieldName)
     If rowIndex < 0 Then
         mLstCustomFields.AddItem fieldName
         rowIndex = mLstCustomFields.ListCount - 1
@@ -955,25 +886,41 @@ Private Sub mBtnAddField_Click()
     mTxtCustomName.Value = ""
     mTxtCustomValue.Value = ""
     mLblStatus.Caption = ""
+    mLoading = False: outcome = "STAGED"
+Finished:
+    If Not mActivity Is Nothing Then mActivity.Finish action, outcome
 End Sub
 
 Private Sub mBtnRemoveField_Click()
-    If mLstCustomFields.ListIndex >= 0 Then mLstCustomFields.RemoveItem mLstCustomFields.ListIndex
+    Dim action As String, outcome As String
+    If mLoading Then Exit Sub
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("CUSTOM_FIELD_REMOVE")
+    outcome = "UNCHANGED": mLoading = True
+    If mLstCustomFields.ListIndex >= 0 Then
+        mLstCustomFields.RemoveItem mLstCustomFields.ListIndex: outcome = "STAGED"
+    End If
+    mLoading = False
+    If Not mActivity Is Nothing Then mActivity.Finish action, outcome
 End Sub
 
 Private Sub mBtnCreateInventoryTable_Click()
     Dim report As String
     Dim tableName As String
     Dim succeeded As Boolean
+    Dim action As String, outcome As String
 
     On Error GoTo Failed
-    If Not CurrentContextAllowed() Then Exit Sub
+    outcome = "REFUSED"
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("CREATE_TABLE")
+    If Not CurrentContextAllowed() Then GoTo Refused
     If mOperatorWorkbook Is Nothing Then
         mLblStatus.Caption = "The captured Admin operator workbook is unavailable."
-        Exit Sub
+        GoTo Refused
     End If
     succeeded = modAdminInventoryWorksheet.CreateInventoryWorksheetTable( _
-            mOperatorWorkbook, tableName, report, mInteractiveContext)
+            mOperatorWorkbook, tableName, report, mInteractiveContext, outcome)
+    If Not mActivity Is Nothing Then mActivity.Finish action, outcome
+    action = ""
     If succeeded Then
         mLastInventoryTableName = tableName
         mAccepted = False
@@ -987,24 +934,32 @@ Private Sub mBtnCreateInventoryTable_Click()
     If succeeded Then Me.Hide
     Exit Sub
 
+Refused:
+    If Not mActivity Is Nothing Then mActivity.Finish action, "REFUSED"
+    Exit Sub
 Failed:
     report = "Inventory worksheet creation failed: " & Err.Description
     mLastInventoryWorksheetReport = report
     mLblStatus.Caption = report
+    If Not mActivity Is Nothing Then mActivity.Finish action, "FAILED"
 End Sub
 
 Private Sub mBtnUploadInventoryTable_Click()
     Dim report As String
     Dim succeeded As Boolean
+    Dim action As String, outcome As String, observedEvents As String
 
     On Error GoTo Failed
-    If Not CurrentContextAllowed() Then Exit Sub
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("UPLOAD_TABLE")
+    If Not CurrentContextAllowed() Then GoTo Refused
     If mOperatorWorkbook Is Nothing Then
         mLblStatus.Caption = "The captured Admin operator workbook is unavailable."
-        Exit Sub
+        GoTo Refused
     End If
     succeeded = modAdminInventoryWorksheet.UploadSelectedInventoryWorksheetTable( _
-        mOperatorWorkbook, mWarehouseId, mStationId, mUserId, report, mInteractiveContext)
+        mOperatorWorkbook, mWarehouseId, mStationId, mUserId, report, mInteractiveContext, outcome, observedEvents)
+    If Not mActivity Is Nothing Then mActivity.Finish action, outcome, modInventoryWorksheetActivity.References(action, observedEvents)
+    action = ""
     mLastInventoryWorksheetReport = report
     mLblStatus.Caption = report
     If Not modAdminInventoryWorksheet.InventoryWorksheetAutomationEnabled() Then _
@@ -1013,10 +968,14 @@ Private Sub mBtnUploadInventoryTable_Click()
     Me.Hide
     Exit Sub
 
+Refused:
+    If Not mActivity Is Nothing Then mActivity.Finish action, "REFUSED"
+    Exit Sub
 Failed:
     report = "Inventory worksheet upload failed: " & Err.Description
     mLastInventoryWorksheetReport = report
     mLblStatus.Caption = report
+    If Not mActivity Is Nothing Then mActivity.Finish action, "FAILED", modInventoryWorksheetActivity.References(action, observedEvents)
 End Sub
 
 Private Sub mBtnOK_Click()
@@ -1049,15 +1008,21 @@ Private Function PromptForEditReason() As Boolean
 End Function
 
 Private Sub mBtnAddMode_Click()
+    Dim action As String
     If mLoading Then Exit Sub
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("ADD_MODE")
     mEditMode = False
     ApplyModeLayout
+    If Not mActivity Is Nothing Then mActivity.Finish action, "SELECTED"
 End Sub
 
 Private Sub mBtnEditMode_Click()
+    Dim action As String
     If mLoading Then Exit Sub
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("EDIT_MODE")
     mEditMode = True
     ApplyModeLayout
+    If Not mActivity Is Nothing Then mActivity.Finish action, "SELECTED"
 End Sub
 
 Private Sub mBtnDeleteItem_Click()
@@ -1162,8 +1127,10 @@ End Function
 
 Private Function CommitEditItemSelection(ByVal displayText As String, _
                                          ByVal sku As String) As Boolean
+    Dim action As String
     sku = Trim$(sku)
     If sku = "" Then Exit Function
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("SELECT_ITEM")
     HideEditItemSearchResults
 
     mLoading = True
@@ -1171,41 +1138,66 @@ Private Function CommitEditItemSelection(ByVal displayText As String, _
     mCmbEditItem.ListIndex = -1
     mLoading = False
 
-    LoadSelectedEditItemBySku sku
+    CommitEditItemSelection = LoadSelectedEditItemBySku(sku)
     If Not mBtnDeleteItem Is Nothing Then mBtnDeleteItem.Enabled = (mSelectedEditSku <> "")
-    CommitEditItemSelection = (StrComp(mSelectedEditSku, sku, vbTextCompare) = 0)
+    If Not mActivity Is Nothing Then mActivity.Finish action, IIf(CommitEditItemSelection, "SELECTED", "FAILED")
 End Function
 
+Private Sub ObserveSelection(ByVal suffix As String)
+    Dim action As String
+    If mLoading Or mActivity Is Nothing Then Exit Sub
+    action = mActivity.BeginAction(suffix): mActivity.Finish action, "SELECTED"
+End Sub
+Private Sub mCmbUom_Click()
+    If mLoading Then Exit Sub
+    If mSkipUomClick Then mSkipUomClick = False: Exit Sub
+    If mCmbUom.ListIndex >= 0 Then ObserveSelection "SELECT_UOM"
+End Sub
+Private Sub mTxtQty_Click()
+    If mTxtQty.ListIndex >= 0 Then ObserveSelection "SELECT_QUANTITY_MODE"
+End Sub
+Private Sub mCmbLocation_Click()
+    If mCmbLocation.ListIndex >= 0 Then ObserveSelection "SELECT_LOCATION"
+End Sub
+Private Sub mCmbCategory_Click()
+    If mCmbCategory.ListIndex >= 0 Then ObserveSelection "SELECT_CATEGORY"
+End Sub
+Private Sub mLstCustomFields_Click()
+    If mLstCustomFields.ListIndex >= 0 Then ObserveSelection "SELECT_CUSTOM_FIELD"
+End Sub
+
 Private Sub mCmbUom_Change()
-    Dim newUom As String
+    Dim newUom As String, action As String, outcome As String
 
     If mLoading Then Exit Sub
     If Trim$(CStr(mCmbUom.Value)) <> ADD_UOM_OPTION Then
         If Trim$(CStr(mCmbUom.Value)) <> "" Then mPreviousUom = Trim$(CStr(mCmbUom.Value))
         Exit Sub
     End If
+    mSkipUomClick = True
     If Not mAllowUomPrompt Then
-        If mPreviousUom <> "" Then
-            mCmbUom.Value = mPreviousUom
-        Else
-            mCmbUom.Value = "EA"
-        End If
+        mLoading = True
+        mCmbUom.Value = IIf(mPreviousUom <> "", mPreviousUom, "EA")
+        mLoading = False
         Exit Sub
     End If
 
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("UOM_ADD")
     newUom = UCase$(Trim$(InputBox("New UOM:", "invSys Admin - Add UOM")))
-    If Not CurrentContextAllowed() Then Exit Sub
+    If Not CurrentContextAllowed() Then outcome = "REFUSED": GoTo Finished
     If newUom = "" Then
-        If mPreviousUom <> "" Then
-            mCmbUom.Value = mPreviousUom
-        Else
-            mCmbUom.Value = "EA"
-        End If
-        Exit Sub
+        mLoading = True
+        mCmbUom.Value = IIf(mPreviousUom <> "", mPreviousUom, "EA")
+        mLoading = False
+        outcome = "CANCELLED": GoTo Finished
     End If
+    mLoading = True
     InsertUomBeforeAddOption newUom
     mCmbUom.Value = newUom
     mPreviousUom = newUom
+    mLoading = False: outcome = "STAGED"
+Finished:
+    If Not mActivity Is Nothing Then mActivity.Finish action, outcome
 End Sub
 
 Private Sub mTxtQty_Change()
@@ -1248,31 +1240,17 @@ Private Function QuantityModeText() As String
     QuantityModeText = Trim$(CStr(mTxtQty.Value))
 End Function
 
-Private Function QuantityModeIsNonCounted(ByVal valueText As String) As Boolean
-    Select Case UCase$(Trim$(valueText))
-        Case "UTILITY", "SERVICE", "NOT COUNTED", "NON-COUNTED", "NONCOUNTED", "UNTRACKED"
-            QuantityModeIsNonCounted = True
-    End Select
-End Function
 
-Private Function NonCountedItemKind() As String
-    Select Case UCase$(QuantityModeText())
-        Case "UTILITY"
-            NonCountedItemKind = "UTILITY"
-        Case "SERVICE"
-            NonCountedItemKind = "SERVICE"
-        Case Else
-            NonCountedItemKind = "NON_COUNTED"
-    End Select
-End Function
 
 Private Sub ApplyQuantityModeState()
+    Dim wasLoading As Boolean
     If mTxtQty Is Nothing Or mLblQty Is Nothing Then Exit Sub
+    wasLoading = mLoading: mLoading = True
     mTxtQty.Enabled = True
     If NonCountedItem Then
         mLblQty.Caption = "Qty mode"
         If Not mCmbCategory Is Nothing Then
-            If Trim$(CStr(mCmbCategory.Value)) = "" Then mCmbCategory.Value = NonCountedItemKind()
+            If Trim$(CStr(mCmbCategory.Value)) = "" Then mCmbCategory.Value = modInventoryUiText.NonCountedItemKind(QuantityModeText())
         End If
         If UCase$(QuantityModeText()) = "UTILITY" Then
             If Not mTxtVendorName Is Nothing Then
@@ -1284,6 +1262,7 @@ Private Sub ApplyQuantityModeState()
     Else
         mLblQty.Caption = "Starting qty *"
     End If
+    mLoading = wasLoading
 End Sub
 
 Private Sub InsertUomBeforeAddOption(ByVal uomValue As String)
@@ -1336,6 +1315,8 @@ Private Sub ApplyModeLayout()
 End Sub
 
 Private Sub ClearEditableFields()
+    Dim wasLoading As Boolean
+    wasLoading = mLoading: mLoading = True
     mTxtItemName.Value = ""
     mCmbUom.Value = "EA"
     mPreviousUom = "EA"
@@ -1353,6 +1334,7 @@ Private Sub ClearEditableFields()
     mTxtCustomValue.Value = ""
     mLstCustomFields.Clear
     If Not mBtnDeleteItem Is Nothing Then mBtnDeleteItem.Enabled = False
+    mLoading = wasLoading
 End Sub
 
 Private Sub LoadSelectedEditItem()
@@ -1363,38 +1345,40 @@ Private Sub LoadSelectedEditItem()
     LoadSelectedEditItemBySku sku
 End Sub
 
-Private Sub LoadSelectedEditItemBySku(ByVal sku As String)
+Private Function LoadSelectedEditItemBySku(ByVal sku As String) As Boolean
     Dim item As Object
     Dim report As String
+    Dim wasLoading As Boolean
 
     sku = Trim$(sku)
-    If sku = "" Then Exit Sub
-    Set item = FindCatalogItemBySku(sku)
-    If item Is Nothing Then Exit Sub
+    If sku = "" Then Exit Function
+    Set item = modInventoryUiText.FindCatalogItemBySku(mCatalogItems, sku)
+    If item Is Nothing Then Exit Function
     If mInteractiveContext <> "" Then
-        If Not modInventoryCommands.SelectSku(mInteractiveContext, sku, report) Then mLblStatus.Caption = report: Exit Sub
+        If Not modInventoryCommands.SelectSku(mInteractiveContext, sku, report) Then mLblStatus.Caption = report: Exit Function
     End If
 
+    wasLoading = mLoading: mLoading = True
     mSelectedEditSku = sku
-    mTxtItemName.Value = CatalogField(item, "ITEM")
-    If CatalogField(item, "UOM") <> "" Then
-        InsertUomBeforeAddOption CatalogField(item, "UOM")
-        mCmbUom.Value = CatalogField(item, "UOM")
-        mPreviousUom = CatalogField(item, "UOM")
+    mTxtItemName.Value = modInventoryUiText.CatalogField(item, "ITEM")
+    If modInventoryUiText.CatalogField(item, "UOM") <> "" Then
+        InsertUomBeforeAddOption modInventoryUiText.CatalogField(item, "UOM")
+        mCmbUom.Value = modInventoryUiText.CatalogField(item, "UOM")
+        mPreviousUom = modInventoryUiText.CatalogField(item, "UOM")
     Else
         mCmbUom.Value = "EA"
         mPreviousUom = "EA"
     End If
     mTxtQty.Value = ""
-    mCmbLocation.Value = CatalogField(item, "LOCATION")
-    mTxtDescription.Value = CatalogField(item, "DESCRIPTION")
-    mCmbCategory.Value = CatalogField(item, "CATEGORY")
-    mTxtVendorName.Value = CatalogField(item, "VENDOR(s)")
-    mTxtVendorCode.Value = CatalogField(item, "VENDOR_CODE")
-    mTxtExternalCode.Value = CatalogField(item, "EXTERNAL_CODE")
+    mCmbLocation.Value = modInventoryUiText.CatalogField(item, "LOCATION")
+    mTxtDescription.Value = modInventoryUiText.CatalogField(item, "DESCRIPTION")
+    mCmbCategory.Value = modInventoryUiText.CatalogField(item, "CATEGORY")
+    mTxtVendorName.Value = modInventoryUiText.CatalogField(item, "VENDOR(s)")
+    mTxtVendorCode.Value = modInventoryUiText.CatalogField(item, "VENDOR_CODE")
+    mTxtExternalCode.Value = modInventoryUiText.CatalogField(item, "EXTERNAL_CODE")
     If Not mTxtEditReason Is Nothing Then mTxtEditReason.Value = ""
-    If CatalogItemIsNonCounted(item) Then
-        Select Case UCase$(CatalogField(item, "ITEM_KIND"))
+    If modInventoryUiText.CatalogItemIsNonCounted(item) Then
+        Select Case UCase$(modInventoryUiText.CatalogField(item, "ITEM_KIND"))
             Case "UTILITY"
                 mTxtQty.Value = QTY_OPTION_UTILITY
             Case "SERVICE"
@@ -1402,21 +1386,25 @@ Private Sub LoadSelectedEditItemBySku(ByVal sku As String)
             Case Else
                 mTxtQty.Value = QTY_OPTION_NOT_COUNTED
         End Select
-    ElseIf CatalogField(item, "QTY_ON_HAND") <> "" Then
-        mTxtQty.Value = CatalogField(item, "QTY_ON_HAND")
+    ElseIf modInventoryUiText.CatalogField(item, "QTY_ON_HAND") <> "" Then
+        mTxtQty.Value = modInventoryUiText.CatalogField(item, "QTY_ON_HAND")
     End If
     ApplyQuantityModeState
-    SetImagePathValue CatalogField(item, "IMAGE_PATH")
+    SetImagePathValue modInventoryUiText.CatalogField(item, "IMAGE_PATH")
     mLstCustomFields.Clear
     RefreshGeneratedLabel
     mLblStatus.Caption = ""
-End Sub
+    mLoading = wasLoading: LoadSelectedEditItemBySku = True
+End Function
 
 Private Sub mBtnCancel_Click()
+    Dim action As String
+    If Not mActivity Is Nothing Then action = mActivity.BeginAction("CLOSE")
     mAccepted = False
     mDeleteRequested = False
     mDeleteReason = ""
     Me.Hide
+    If Not mActivity Is Nothing Then mActivity.Finish action, "CLOSED"
 End Sub
 
 Private Function ValidateForm() As Boolean
@@ -1460,67 +1448,4 @@ Private Function ValidateForm() As Boolean
         End If
     End If
     ValidateForm = True
-End Function
-
-Private Function CatalogItemIsNonCounted(ByVal item As Variant) As Boolean
-    Dim trackQty As String
-    Dim itemKind As String
-
-    trackQty = UCase$(CatalogField(item, "TRACK_QTY"))
-    itemKind = UCase$(CatalogField(item, "ITEM_KIND"))
-    CatalogItemIsNonCounted = (trackQty = "FALSE" Or trackQty = "NO" Or trackQty = "0" _
-                               Or itemKind = "UTILITY" Or itemKind = "SERVICE" Or itemKind = "NON_COUNTED")
-End Function
-
-Private Function FindCatalogItemBySku(ByVal sku As String) As Object
-    Dim item As Variant
-
-    If mCatalogItems Is Nothing Then Exit Function
-    For Each item In mCatalogItems
-        If StrComp(CatalogField(item, "SKU"), sku, vbTextCompare) = 0 Then
-            Set FindCatalogItemBySku = item
-            Exit Function
-        End If
-    Next item
-End Function
-
-Private Function CatalogField(ByVal item As Variant, ByVal fieldName As String) As String
-    On Error Resume Next
-    CatalogField = Trim$(CStr(item(fieldName)))
-    On Error GoTo 0
-End Function
-
-Private Function FindCustomFieldRow(ByVal fieldName As String) As Long
-    Dim i As Long
-
-    FindCustomFieldRow = -1
-    For i = 0 To mLstCustomFields.ListCount - 1
-        If StrComp(CStr(mLstCustomFields.List(i, 0)), fieldName, vbTextCompare) = 0 Then
-            FindCustomFieldRow = i
-            Exit Function
-        End If
-    Next i
-End Function
-
-Private Function NormalizeCustomFieldName(ByVal fieldName As String) As String
-    fieldName = Replace(fieldName, vbCr, " ")
-    fieldName = Replace(fieldName, vbLf, " ")
-    fieldName = Replace(fieldName, vbTab, " ")
-    fieldName = Replace(fieldName, "[", "(")
-    fieldName = Replace(fieldName, "]", ")")
-    Do While InStr(1, fieldName, "  ", vbBinaryCompare) > 0
-        fieldName = Replace(fieldName, "  ", " ")
-    Loop
-    fieldName = Trim$(fieldName)
-    If Len(fieldName) > 48 Then fieldName = Left$(fieldName, 48)
-    NormalizeCustomFieldName = fieldName
-End Function
-
-Private Function IsReservedCustomField(ByVal fieldName As String) As Boolean
-    Select Case UCase$(Trim$(fieldName))
-        Case "SYSTEM_KEY", "SYSTEMKEY", "SYSTEM KEY", "SYSTEM-KEY", "CONDITION", "SKU", "ROW", "ITEM_CODE", "ITEM", "UOM", "LOCATION", "QTY", "TOTAL INV", _
-             "QTYAVAILABLE", "DESCRIPTION", "VENDOR(S)", "VENDOR_CODE", "CATEGORY", _
-             "EXTERNAL_CODE", "IMAGE_PATH", "TRACK_QTY", "ITEM_KIND", "NOTE", "IOTYPE"
-            IsReservedCustomField = True
-    End Select
 End Function

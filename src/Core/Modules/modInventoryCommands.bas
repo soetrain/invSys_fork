@@ -252,6 +252,20 @@ Public Function BeginCatalogSave(ByVal key As String, ByRef report As String) As
     BeginCatalogSave = BeginResultSave(key, PHASE_CATALOG, report)
 End Function
 
+' Only the owning worksheet EDIT coordinator uses this primitive receipt plan.
+Public Function PlanEditReceipt(ByVal key As String, ByVal headers As Variant, _
+        ByVal values As Variant, ByRef report As String) As Boolean
+    Dim entry As Object, inputs As cInventoryCommandInputs
+    On Error GoTo Refused
+    If Not CheckForm(key, report) Then Exit Function
+    Set entry = mForms.Item(key): Set inputs = entry("Inputs")
+    If Not inputs.PlanEditReceipt(headers, values) Then GoTo Refused
+    PlanEditReceipt = CheckForm(key, report)
+    Exit Function
+Refused:
+    Expire key, report
+End Function
+
 Public Function BeginQuantity(ByVal key As String, ByVal systemKey As String, _
         ByVal target As Double, ByRef report As String) As Boolean
     Dim entry As Object, inputs As cInventoryCommandInputs
@@ -296,6 +310,25 @@ Public Function BeginCreate(ByVal key As String, ByVal payload As String, ByRef 
     Exit Function
 Refused:
     Expire key, report
+End Function
+
+' Only interactive creation/completion opts into Config-preserving preparation.
+' Every role retains the captured session and exact Config ownership boundary.
+Public Function PrepareCreationInboxes(ByVal key As String, ByRef report As String) As Boolean
+    Dim entry As Object, role As Variant, inbox As String
+    On Error GoTo Refused
+    If Not CheckForm(key, report) Then Exit Function
+    Set entry = mForms.Item(key)
+    For Each role In Array("RECEIVE", "SHIP", "PRODUCTION")
+        If Not CheckForm(key, report) Then Exit Function
+        If Not modConfig.EnsureStationInboxWithoutFormatting(CStr(entry("Warehouse")), CStr(entry("Station")), _
+            CStr(role), CStr(entry("Config")), inbox, report, key) Then Exit Function
+        If Not CheckForm(key, report) Then Exit Function
+    Next role
+    PrepareCreationInboxes = True
+    Exit Function
+Refused:
+    report = "Captured inventory inbox preparation is unconfirmed."
 End Function
 
 Public Function BeginCreateSave(ByVal key As String, ByRef report As String) As Boolean
@@ -354,5 +387,6 @@ Refused:
 End Function
 
 Public Sub Release(ByVal key As String)
+    modInventoryEditCommands.ReleaseContext key
     If Not mForms Is Nothing Then mForms.Remove key
 End Sub

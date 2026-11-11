@@ -883,10 +883,10 @@ Public Function QueueInventoryCreateEvent(Optional ByVal warehouseId As String =
                                           Optional ByVal targetInboxWb As Workbook = Nothing, _
                                           Optional ByRef eventIdOut As String = "", _
                                           Optional ByRef errorMessage As String = "", _
-                                          Optional ByVal perfRunId As String = "") As Boolean
+                                          Optional ByVal perfRunId As String = "", Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
     QueueInventoryCreateEvent = QueueEventCore(ROLE_EVENT_TYPE_INVENTORY_CREATE, _
         warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", "", "", _
-        createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId)
+        createdAtUtc, targetInboxWb, eventIdOut, errorMessage, perfRunId, writeAttemptedOut:=writeAttemptedOut)
 End Function
 
 Public Function QueueAdminInventoryAdjustEvent(Optional ByVal warehouseId As String = "", _
@@ -897,8 +897,8 @@ Public Function QueueAdminInventoryAdjustEvent(Optional ByVal warehouseId As Str
                                                Optional ByVal createdAtUtc As Date = 0, _
                                                Optional ByRef eventIdOut As String = "", _
                                                Optional ByRef errorMessage As String = "", _
-                                               Optional ByVal perfRunId As String = "") As Boolean
-    QueueAdminInventoryAdjustEvent = QueueEventCore(ROLE_EVENT_TYPE_ADMIN_INVENTORY_ADJUST, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", "", "", createdAtUtc, Nothing, eventIdOut, errorMessage, perfRunId)
+                                               Optional ByVal perfRunId As String = "", Optional ByRef writeAttemptedOut As Boolean = False) As Boolean
+    QueueAdminInventoryAdjustEvent = QueueEventCore(ROLE_EVENT_TYPE_ADMIN_INVENTORY_ADJUST, warehouseId, stationId, userId, "", 0, "", noteVal, payloadJson, "", "", "", createdAtUtc, Nothing, eventIdOut, errorMessage, perfRunId, writeAttemptedOut:=writeAttemptedOut)
 End Function
 
 Public Function QueuePayloadEventCurrent(ByVal eventType As String, _
