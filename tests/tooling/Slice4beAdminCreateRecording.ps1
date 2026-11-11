@@ -110,9 +110,14 @@ function Test-AdminCreateRecording($Fixture,$Other) {
             Check ('Create.Recording.'+$Label+'.FixedSeverityAndEffect') ($result[0].Severity -ceq $severity -and $result[0].DataEffect -ceq $(if($Outcome -ceq 'CANCELLED'){'Unchanged'}else{'Unknown'}))
         }
     }
+    # Visible test host (VT-EXCEL-01): show Excel only while it is hidden and before the host workbook exists. Setting
+    # Application.Visible=True on an already-visible Excel with a workbook open recreates the SDI frame and leaves
+    # Workbook.Windows and Application.Windows empty until Excel next runs a macro (PR4-BASE-02 v17.3/v17.4 evidence).
+    if(-not [bool]$excel.Visible){$excel.Visible=$true}
     $recordingBook=$excel.Workbooks.Add()
     try{
-        $recordingBook.Windows.Item(1).Visible=$true;$excel.Visible=$true
+        $recordingWindow=$recordingBook.Windows.Item(1);if(-not [bool]$recordingWindow.Visible){$recordingWindow.Visible=$true}
+        if(-not [bool]$excel.Visible){$excel.Visible=$true}
         SelectTarget $Fixture
         if(-not [bool](Probe 'SetPolicy' @('Enabled'))){throw 'Create recording policy prerequisite unavailable.'}
         foreach($suffix in @('OPEN','SUBMIT','RETRY_PUBLISH','PUBLISH_EXISTING','OPEN_WORKBOOK','BROWSE_HUB','FIND_SHAREPOINT','PURPOSE','PUBLISH_OPTION','CLOSE')){

@@ -30,13 +30,19 @@ function Test-InventoryGuide($Fixture,[switch]$Selections,[switch]$Uom) {
         }
     }
     RecordCanonicalPins 'Entry'
+    # Visible test host (VT-EXCEL-01): show Excel only while it is hidden and before the host workbook exists. Setting
+    # Application.Visible=True on an already-visible Excel with a workbook open recreates the SDI frame and leaves
+    # Workbook.Windows and Application.Windows empty until Excel next runs a macro (PR4-BASE-02 v17.3/v17.4 evidence).
+    if(-not [bool]$excel.Visible){$excel.Visible=$true}
     $hostBook=$excel.Workbooks.Add();$hostBook.SaveAs((Join-Path $runRoot 'inventory-guide-host.xlsx'),51)
     try {
         SelectTarget $Fixture
         $authorized=[bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1'))
         if(-not $authorized){throw 'Explicit Inventory guide-maintenance fixture grant unavailable; not product RED.'}
         Check 'InventoryGuide.Recorded.ExplicitGuidePermission' $authorized
-        $hostBook.Windows.Item(1).Visible=$true;$hostBook.Activate();$excel.Visible=$true
+        $hostWindow=$hostBook.Windows.Item(1);if(-not [bool]$hostWindow.Visible){$hostWindow.Visible=$true}
+        $activeBook=$excel.ActiveWorkbook;if($null -eq $activeBook -or [string]$activeBook.Name -cne [string]$hostBook.Name){$hostBook.Activate()}
+        if(-not [bool]$excel.Visible){$excel.Visible=$true}
         Check 'InventoryGuide.Recorded.VisibleHost' ([bool]$excel.Visible -and [bool]$hostBook.Windows.Item(1).Visible)
         if(-not [bool](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.SetPolicy' @('Capture'))){throw 'Inventory capture policy fixture unavailable.'}
         # Saving the fixture's capture policy deliberately writes Config. Pin
