@@ -117,6 +117,7 @@ param(
     [switch]$SettingsSafetyOnly,
     [switch]$CheckAdminUomExpectationChoice,
     [switch]$CheckTrackingSettings,
+    [switch]$SettingsSavedWorkbookHostForTest,
     [switch]$CheckTrackingPolicy,
     [switch]$CheckUserTrackingPolicy,
     [switch]$CheckDetailProfile,
@@ -725,6 +726,9 @@ if ($CheckTrackingSettings) {
     }
     . (Join-Path $PSScriptRoot 'Slice4beTrackingSettings.ps1')
     $reportRoot = Join-Path $repo ('reports/runtime/slice4be-tracking-settings/'+[guid]::NewGuid().ToString('N'))
+}
+if ($SettingsSavedWorkbookHostForTest -and (-not $CheckTrackingSettings -or -not $VisibleExcelForTest -or -not $CompileEvaluationProbesForTest)) {
+    throw 'Saved Settings host requires the visible compiled Tracking Settings gate.'
 }
 if ($CheckTrackingPolicy -and -not $CheckTrackingSettings) { throw 'Tracking policy checks require the Settings route.' }
 if ($CheckUserTrackingPolicy -and (-not $CheckTrackingSettings -or -not $CompileEvaluationProbesForTest)) { throw 'User policy checks require the compiled Settings route.' }
@@ -1626,6 +1630,18 @@ try {
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')) {
         $packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,($ViewerStartupPackageStateForTest -eq 'OriginalReadOnly'))
     }
+    if($SettingsSavedWorkbookHostForTest){
+        # Architecture v4.11: exercise Settings with a saved operator workbook
+        # reopened under the packaged XLAM session before disposable fixtures.
+        $settingsHostPath=Join-Path $runRoot 'SettingsOperatorHost.xlsb'
+        $settingsHost=$excel.Workbooks.Add()
+        $settingsHost.SaveAs($settingsHostPath,50)
+        $settingsHost.Close($false)
+        $settingsHost=$excel.Workbooks.Open($settingsHostPath,0,$false)
+        if($settingsHost.FullName -cne $settingsHostPath -or -not $settingsHost.Saved -or $excel.Workbooks.Count -ne 1){
+            throw 'Saved Settings operator host did not reopen as the sole workbook.'
+        }
+    }
     if ($CheckActivityEvidence) {
         Check 'Activity.ProducingPackageIdentity' (Test-Slice4bePackageIdentity $deploy)
     }
@@ -2448,6 +2464,11 @@ End Function
     $a=NewFixture 'a'
     if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     $b=NewFixture 'b'
+    if($SettingsSavedWorkbookHostForTest){
+        if($settingsHost.FullName -cne $settingsHostPath -or -not $settingsHost.Saved -or $excel.Workbooks.Count -ne 1){
+            throw 'Saved Settings operator host was not retained through fixture creation.'
+        }
+    }
     if($CheckGuideTransfer){Write-GuideTransferHostState 'WarehousesCreated'}
     if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureB'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     if($PrintSeedBoundaryForTest -in @('FreshSeed','BareSeed')){
