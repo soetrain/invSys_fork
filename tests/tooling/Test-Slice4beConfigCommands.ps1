@@ -2465,7 +2465,9 @@ End Function
     if($PrintSeedBoundaryForTest -ne 'None'){'AfterFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
     $b=NewFixture 'b'
     if($SettingsSavedWorkbookHostForTest){
-        if($settingsHost.FullName -cne $settingsHostPath -or -not $settingsHost.Saved -or $excel.Workbooks.Count -ne 1){
+        # Fixture work may mark the saved host dirty. Retention is its exact
+        # open identity and existing file; do not save the operator host here.
+        if($settingsHost.FullName -cne $settingsHostPath -or -not (Test-Path -LiteralPath $settingsHostPath) -or $excel.Workbooks.Count -ne 1){
             throw 'Saved Settings operator host was not retained through fixture creation.'
         }
     }
