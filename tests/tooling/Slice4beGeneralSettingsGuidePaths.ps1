@@ -49,6 +49,10 @@ function Test-GeneralSettingsGuidePaths($Fixture,$Runs,$Steps,[switch]$CloseActi
             if((BoundControl 'lstExpectedSteps' 'Select' ([string]$index) 'frmActionPathExpectation') -cne 'SELECTED'){throw 'Expectation removal selection unavailable.'}
             Delivered (BoundControl 'btnRemoveExpectedStep' 'Click' '' 'frmActionPathExpectation')
         }
+        if($InventoryUom){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryPartialChoices.ps1')
+            Test-InventoryPartialChoices
+        }
         $uomChoicesChecked=$false
         foreach($step in $Steps){
             Delivered (BoundControl 'cboExpectedControl' 'Write' $step[1] 'frmActionPathExpectation')
