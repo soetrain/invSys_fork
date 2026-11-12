@@ -260,7 +260,10 @@ Partial:
 Failed:
     outcome = "FAILED"
     report = "Inventory worksheet upload failed: " & Err.Description
-    If succeeded > 0 Then report = "Partial result: inventory application was saved; worksheet result is unconfirmed." & vbCrLf & applyReport & vbCrLf & report
+    If succeeded > 0 Then
+        outcome = "PARTIAL"
+        report = "Partial result: inventory application was saved; worksheet result is unconfirmed." & vbCrLf & applyReport & vbCrLf & report
+    End If
     If succeeded = 0 And applyReport <> "" Then report = applyReport & vbCrLf & report
     mLastAutomationReport = report
 End Function
