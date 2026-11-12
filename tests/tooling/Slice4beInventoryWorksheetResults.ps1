@@ -1,7 +1,23 @@
 # Actual worksheet Upload handler and real source application; owned fixtures only.
 function Install-InventoryWorksheetResultProbe {
     $project=$packages['invSys.Admin.xlam'].VBProject
-    $project.VBComponents.Item('TestInventoryCommands').CodeModule.AddFromString(@'
+    $commands=$project.VBComponents.Item('TestInventoryCommands').CodeModule
+    $declarationLine=0
+    for($line=1;$line -le $commands.CountOfDeclarationLines;$line++){
+        if($commands.Lines($line,1).Trim() -ceq 'Private mLastNotice As String'){$declarationLine=$line;break}
+    }
+    if($declarationLine -eq 0){throw 'Inventory command notice declaration seam unavailable.'}
+    $commands.InsertLines($declarationLine+1,'Private mTrackingContextNotice As String')
+    $commands.AddFromString(@'
+Public Sub ResetTrackingContextNotice()
+    mTrackingContextNotice = ""
+End Sub
+Public Sub RecordTrackingContextNotice(ByVal text As String)
+    mTrackingContextNotice = text
+End Sub
+Public Function ExactTrackingContextNoticeObserved() As Boolean
+    ExactTrackingContextNoticeObserved = (mTrackingContextNotice = "Tracking unavailable: the action context is no longer current.")
+End Function
 Public Function WorksheetResultPartialForTest() As Boolean
     WorksheetResultPartialForTest = (InStr(1, mLastNotice, "partial", vbTextCompare) > 0 And _
         InStr(1, mLastNotice, "Event:", vbTextCompare) > 0 And _
@@ -71,6 +87,15 @@ End Function
     if([regex]::Matches($body,$notice).Count -ne 1){throw 'Actual worksheet notice observation unavailable.'}
     $body=[regex]::Replace($body,$notice,[Text.RegularExpressions.MatchEvaluator]{param($m) '    TestInventoryCommands.RecordNotice Prompt'+"`r`n"+$m.Value.TrimEnd("`r")})
     $form.DeleteLines($start,$count);$form.InsertLines($start,$body)
+    # The real packaged form reaches cProvisioningActivity.ShowNotice after an intentional
+    # sign-out. Observe its exact D18 notice in the test package without a native modal.
+    $activity=$project.VBComponents.Item('cProvisioningActivity').CodeModule
+    $start=$activity.ProcStartLine('ShowNotice',0);$count=$activity.ProcCountLines('ShowNotice',0)
+    $body=$activity.Lines($start,$count)
+    $tracking='If notice <> "" Then MsgBox notice, vbExclamation, "invSys Admin"'
+    if([regex]::Matches($body,[regex]::Escape($tracking)).Count -ne 1){throw 'Exact provisioning tracking notice seam unavailable.'}
+    $body=$body.Replace($tracking,'If notice <> "" Then TestInventoryCommands.RecordTrackingContextNotice notice')
+    $activity.DeleteLines($start,$count);$activity.InsertLines($start,$body)
     $owner=$project.VBComponents.Item('modAdminInventoryWorksheet').CodeModule
     $start=$owner.ProcStartLine('UploadSelectedInventoryWorksheetTable',0);$count=$owner.ProcCountLines('UploadSelectedInventoryWorksheetTable',0)
     $body=$owner.Lines($start,$count)
@@ -106,6 +131,7 @@ function Test-InventoryWorksheetResults($Fixture,$Other) {
             [void](Run 'invSys.Core.xlam' 'TestInventoryConfigSave.Reset')
             [void](Run 'invSys.Admin.xlam' 'TestInventoryWorksheetResult.Arm' @($case,$hostBook.Name))
             [void](Run 'invSys.Admin.xlam' 'TestInventoryCommands.SetSelection' @($Other.Root,''))
+            [void](Run 'invSys.Admin.xlam' 'TestInventoryCommands.ResetTrackingContextNotice')
             [void](Run 'invSys.Admin.xlam' 'TestInventoryCommands.Execute' @($hostBook.Name,'Upload','Authorized','ModalReturn',$Fixture.Root,$Fixture.Warehouse,$Fixture.Secret))
             $facts=([string](Run 'invSys.Admin.xlam' 'TestInventoryCommands.Facts')).Split('|')
             $ready=$facts.Count -eq 5 -and $facts[0] -ceq 'True' -and $facts[1] -ceq 'True' -and $facts[2] -ceq '1'
@@ -142,6 +168,9 @@ function Test-InventoryWorksheetResults($Fixture,$Other) {
             }
             if($case -cin @('AfterApplyAuthorityLost','SaveThrows','SavedAuthorityLost')){
                 Check ($id+'.HonestSavedPartialReported') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.WorksheetResultPartialForTest'))
+            }
+            if($case -cin @('PreflightAuthorityLost','AfterApplyAuthorityLost','SavedAuthorityLost')){
+                Check ($id+'.ExactTrackingContextNoticeObserved') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.ExactTrackingContextNoticeObserved'))
             }
             Check ($id+'.UnknownStagingColumnPreserved') ([string]$table.ListColumns.Item('USER NOTE').DataBodyRange.Cells.Item(1,1).Value2 -ceq 'Preserved worksheet extension')
             if($case -ceq 'Authorized'){
