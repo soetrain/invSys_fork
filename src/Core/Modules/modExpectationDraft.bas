@@ -65,7 +65,7 @@ Public Function Choices(ByVal context As String, ByVal draftId As String, ByVal 
         Next id
     Else
         For Each id In Array("REQUESTED", "COMPLETED", "UNCHANGED", "DENIED", "REFUSED", "REJECTED", "FAILED", _
-                             "CONFIRMED", "VERIFIED", "SAVED", "APPLIED", "PENDING", "STAGED", "REFRESHED", "STALE", "CLEARED", "EMPTY", _
+                             "CONFIRMED", "VERIFIED", "SAVED", "APPLIED", "PENDING", "PARTIAL", "STAGED", "REFRESHED", "STALE", "CLEARED", "EMPTY", _
                              "OPENED", "REUSED", "CLOSED", "SELECTED", "CANCELLED", "VALIDATED", "PRESENTED", "PREVIEW_RETURNED", _
                              "REMEMBERED_REFRESHED", "REMEMBERED_REFRESH_FAILED", "UNCONFIRMED_REFRESHED", "UNCONFIRMED_REFRESH_FAILED", _
                              "CREATED_LOCAL", "CREATED_PUBLISHED", "CREATED_PUBLISH_FAILED", "CREATED_PUBLISH_DENIED", "PUBLISHED", "UNAVAILABLE", _
