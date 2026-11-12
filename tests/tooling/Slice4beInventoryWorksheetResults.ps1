@@ -90,12 +90,11 @@ End Function
     # The real packaged form reaches cProvisioningActivity.ShowNotice after an intentional
     # sign-out. Observe its exact D18 notice in the test package without a native modal.
     $activity=$project.VBComponents.Item('cProvisioningActivity').CodeModule
-    $start=$activity.ProcStartLine('ShowNotice',0);$count=$activity.ProcCountLines('ShowNotice',0)
-    $body=$activity.Lines($start,$count)
-    $tracking='If notice <> "" Then MsgBox notice, vbExclamation, "invSys Admin"'
-    if([regex]::Matches($body,[regex]::Escape($tracking)).Count -ne 1){throw 'Exact provisioning tracking notice seam unavailable.'}
-    $body=$body.Replace($tracking,'If notice <> "" Then TestInventoryCommands.RecordTrackingContextNotice notice')
-    $activity.DeleteLines($start,$count);$activity.InsertLines($start,$body)
+    $body=$activity.Lines(1,$activity.CountOfLines)
+    $tracking='(?i)MsgBox\s+notice,\s+vbExclamation,\s+"invSys Admin"'
+    if([regex]::Matches($body,$tracking).Count -ne 1){throw 'Exact provisioning tracking notice seam unavailable.'}
+    $body=[regex]::Replace($body,$tracking,'TestInventoryCommands.RecordTrackingContextNotice notice')
+    $activity.DeleteLines(1,$activity.CountOfLines);$activity.AddFromString($body)
     $owner=$project.VBComponents.Item('modAdminInventoryWorksheet').CodeModule
     $start=$owner.ProcStartLine('UploadSelectedInventoryWorksheetTable',0);$count=$owner.ProcCountLines('UploadSelectedInventoryWorksheetTable',0)
     $body=$owner.Lines($start,$count)
