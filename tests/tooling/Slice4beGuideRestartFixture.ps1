@@ -13,8 +13,8 @@ function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
         $last=if($entries.Count){$entries[-1]}else{$null}
         $observations=if($last){@($last.Observations)}else{@()}
         $chainValid=JournalChain $firstAction.Attempt.SequenceId 14
-        $firstValid=HasSequence $firstAction 2
-        $secondValid=HasSequence $secondAction 5
+        $firstValid=HasSequence $firstAction 3
+        $secondValid=HasSequence $secondAction 6
         if($entries.Count -ne 14 -or -not $chainValid -or -not $firstValid -or -not $secondValid -or
            -not $last -or $last.Lifecycle -cne 'Stopped' -or $last.ActionCount -ne 6 -or $observations.Count -ne 12){
             if($reportRoot -and (Test-Path -LiteralPath $reportRoot)){

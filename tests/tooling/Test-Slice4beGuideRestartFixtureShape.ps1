@@ -20,7 +20,7 @@ $journal=@()
 function RecordingControl([string]$Caption,[string]$Operation) {'DELIVERED'}
 function SaveRecordedSetting([string]$Value) {
     $script:actionCall++
-    $ordinal=if($script:actionCall -eq 1){2}else{5}
+    $ordinal=if($script:actionCall -eq 1){3}else{6}
     $one=[pscustomobject]@{SequenceId='test-sequence';Ordinal=$ordinal}
     [pscustomobject]@{Attempt=$one;Outcome=$one}
 }
