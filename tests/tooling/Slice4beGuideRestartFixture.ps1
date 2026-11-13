@@ -10,12 +10,29 @@ function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
         $firstAction=SaveRecordedSetting $First;$secondAction=SaveRecordedSetting $Second
         if((RecordingControl 'Stop Recording' 'Click') -cne 'DELIVERED'){throw 'Actual fixture recording cannot stop.'}
         $entries=@(RecordingJournal $firstAction.Attempt.SequenceId|Sort-Object Version)
-        if($entries.Count -ne 6 -or -not (JournalChain $firstAction.Attempt.SequenceId 6) -or
-           -not (HasSequence $firstAction 1) -or -not (HasSequence $secondAction 2) -or
-           $entries[-1].Lifecycle -cne 'Stopped' -or @($entries[-1].Observations).Count -ne 4){
+        $last=if($entries.Count){$entries[-1]}else{$null}
+        $observations=if($last){@($last.Observations)}else{@()}
+        $chainValid=JournalChain $firstAction.Attempt.SequenceId 14
+        $firstValid=HasSequence $firstAction 2
+        $secondValid=HasSequence $secondAction 5
+        if($entries.Count -ne 14 -or -not $chainValid -or -not $firstValid -or -not $secondValid -or
+           -not $last -or $last.Lifecycle -cne 'Stopped' -or $last.ActionCount -ne 6 -or $observations.Count -ne 12){
+            if($reportRoot -and (Test-Path -LiteralPath $reportRoot)){
+                # Structural facts only: no IDs, entered values, paths or event payloads.
+                $facts=[ordered]@{EntryCount=$entries.Count;ChainValid=$chainValid;
+                    FirstSaveOrdinal=$firstAction.Attempt.Ordinal;SecondSaveOrdinal=$secondAction.Attempt.Ordinal;
+                    FirstSequenceValid=$firstValid;SecondSequenceValid=$secondValid;
+                    Lifecycle=if($last){$last.Lifecycle}else{''};
+                    ActionCount=if($last){$last.ActionCount}else{$null};ObservationCount=$observations.Count;
+                    ControlOutcomes=@($observations|Group-Object ControlId,OutcomeCode|ForEach-Object {
+                        [ordered]@{ControlId=$_.Group[0].ControlId;OutcomeCode=$_.Group[0].OutcomeCode;Count=$_.Count}
+                    })}
+                [IO.File]::WriteAllText((Join-Path $reportRoot 'guide-restart-journal-shape.json'),
+                    ($facts|ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
+            }
             throw 'Actual restart journal fixture is invalid; not behavioral RED.'
         }
-        return $entries[-1]
+        return $last
     }
     SelectTarget $Fixture 'config-admin'
     $published=Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest'
@@ -57,8 +74,20 @@ function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
     try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
     if($guide.ContentSha256 -cne $hash -or $guide.RecordKind -cne 'Guide' -or $guide.Version -ne 1 -or
        $guide.SourceRun.ActionPathId -cne $source.ActionPathId -or $guide.SourceRun.ContentSha256 -cne $source.ContentSha256 -or
-       $guide.ActionPathId -ceq $source.ActionPathId -or @($guide.Steps).Count -ne 2 -or
-       @($guide.Observations).Count -ne 4){throw 'Actual saved guide provenance fixture invalid.'}
+       $guide.ActionPathId -ceq $source.ActionPathId -or @($guide.Steps).Count -ne 6 -or
+       @($guide.Observations).Count -ne 12){
+        if($reportRoot -and (Test-Path -LiteralPath $reportRoot)){
+            $facts=[ordered]@{GuideSchema=$guide.SchemaVersion;Version=$guide.Version;
+                RecordKind=$guide.RecordKind;HashValid=($guide.ContentSha256 -ceq $hash);
+                SourceRunIdMatches=($guide.SourceRun.ActionPathId -ceq $source.ActionPathId);
+                SourceRunHashMatches=($guide.SourceRun.ContentSha256 -ceq $source.ContentSha256);
+                DistinctGuideId=($guide.ActionPathId -cne $source.ActionPathId);
+                Steps=@($guide.Steps).Count;Observations=@($guide.Observations).Count}
+            [IO.File]::WriteAllText((Join-Path $reportRoot 'guide-restart-provenance-shape.json'),
+                ($facts|ConvertTo-Json -Depth 3),[Text.UTF8Encoding]::new($false))
+        }
+        throw 'Actual saved guide provenance fixture invalid.'
+    }
     $expectedKind=if($ForPublishedEdit){'CommandCompleted'}else{'None'}
     if($guide.ExpectedConclusion.TerminalKind -cne $expectedKind){throw 'Actual guide expectation fixture invalid.'}
     Check 'GuidePresentation.RestartFixture.ActualGuideSaveRetainsExactSource' $true
@@ -75,7 +104,7 @@ function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
         [void](FixtureControl 'frmActionPathGuide' 'btnSaveGuide' 'Click')
         $guide=ReadGuideExpectationRecord (Join-Path $guideRoot ($firstGuide.ActionPathId+'.2.json'))
         if($null -eq $guide -or $guide.PreviousRecordId -cne $firstGuide.RecordId -or $guide.PreviousSha256 -cne $firstGuide.ContentSha256 -or
-           @($guide.ExpectedConclusion.Steps).Count -ne 1 -or $guide.ExpectedConclusion.Steps[0].StepId -cne $firstGuide.ExpectedConclusion.Steps[1].StepId -or @($guide.Steps).Count -ne 2){throw 'Actual second guide fixture invalid.'}
+           @($guide.ExpectedConclusion.Steps).Count -ne 1 -or $guide.ExpectedConclusion.Steps[0].StepId -cne $firstGuide.ExpectedConclusion.Steps[1].StepId -or @($guide.Steps).Count -ne 6){throw 'Actual second guide fixture invalid.'}
         Check 'GuideEditFixture.ActualSecondVersionRetainsPredecessorAndExplicitIntent' $true
     }
     [void](FixtureControl 'frmActionPathGuide' 'btnCancelGuide' 'Click')
