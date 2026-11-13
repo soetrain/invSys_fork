@@ -37,10 +37,11 @@ function SaveRecordedSetting([string]$Value) {
     $records=@(foreach($file in Get-ChildItem -LiteralPath $activityRoot -Filter '*.json' -File) {
         if(-not $before.ContainsKey($file.Name)) { [IO.File]::ReadAllText($file.FullName)|ConvertFrom-Json }
     })
-    $attempts=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED')
-    $outcomes=@($records|Where-Object OutcomeCode -CEQ 'COMPLETED')
-    if($records.Count -ne 2 -or $attempts.Count -ne 1 -or $outcomes.Count -ne 1 -or
-        $attempts[0].ControlId -cne 'ADMIN_SETTINGS_SAVE_VALUE' -or
+    # Settings navigation can record its own events around this Save Value action.
+    $saveRecords=@($records|Where-Object {$_.ControlId -ceq 'ADMIN_SETTINGS_SAVE_VALUE'})
+    $attempts=@($saveRecords|Where-Object OutcomeCode -CEQ 'REQUESTED')
+    $outcomes=@($saveRecords|Where-Object OutcomeCode -CEQ 'COMPLETED')
+    if($saveRecords.Count -ne 2 -or $attempts.Count -ne 1 -or $outcomes.Count -ne 1 -or
         $attempts[0].ActivityId -cne $outcomes[0].ActivityId) {
         # Diagnose fixture drift without entered values, identities or payloads.
         @($records|Group-Object ControlId,OutcomeCode|ForEach-Object {

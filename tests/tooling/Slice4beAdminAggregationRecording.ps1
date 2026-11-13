@@ -12,6 +12,9 @@ Public Function Definition(ByVal id As String, ByVal version As Long) As String
     Set model = modActivityCatalog.Control(id, version)
     If Not model Is Nothing Then Definition = modTrainingJson.EncodeObject(model)
 End Function
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
+End Function
 Public Function PriorDefinitionsPreserved() As Boolean
     Dim id As Variant, before As Object, after As Object
     For Each id In modActivityCatalog.ControlIds(42)
@@ -130,6 +133,8 @@ End Function
 
 function Test-AggregationRecording($Fixture,$Other,$HostBook,$Expected) {
     function Activity([string]$Name,[object[]]$Values=@()){Run 'invSys.Core.xlam' ('TestAggregationActivity.'+$Name) $Values}
+    $catalogVersion=[int](Activity 'CurrentCatalogVersion')
+    if($catalogVersion -lt 43){throw 'Packaged activity catalog predates Aggregation; not behavioral RED.'}
     function Observe([string]$Suffix,[string]$Outcome,[scriptblock]$Action,[string]$Label=$Suffix,[switch]$NoRetryClaim){
         $before=@(Get-Slice4beActivityFiles $Fixture)
         $ownPins=SourcePins $Fixture;$otherPins=SourcePins $Other
@@ -147,7 +152,7 @@ function Test-AggregationRecording($Fixture,$Other,$HostBook,$Expected) {
         }
         $valid=$pair
         if($pair){$valid=$attempt[0].ActivityId -ceq $result[0].ActivityId -and $attempt[0].RecordId -cne $result[0].RecordId}
-        foreach($record in $records){$valid=$valid -and $record.CatalogVersion -eq 43 -and $record.OwnerId -ceq 'ADMIN_HQ_AGGREGATION' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.StationId -ceq 'S1' -and @($record.SourceEventRefs).Count -eq 0 -and $record.DataEffect -ceq 'Unknown'}
+        foreach($record in $records){$valid=$valid -and $record.CatalogVersion -eq $catalogVersion -and $record.OwnerId -ceq 'ADMIN_HQ_AGGREGATION' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.StationId -ceq 'S1' -and @($record.SourceEventRefs).Count -eq 0 -and $record.DataEffect -ceq 'Unknown'}
         Check ('Aggregation.Recording.'+$Label+'.ExactSourceContext') $valid
         $safe=$pair
         foreach($record in $records){

@@ -17,6 +17,9 @@ Public Function Policy(ByVal id As String) As String
     ok = modActivityPolicy.ReadPolicy(modNasConnection.GetCurrentTarget(), id, version, collect, visible, notice)
     Policy = CStr(ok) & "|" & CStr(collect)
 End Function
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
+End Function
 '@)
     $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmActionPathLibrary').CodeModule
     $form.AddFromString(@'
@@ -58,6 +61,8 @@ function Test-GuideTransferActivity($Fixture,$Other,$Guide) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTransferWire.ps1')
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.CurrentCatalogVersion')
+    if($catalogVersion -lt 30){throw 'Packaged activity catalog is older than guide transfer; not behavioral RED.'}
     $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $files=Join-Path $runRoot 'transfer-activity';New-Item -ItemType Directory -Path $files|Out-Null
     function Observe($Target,[string]$Mode,[string]$Expected,[string]$Case,[string]$Path='', [string]$State='',[bool]$SignOut=$false){
@@ -75,7 +80,7 @@ function Test-GuideTransferActivity($Fixture,$Other,$Guide) {
         $pair=$delivered -and $records.Count -eq $wanted -and $first.Count -eq 1 -and ($wanted -eq 1 -or $last.Count -eq 1)
         $facts=$pair;$safe=$pair;$integrity=$pair;$terminal=$pair
         foreach($r in $records){
-            $facts=$facts -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'CORE_GUIDE_TRANSFER' -and $r.CatalogVersion -eq 30 -and $r.SourceRole -ceq 'Viewer' -and $r.UserId -ceq 'config-admin' -and $r.WarehouseId -ceq $Target.Warehouse -and $r.StationId -ceq 'S1' -and $r.SequenceId -ceq ''
+            $facts=$facts -and $r.ControlId -ceq $id -and $r.OwnerId -ceq 'CORE_GUIDE_TRANSFER' -and $r.CatalogVersion -eq $catalogVersion -and $r.SourceRole -ceq 'Viewer' -and $r.UserId -ceq 'config-admin' -and $r.WarehouseId -ceq $Target.Warehouse -and $r.StationId -ceq 'S1' -and $r.SequenceId -ceq ''
             $safe=$safe -and @($r.SourceEventRefs).Count -eq 0
             $isTerminal=[bool](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.Terminal' @(($r|ConvertTo-Json -Depth 12 -Compress)))
             $terminal=$terminal -and $isTerminal -eq ($r.OutcomeCode -ceq 'COMPLETED')
