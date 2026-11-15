@@ -17,6 +17,8 @@ function Install-AdminSeedGuideProbe {
 }
 
 function Test-AdminSeedGuide($Fixture,$Other) {
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestSeedRecording.CurrentCatalogVersion')
+    if($catalogVersion -lt 37){throw 'Packaged activity catalog predates Demo Seed; not behavioral RED.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
@@ -93,7 +95,7 @@ function Test-AdminSeedGuide($Fixture,$Other) {
             $count=if($success){4}else{3};$valid=$records.Count -eq $count;$safe=$true
             foreach($record in $records){
                 $terminal=$record.OutcomeCode -ceq 'APPLIED';$refs=@($record.SourceEventRefs)
-                $valid=$valid -and $record.ControlId -ceq 'ADMIN_DEMO_SEED' -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq 39 -and $record.UserId -ceq 'config-admin' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.DataEffect -ceq $(if($terminal){'Changed'}else{'Unknown'})
+                $valid=$valid -and $record.ControlId -ceq 'ADMIN_DEMO_SEED' -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq $catalogVersion -and $record.UserId -ceq 'config-admin' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.DataEffect -ceq $(if($terminal){'Changed'}else{'Unknown'})
                 if($terminal){$valid=$valid -and $refs.Count -eq 1;if($refs.Count -eq 1){$valid=$valid -and $refs[0].EventId -ceq $eventIds[$record.Ordinal-1] -and $refs[0].WarehouseId -ceq $Fixture.Warehouse -and $refs[0].SubmissionState -ceq 'Submitted'}}else{$valid=$valid -and $refs.Count -eq 0}
                 $wire=$record|ConvertTo-Json -Depth 20 -Compress
                 foreach($value in @($Fixture.Root,$Fixture.Secret,(CredentialHash $Fixture.Secret),$sku,'Guide fixture','unavailable.pending','PinHash')){$safe=$safe -and -not $wire.Contains($value)}

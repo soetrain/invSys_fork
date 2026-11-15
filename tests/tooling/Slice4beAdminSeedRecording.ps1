@@ -31,7 +31,7 @@ End Function
 Public Function CatalogCompatible() As Boolean
     Dim id As Variant, before As Object, after As Object, ids As Variant
     ids = modActivityCatalog.ControlIds(36)
-    If UBound(ids) <> 155 Or UBound(modActivityCatalog.ControlIds()) <> 159 Then Exit Function
+    If UBound(ids) <> 155 Or UBound(modActivityCatalog.ControlIds()) < 159 Then Exit Function
     If Not modActivityCatalog.Control("ADMIN_DEMO_SEED", 36) Is Nothing Then Exit Function
     For Each id In ids
         Set before = modActivityCatalog.Control(CStr(id), 36)
@@ -40,6 +40,9 @@ Public Function CatalogCompatible() As Boolean
         If modTrainingJson.EncodeObject(before) <> modTrainingJson.EncodeObject(after) Then Exit Function
     Next id
     CatalogCompatible = True
+End Function
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
 End Function
 Public Function Definition() As String
     Dim record As Object
@@ -54,6 +57,8 @@ End Function
 
 function Test-AdminSeedRecording($Fixture) {
     SelectTarget $Fixture
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestSeedRecording.CurrentCatalogVersion')
+    if($catalogVersion -lt 37){throw 'Packaged activity catalog predates Demo Seed; not behavioral RED.'}
     $enabled=[bool](Run 'invSys.Core.xlam' 'TestSeedRecording.EnablePolicy')
     Check 'SeedRecording.Fixture.PolicySavedForSignedInTarget' $enabled
     if(-not $enabled){throw 'Seed recording policy fixture unavailable; not behavioral RED.'}
@@ -81,7 +86,7 @@ function Test-AdminSeedRecording($Fixture) {
         foreach($record in $records){
             $terminal=$record.OutcomeCode -ceq 'APPLIED'
             $effect=if($terminal){'Changed'}else{'Unknown'}
-            $bound=$bound -and $record.OwnerId -ceq 'ADMIN_DEMO_INVENTORY' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.UserId -ceq 'config-admin' -and $record.CatalogVersion -eq 39 -and $record.DataEffect -ceq $effect
+            $bound=$bound -and $record.OwnerId -ceq 'ADMIN_DEMO_INVENTORY' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.UserId -ceq 'config-admin' -and $record.CatalogVersion -eq $catalogVersion -and $record.DataEffect -ceq $effect
             $references=@($record.SourceEventRefs)
             if($terminal){
                 $refs=$refs -and $references.Count -eq 1

@@ -6,6 +6,8 @@ function Test-GuideTransferRecorded($Fixture,$Other,$Guide) {
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTransferWire.ps1')
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.CurrentCatalogVersion')
+    if($catalogVersion -lt 30){throw 'Packaged activity catalog is older than guide transfer; not behavioral RED.'}
     # Reuse the already compiled guide-action probe for expectation controls.
     function ExpectationControl([string]$Control,[string]$Action,[string]$Value='', [string]$Form='frmActionPathExpectation') {
         switch($Action){
@@ -123,7 +125,7 @@ function Test-GuideTransferRecorded($Fixture,$Other,$Guide) {
             $attempts=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED');$ends=@($records|Where-Object OutcomeCode -CEQ $outcome)
             $valid=$records.Count -eq $count -and $attempts.Count -eq 1
             if(-not $incomplete){$valid=$valid -and $ends.Count -eq 1;if($valid){$valid=$attempts[0].ActivityId -ceq $ends[0].ActivityId}}
-            foreach($record in $records){$valid=$valid -and $record.ControlId -ceq $control -and $record.OwnerId -ceq 'CORE_GUIDE_TRANSFER' -and $record.UserId -ceq 'config-admin' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.SequenceId -ceq $starts[0].SequenceId -and $record.Ordinal -eq 1 -and $record.PolicyVersion -eq $version -and $record.CatalogVersion -eq 30 -and @($record.SourceEventRefs).Count -eq 0}
+            foreach($record in $records){$valid=$valid -and $record.ControlId -ceq $control -and $record.OwnerId -ceq 'CORE_GUIDE_TRANSFER' -and $record.UserId -ceq 'config-admin' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.SequenceId -ceq $starts[0].SequenceId -and $record.Ordinal -eq 1 -and $record.PolicyVersion -eq $version -and $record.CatalogVersion -eq $catalogVersion -and @($record.SourceEventRefs).Count -eq 0}
             Check ($label+'.ExactRecordsWithoutInventedSuccess') $valid
             Check ($label+'.PriorActivityImmutable') (PinsRetained $before)
             [void](BoundControl 'btnCloseGuides' 'Click')

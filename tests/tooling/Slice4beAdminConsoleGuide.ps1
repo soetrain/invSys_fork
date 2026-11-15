@@ -1,5 +1,5 @@
 # Independent real Console journeys feed the existing guide/evaluation handlers.
-function Test-AdminConsoleGuide($Fixture,$HostBook) {
+function Test-AdminConsoleGuide($Fixture,$HostBook,[int]$CatalogVersion) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
@@ -36,7 +36,7 @@ function Test-AdminConsoleGuide($Fixture,$HostBook) {
             }
             $records=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object ControlId -CEQ 'ADMIN_CONSOLE_OPEN')
             $count=if($success){4}else{3};$valid=$records.Count -eq $count
-            foreach($record in $records){$valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq 39 -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0}
+            foreach($record in $records){$valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq $CatalogVersion -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0}
             foreach($ordinal in 1,2){$expected=if(-not $success -and $ordinal -eq 2){1}else{2};$part=@($records|Where-Object Ordinal -EQ $ordinal);$valid=$valid -and $part.Count -eq $expected -and @($part|Where-Object OutcomeCode -CEQ 'REQUESTED').Count -eq 1 -and @($part|Where-Object OutcomeCode -CEQ 'OPENED').Count -eq ($expected-1)}
             Check ('AdminConsole.Recorded.'+$kind+'.ExactActionsAndContext') $valid
             if($success){Check ('AdminConsole.Recorded.'+$kind+'.ActualStop') ((RecordingControl 'Stop Recording' 'Click') -ceq 'DELIVERED')}

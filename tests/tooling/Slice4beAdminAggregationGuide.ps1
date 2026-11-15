@@ -1,5 +1,7 @@
 # Independent real aggregations; authored intent and comparisons use packaged controls.
 function Test-AggregationGuide($Fixture,$Other,$HostBook,$Expected){
+    $catalogVersion=[int](Activity 'CurrentCatalogVersion')
+    if($catalogVersion -lt 43){throw 'Packaged activity catalog predates Aggregation; not behavioral RED.'}
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beRecordingEvaluation.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
@@ -39,7 +41,7 @@ function Test-AggregationGuide($Fixture,$Other,$HostBook,$Expected){
             }
             $records=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object ControlId -CEQ 'ADMIN_AGGREGATION_AGGREGATE')
             $count=if($incomplete){3}else{4};$valid=$records.Count -eq $count
-            foreach($record in $records){$valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq 43 -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0}
+            foreach($record in $records){$valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq $catalogVersion -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0}
             foreach($ordinal in 1,2){$expectedCount=if($incomplete -and $ordinal -eq 2){1}else{2};$outcome=if($kind -ceq 'Unconfirmed' -and $ordinal -eq 2){'REJECTED'}else{'COMPLETED'};$part=@($records|Where-Object Ordinal -EQ $ordinal);$valid=$valid -and $part.Count -eq $expectedCount -and @($part|Where-Object OutcomeCode -CEQ 'REQUESTED').Count -eq 1 -and @($part|Where-Object OutcomeCode -CEQ $outcome).Count -eq ($expectedCount-1)}
             Check ('Aggregation.Recorded.'+$kind+'.ExactActionsAndContext') $valid
             if(-not $incomplete){Check ('Aggregation.Recorded.'+$kind+'.ActualStop') ((RecordingControl 'Stop Recording' 'Click') -ceq 'DELIVERED')}

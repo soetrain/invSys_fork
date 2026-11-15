@@ -122,6 +122,9 @@ Public Function Definition(ByVal version As Long) As String
     Set value = modActivityCatalog.Control("ADMIN_CONSOLE_OPEN", version)
     If Not value Is Nothing Then Definition = modTrainingJson.EncodeObject(value)
 End Function
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
+End Function
 Public Function PriorDefinitionsPreserved() As Boolean
     Dim id As Variant, before As Object, after As Object
     For Each id In modActivityCatalog.ControlIds(35)
@@ -154,6 +157,8 @@ End Function
 
 function Test-AdminConsole($Fixture,$Other) {
     function Probe([string]$Name,[object[]]$Values=@()){Run 'invSys.Core.xlam' ('TestConsoleActivity.'+$Name) $Values}
+    $catalogVersion=[int](Probe 'CurrentCatalogVersion')
+    if($catalogVersion -lt 36){throw 'Packaged activity catalog predates Admin Console; not behavioral RED.'}
     function FileHash([string]$Path){$stream=[IO.File]::Open($Path,'Open','Read','ReadWrite');try{(Get-FileHash -InputStream $stream).Hash}finally{$stream.Dispose()}}
     function Pins([string]$Root){$values=@{};Get-ChildItem -LiteralPath $Root -Recurse -File|ForEach-Object {$values[$_.FullName]=FileHash $_.FullName};return $values}
     function Retained($Values){foreach($path in $Values.Keys){if(-not(Test-Path -LiteralPath $path) -or (FileHash $path) -cne $Values[$path]){return $false}};return $true}
@@ -198,7 +203,7 @@ function Test-AdminConsole($Fixture,$Other) {
             Check ($prefix+'ExactRecordedPair') ($pair -and $attempt[0].ActivityId -ceq $outcome[0].ActivityId -and $attempt[0].RecordId -cne $outcome[0].RecordId)
             $safe=$pair;$bound=$pair;$concludes=$pair
             foreach($record in $records){
-                $bound=$bound -and $record.OwnerId -ceq 'ADMIN_CONSOLE' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.CatalogVersion -eq 39 -and $record.DataEffect -ceq 'Unknown'
+                $bound=$bound -and $record.OwnerId -ceq 'ADMIN_CONSOLE' -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.CatalogVersion -eq $catalogVersion -and $record.DataEffect -ceq 'Unknown'
                 $json=$record|ConvertTo-Json -Depth 20 -Compress
                 $safe=$safe -and @($record.SourceEventRefs).Count -eq 0
                 foreach($value in @($Fixture.Root,$Other.Root,$Fixture.Secret,(CredentialHash $Fixture.Secret),'Operator_Custom_Canary','svc_processor')){$safe=$safe -and -not $json.Contains($value)}
@@ -212,6 +217,6 @@ function Test-AdminConsole($Fixture,$Other) {
             if($result.OwnerInvoked -or $AdminConsoleDenialSurfaceForTest){Check ('AdminConsole.ReturnSurface.'+$result.Case) $result.Passed}
         }
         if([string](Probe 'Definition' @(36)) -cne ''){Test-AdminConsoleBoundaries $Fixture $Other $hostBook $otherBook}
-        if($AdminConsoleGuidePaths){Test-AdminConsoleGuide $Fixture $hostBook}
+        if($AdminConsoleGuidePaths){Test-AdminConsoleGuide $Fixture $hostBook $catalogVersion}
     }finally{SelectTarget $Fixture;$hostBook.Close($false);$otherBook.Close($false)}
 }
