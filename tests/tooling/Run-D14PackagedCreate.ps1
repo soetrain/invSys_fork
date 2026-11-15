@@ -79,7 +79,7 @@ function NoRowHeader([object[]]$Books){
     return $true
 }
 function KeyState([object]$ListObject,[bool]$RequireGood){
-    $keys=[System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $keys=[System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $valid=(Column $ListObject 'System_Key') -gt 0 -and (CountRows $ListObject) -gt 0
     if($RequireGood){$valid=$valid -and (Column $ListObject 'Condition') -gt 0}
     if($valid){
@@ -93,7 +93,7 @@ function KeyState([object]$ListObject,[bool]$RequireGood){
 }
 function FindRowByKey([object]$ListObject,[string]$Key){
     for($i=1;$i -le (CountRows $ListObject);$i++){
-        if([string]::Equals([string](Cell $ListObject $i 'System_Key'),$Key,[StringComparison]::OrdinalIgnoreCase)){return $i}
+        if([string]::Equals([string](Cell $ListObject $i 'System_Key'),$Key,[StringComparison]::Ordinal)){return $i}
     }
     return 0
 }
