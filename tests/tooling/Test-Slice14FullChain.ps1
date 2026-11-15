@@ -15,17 +15,23 @@ $validatorText = if (Test-Path -LiteralPath $validatorPath) {
     ""
 }
 $liveValidatorPath = Join-Path $repo "tools/validate_phase6_live_role_workflows.ps1"
-$createWarehouseIntegrationPath = Join-Path $repo "tools/run_create_warehouse_integration.ps1"
+$d14PackagedPath = Join-Path $repo 'tests/tooling/Run-D14PackagedCreate.ps1'
+$d14ControllerPath = Join-Path $repo 'tests/tooling/Invoke-D14PackagedGate.ps1'
 $runtimeExporterPath = Join-Path $repo "tools/export-invsys-runtime-state.ps1"
 $packagedActionText = $validatorText
 if (Test-Path -LiteralPath $liveValidatorPath) {
     $packagedActionText += Get-Content -LiteralPath $liveValidatorPath -Raw
 }
 $adminConsoleText = Get-Content -LiteralPath $adminConsolePath -Raw
-$createWarehouseIntegrationText = if (Test-Path -LiteralPath $createWarehouseIntegrationPath) {
-    Get-Content -LiteralPath $createWarehouseIntegrationPath -Raw
+$d14PackagedText = if (Test-Path -LiteralPath $d14PackagedPath) {
+    Get-Content -LiteralPath $d14PackagedPath -Raw
 } else {
-    ""
+    ''
+}
+$d14ControllerText = if (Test-Path -LiteralPath $d14ControllerPath) {
+    Get-Content -LiteralPath $d14ControllerPath -Raw
+} else {
+    ''
 }
 $runtimeExporterText = if (Test-Path -LiteralPath $runtimeExporterPath) {
     Get-Content -LiteralPath $runtimeExporterPath -Raw
@@ -59,10 +65,22 @@ Add-Check "Slice14.Admin.PrimitiveEntryBoundary" `
      ($validatorText -match '(?i)modAdminConsole\.SeedDemoInventoryForAutomation')) `
     "Fresh warehouse creation and fake inventory seeding must execute through packaged Admin primitive callbacks."
 
-Add-Check "Slice14.SourceIntegration.CoreDependencies" `
-    ($createWarehouseIntegrationText -match [regex]::Escape(
-        "src/Core/Modules/modUomSettings.bas")) `
-    "The Create Warehouse source harness must import every Core module directly called by its imported Domain modules."
+$d14Names = @(
+    'D14.GeneratedSchemas.ManagedHeadersNoROW',
+    'D14.Seed.UniqueKeysConditionGood',
+    'D14.RoundTrip.PreservesSystemKey',
+    'D14.AdminSeed.RepeatedCreatesUniqueKeysNoMigration',
+    'D14.OperatorRefresh.PreservesCustomColumn',
+    'D14.OperatorReopen.PreservesCustomColumn'
+)
+$d14NamesPresent = @($d14Names | Where-Object { -not $d14PackagedText.Contains("'$_'") }).Count -eq 0
+Add-Check 'Slice14.D14PackagedRegression.Wired' `
+    ($validatorText -match [regex]::Escape('Invoke-D14PackagedGate.ps1') -and
+     $validatorText -match [regex]::Escape('AdminEntry.D14PackagedRegression') -and
+     $validatorText -notmatch [regex]::Escape('AdminEntry.SourceIntegrationRegression') -and
+     $d14ControllerText -match [regex]::Escape('ExactSixChecks') -and
+     $d14NamesPresent) `
+    'The ordered chain must run the six D14 assertions through current packaged callbacks.'
 
 $orderedTokens = @(
     'GenerateFreshWarehouse',
@@ -134,7 +152,9 @@ Add-Check "Slice14.RestartUsesSavedRuntime" `
 
 Add-Check "Slice14.RuntimeAndStaticEvidence" `
     (($validatorText -match '(?i)export-invsys-runtime-state\.ps1') -and
-     ($validatorText -match '(?i)inventory-vba-surface\.ps1')) `
+     ($validatorText -match '(?i)inventory-vba-surface\.ps1') -and
+     ($validatorText -match 'Review-RetiredRowWarnings\.ps1') -and
+     (Test-Path -LiteralPath (Join-Path $repo 'tests/tooling/Test-Slice14RowWarningReview.ps1'))) `
     "The final gate must include read-only five-package runtime evidence and the static retired-path ratchet."
 
 Add-Check "Slice14.RuntimeEvidence.IsolatedPackageSet" `
