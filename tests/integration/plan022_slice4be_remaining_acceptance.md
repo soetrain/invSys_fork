@@ -1,6 +1,6 @@
 # Slice 4be remaining acceptance checklist
 
-**2026-11-15 operator-review preparation:** [Human How-To/Diagnostic comparison sheet](plan022_slice4be_operator_review.md) identifies the current five-add-in validation candidate and two disposable Training-warehouse tasks, with complete and incomplete observed runs. It records no human result or 4be-A acceptance.
+**2026-11-15 operator-review preparation:** [Human How-To/Diagnostic comparison sheet](plan022_slice4be_operator_review.md) identifies the current five-add-in validation candidate and two disposable Training-warehouse tasks, with complete and incomplete observed runs. New-warehouse guide authoring still needs an `ACTION_PATH_MAINT` grant path; bootstrap and Users & Roles do not provide one. It records no human result or 4be-A acceptance.
 
 **2026-10-21 Receiving replay121/121 qualified:** unchanged current candidate,
 15 reviewed captures, normal preserved closure/fixture removal and clear delayed
