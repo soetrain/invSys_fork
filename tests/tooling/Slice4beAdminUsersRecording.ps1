@@ -7,6 +7,9 @@ function Install-AdminUsersRecordingProbe {
     $probe=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1);$probe.Name='TestUsersRecording'
     $probe.CodeModule.AddFromString(@'
 Option Explicit
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
+End Function
 Public Function Policy(Optional ByVal mode As String = "Enabled") As Boolean
     Dim context As String, version As Long, wire As String, report As String
     Dim model As Object, row As Variant, user As Object

@@ -37,6 +37,7 @@ function Test-AdminUsersGuide($Fixture,$Other) {
         SelectTarget $Fixture
         if(-not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1'))){throw 'Explicit guide permission fixture unavailable.'}
         Check 'UsersRecorded.ExplicitGuidePermission' $true
+        $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestUsersRecording.CurrentCatalogVersion')
         if(-not [bool](Run 'invSys.Core.xlam' 'TestUsersRecording.Policy' @('Capture'))){throw 'Capture policy unavailable.'}
         if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')){throw 'Initial publication unavailable.'}
         foreach($kind in @('Source','Observed','Interrupted')){
@@ -79,7 +80,7 @@ function Test-AdminUsersGuide($Fixture,$Other) {
             $records=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json})
             $count=if($success){6}else{5};$valid=$records.Count -eq $count;$safe=$true
             foreach($record in $records){
-                $valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq 39 -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0
+                $valid=$valid -and $record.SequenceId -ceq $sequence -and $record.CatalogVersion -eq $catalogVersion -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.UserId -ceq 'config-admin' -and $record.DataEffect -ceq 'Unknown' -and @($record.SourceEventRefs).Count -eq 0
                 $wire=$record|ConvertTo-Json -Depth 20 -Compress
                 foreach($value in @($Fixture.Root,$Fixture.Secret,(CredentialHash $Fixture.Secret),'config-reader','Updated fixture reader','PinHash','unavailable.pending')){$safe=$safe -and -not $wire.Contains($value)}
             }
