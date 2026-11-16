@@ -256,6 +256,7 @@ param(
     [switch]$CheckPublishedGuideEdit,
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
+    [switch]$GuidePickerStoppedRunOnly,
     [switch]$CheckGuideTransfer,
     [switch]$CheckGuideTransferRoundTrip,
     [switch]$CheckGuideTransferActivity,
@@ -382,6 +383,15 @@ if($CheckGuideTransfer){
 if($GuideActionCurationOnly){
     if($PublishedGuideEditOnly -or $CheckPublishedGuideEdit -or $CheckGuidePresentation -or $GuidePresentationRestartOnly -or $CheckGuidePresentationRestart){throw 'Direct curation uses its own focused packaged gate.'}
     if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){throw 'Direct curation requires the isolated compiled saved-copy guide fixture.'}
+    $CheckGuideExpectation=$true
+}
+if($GuidePickerStoppedRunOnly){
+    if(-not $GuideDraftOnly -or -not $CheckViewerPublishedRead -or -not $CompileEvaluationProbesForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){
+        throw 'Stopped-run picker requires the isolated compiled saved-copy guide fixture.'
+    }
+    if($GuideActionCurationOnly -or $PublishedGuideEditOnly -or $CheckGuideTransfer -or $CheckReceivingReplay){
+        throw 'Stopped-run picker requires its own focused packaged gate.'
+    }
     $CheckGuideExpectation=$true
 }
 if($PublishedGuideEditOnly){$CheckPublishedGuideEdit=$true}
@@ -2584,6 +2594,10 @@ End Function
         } elseif($CheckReceivingReplay){
             $step='B0 actual Receiving recording and guide execution entry'
             Test-Slice4beReceivingReplay $a $b
+        } elseif($GuidePickerStoppedRunOnly){
+            $step='stopped recording picker and both packaged guide Save routes'
+            . (Join-Path $PSScriptRoot 'Slice4beGuidePickerStoppedRun.ps1')
+            Test-GuidePickerStoppedRun $a $b
         } elseif($GuideActionCurationOnly){
             $step='direct tracked-action curation through packaged handlers'
             . (Join-Path $PSScriptRoot 'Slice4beGuideActionCuration.ps1')
