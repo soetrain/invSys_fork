@@ -1,6 +1,6 @@
 # D18 faults apply only to the generated warehouse. The public Admin command
 # must publish truthful unavailable coverage without recreating/saving sources.
-function Test-Slice4bePublicationSourceFailures($Fixture,[string]$EventsPath) {
+function Test-Slice4bePublicationSourceFailures($Fixture,[string]$EventsPath,$ShippingFixture) {
     function CheckUnavailable([string]$Label) {
         Check ('ViewerPublication.'+$Label+'.InventoryCommandSucceeds') ([bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest'))
         $publication=[IO.File]::ReadAllText($EventsPath)|ConvertFrom-Json
@@ -37,4 +37,31 @@ function Test-Slice4bePublicationSourceFailures($Fixture,[string]$EventsPath) {
     $restored=[IO.File]::ReadAllText($EventsPath)|ConvertFrom-Json
     $coverage=@($restored.Coverage.Sources|Where-Object Source -CEQ 'ShippingBOM')
     Check 'ViewerPublication.RestoredBom.AvailableWithOriginalBytes' ($coverage.Count -eq 1 -and $coverage[0].Availability -ceq 'Available' -and $coverage[0].IncludedLines -eq 2 -and (PublicationSourceHash $bom) -ceq $hash)
+
+    # The owning Shipping handler created this disposable store. A zero-byte
+    # file is its normal persisted representation when no Hold rows remain.
+    $hold=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) ('invSys\shipping_hold_'+$Fixture.Warehouse+'.tsv')
+    $hold=[IO.Path]::GetFullPath($hold)
+    if($ShippingFixture.LocalFiles.Count -lt 1 -or $hold -cne $ShippingFixture.LocalFiles[0] -or -not (Test-Path -LiteralPath $hold)){throw 'Empty-Holds owner fixture is unavailable.'}
+    $holdBytes=[IO.File]::ReadAllBytes($hold)
+    if($holdBytes.Length -eq 0){throw 'Empty-Holds owner fixture lacks its prepared row.'}
+    $holdHash=PublicationSourceHash $hold
+    try {
+        [IO.File]::WriteAllBytes($hold,[byte[]]@())
+        if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest')){throw 'Empty-Holds Admin publication did not complete.'}
+        $empty=[IO.File]::ReadAllText($EventsPath)|ConvertFrom-Json
+        $entry=@($empty.Coverage.Sources|Where-Object Source -CEQ 'ShippingHolds')
+        $available=$entry.Count -eq 1 -and @($empty.CurrentState|Where-Object Source -CEQ 'ShippingHolds').Count -eq 0
+        if($available){
+            $available=$entry[0].Availability -ceq 'Available'
+            foreach($field in @('AvailableGroups','IncludedGroups','OmittedGroups','AvailableLines','IncludedLines','OmittedLines')){$available=$available -and $entry[0].$field -eq 0}
+        }
+        Check 'ViewerPublication.EmptyHolds.AvailableZeroWithoutInventedState' $available
+        Check 'ViewerPublication.EmptyHolds.SourceRemainsEmpty' ((Get-Item -LiteralPath $hold).Length -eq 0)
+    } finally {[IO.File]::WriteAllBytes($hold,$holdBytes)}
+    Check 'ViewerPublication.EmptyHolds.OwnerBytesRestored' ((PublicationSourceHash $hold) -ceq $holdHash)
+    if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishViewerGroupsForTest')){throw 'Restored-Holds Admin publication did not complete.'}
+    $restoredHolds=[IO.File]::ReadAllText($EventsPath)|ConvertFrom-Json
+    $restoredEntry=@($restoredHolds.Coverage.Sources|Where-Object Source -CEQ 'ShippingHolds')
+    Check 'ViewerPublication.EmptyHolds.RestoredRowsAvailable' ($restoredEntry.Count -eq 1 -and $restoredEntry[0].Availability -ceq 'Available' -and $restoredEntry[0].IncludedLines -eq $ShippingFixture.HoldRows.Count -and (PublicationSourceHash $hold) -ceq $holdHash)
 }

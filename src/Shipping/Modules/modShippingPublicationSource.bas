@@ -116,7 +116,7 @@ Failed:
 End Function
 
 Private Function ReadHolds(ByVal warehouseId As String, ByRef count As Long, ByRef mode As String, ByRef reason As String) As String
-    Dim root As String, path As String, fso As Object, stream As Object, content As String, line As Variant
+    Dim root As String, path As String, fso As Object, stream As Object, content As String, segment As String, line As Variant
     Dim fields As Variant, output(0 To 10) As String, rows As Collection, lines() As String, i As Long, c As Long
     On Error GoTo Failed
     reason = "MissingSource"
@@ -124,8 +124,8 @@ Private Function ReadHolds(ByVal warehouseId As String, ByRef count As Long, ByR
     If Trim$(root) = "" Then root = Environ$("TEMP")
     If Trim$(root) = "" Then Exit Function
     For i = 1 To Len(warehouseId)
-        content = Mid$(warehouseId, i, 1)
-        path = path & IIf(content Like "[A-Za-z0-9_-]", content, "_")
+        segment = Mid$(warehouseId, i, 1)
+        path = path & IIf(segment Like "[A-Za-z0-9_-]", segment, "_")
     Next i
     ' An aliased filename cannot prove which warehouse owns this local state.
     If StrComp(path, warehouseId, vbBinaryCompare) <> 0 Then reason = "ContextMismatch": Exit Function
@@ -133,7 +133,8 @@ Private Function ReadHolds(ByVal warehouseId As String, ByRef count As Long, ByR
     Set fso = CreateObject("Scripting.FileSystemObject")
     If Not fso.FileExists(path) Then Exit Function
     Set stream = fso.OpenTextFile(path, 1, False, 0)
-    content = stream.ReadAll: stream.Close: Set stream = Nothing
+    If Not stream.AtEndOfStream Then content = stream.ReadAll
+    stream.Close: Set stream = Nothing
     reason = "InvalidSchema": Set rows = New Collection
     For Each line In Split(Replace$(content, vbCrLf, vbLf), vbLf)
         If CStr(line) <> "" Then

@@ -213,7 +213,7 @@ End Function
         $replacement=[IO.File]::ReadAllText($path)|ConvertFrom-Json
         Check 'ViewerPublication.SuccessfulReplacementHasNewIdentity' ($replacement.PublicationId -cne $artifact.PublicationId)
         . (Join-Path $PSScriptRoot 'Slice4bePublicationSourceFailures.ps1')
-        Test-Slice4bePublicationSourceFailures $Fixture $path
+        Test-Slice4bePublicationSourceFailures $Fixture $path $shippingFixture
     } else {
         foreach($name in @('LockedDestinationKeepsInventorySuccess','LockedDestinationReportsEventsFailure','LockedDestinationRetainsExactPriorBytes','FailedReplacementLeavesNoPendingFile','ReplacementAfterUnlockSucceeds','ReplacementReportsEventsSuccess','SuccessfulReplacementHasNewIdentity',
             'MissingBom.InventoryCommandSucceeds','MissingBom.CountsUnavailableNotZero','MissingBom.NoInventedCurrentState','MissingBom.NotRecreated',
