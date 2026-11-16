@@ -1,6 +1,23 @@
 # These exact source revisions use ROW only as a prohibited-name guard or a
 # transient, rechecked staging-row locator. Keep the scanner warnings visible.
 # Any edit to a reviewed file requires a fresh review; new paths always fail.
+function Get-ReviewedSourceHash {
+    param([Parameter(Mandatory=$true)][string]$Path)
+    $bytes=[IO.File]::ReadAllBytes($Path)
+    $normalized=[IO.MemoryStream]::new()
+    try{
+        for($i=0;$i -lt $bytes.Length;$i++){
+            if($bytes[$i] -eq 10 -and ($i -eq 0 -or $bytes[$i-1] -ne 13)){
+                $normalized.WriteByte(13)
+            }
+            $normalized.WriteByte($bytes[$i])
+        }
+        $sha=[Security.Cryptography.SHA256]::Create()
+        try{return [BitConverter]::ToString($sha.ComputeHash($normalized.ToArray())).Replace('-','')}
+        finally{$sha.Dispose()}
+    }finally{$normalized.Dispose()}
+}
+
 function Classify-StaticWarningDelta {
     [CmdletBinding()]
     param(
@@ -28,7 +45,7 @@ function Classify-StaticWarningDelta {
         if($code -ceq 'RETIRED_ROW_HEADER' -and $reviewedHashes.ContainsKey($path)){
             $source=Join-Path $RepoRoot ($path -replace '/','\')
             if(Test-Path -LiteralPath $source){
-                if((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ceq $reviewedHashes[$path]){
+                if((Get-ReviewedSourceHash -Path $source) -ceq $reviewedHashes[$path]){
                     $reviewed.Add($warning)
                     continue
                 }
