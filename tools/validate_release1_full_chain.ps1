@@ -839,16 +839,16 @@ function Invoke-StaticRetiredPathRatchet {
     $actual = Get-Content -LiteralPath (
         Join-Path $outputRoot "implementation-manifest.json"
     ) -Raw | ConvertFrom-Json
-    $baselineWarnings = @{}
-    foreach ($warning in @($baseline.warnings)) {
-        $baselineWarnings[([string]$warning.code + "|" + [string]$warning.sourcePath)] = $true
-    }
-    $reintroduced = @($actual.warnings | Where-Object {
-        -not $baselineWarnings.ContainsKey(
-            [string]$_.code + "|" + [string]$_.sourcePath)
-    })
+    . (Join-Path $repo 'tools/Review-RetiredRowWarnings.ps1')
+    $classified = Classify-StaticWarningDelta `
+        -ActualWarnings @($actual.warnings) `
+        -BaselineWarnings @($baseline.warnings) `
+        -RepoRoot $repo
+    $reintroduced = @($classified.Unreviewed)
+    $reviewed = @($classified.Reviewed)
     Add-Result "StaticRetiredPathRatchet" ($reintroduced.Count -eq 0) `
-        ("New static warning paths=" + $reintroduced.Count +
+        ("Unreviewed static warning paths=" + $reintroduced.Count +
+         "; Exact-hash reviewed ROW guard/staging paths=" + $reviewed.Count +
          "; Current warnings=" + @($actual.warnings).Count +
          "; Baseline warnings=" + @($baseline.warnings).Count)
 }
@@ -897,15 +897,22 @@ try {
     # Quit can return before the Admin Excel process exits. Keep stages serial.
     Wait-RecordingCleanup -Creator $null -Worker $null
 
-    $createWarehouse = Invoke-RepositoryScript `
-        -Path (Join-Path $repo "tools/run_create_warehouse_integration.ps1") `
-        -Arguments @("-RepoRoot", $repo)
-    Add-Result "AdminEntry.SourceIntegrationRegression" `
-        ($createWarehouse.ExitCode -eq 0 -and
-         $createWarehouse.Text -match 'OVERALL=PASS') `
-        "Create Warehouse D14 source integration remained green."
+    $d14Root = Join-Path $tempRoot 'd14-packaged'
+    $d14 = Invoke-RepositoryScript `
+        -Path (Join-Path $repo 'tests/tooling/Invoke-D14PackagedGate.ps1') `
+        -Arguments @('-DeployRoot', $deployPath, '-RunRoot', $d14Root, '-RunApproved')
+    $d14ClosurePath = Join-Path $d14Root 'closure.json'
+    $d14Closure = if(Test-Path -LiteralPath $d14ClosurePath) {
+        Get-Content -LiteralPath $d14ClosurePath -Raw | ConvertFrom-Json
+    } else { $null }
+    Add-Result 'AdminEntry.D14PackagedRegression' `
+        ($d14.ExitCode -eq 0 -and $null -ne $d14Closure -and
+         [bool]$d14Closure.Qualified -and [int]$d14Closure.Passed -eq 6 -and
+         [bool]$d14Closure.ExcelNaturalExit -and [bool]$d14Closure.SettingsRestored -and
+         [bool]$d14Closure.PackagesPreserved) `
+        'Current packaged Admin/Create/Seed/Core refresh preserved six D14 assertions.'
 
-    # The source harness can return before its Excel process has finished exiting.
+    # The packaged D14 worker and its Excel process must close before the ordered role chain.
     Wait-RecordingCleanup -Creator $null -Worker $null
 
     $orderedValidator = New-OrderedLiveValidator
