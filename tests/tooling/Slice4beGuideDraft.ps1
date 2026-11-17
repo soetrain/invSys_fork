@@ -107,11 +107,22 @@ NextFitControl:
             If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
             control.ListIndex = -1: control.ListIndex = index
             GuideDraftControlForTest = "SELECTED"
-        Case "Click", "Write", "Check"
+        Case "SelectDirect"
+            If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then GuideDraftControlForTest = "DISABLED": Exit Function
+            index = CLng(value)
+            If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
+            control.ListIndex = index
+            GuideDraftControlForTest = "SELECTED"
+        Case "Click", "Write", "Check", "Type"
             If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then
                 GuideDraftControlForTest = "DISABLED": Exit Function
             End If
-            If action = "Click" Then
+            If action = "Type" Then
+                If TypeName(control) <> "TextBox" Then GuideDraftControlForTest = "NOT TEXT": Exit Function
+                ' One packaged call invokes each native Change handler without per-character COM round trips.
+                control.Value = ""
+                For index = 1 To Len(value): control.Value = Left$(value, index): Next index
+            ElseIf action = "Click" Then
                 control.Value = True
             ElseIf action = "Check" Then
                 control.Value = CBool(value)

@@ -67,9 +67,41 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.FirstActionSelectsThroughPicker' ($toggle -ceq 'SELECTED' -and (Picker 'lstGuideActions' 'SelectedValues') -ceq ($ids[0]+"`n"))
         Check 'GuidePickerStoppedRun.FirstActionResponsive' ($toggleSeconds -lt 5)
 
+        $timer=[Diagnostics.Stopwatch]::StartNew()
+        $secondToggle=Picker 'lstGuideActions' 'Toggle' '1'
+        $timer.Stop()
+        $secondToggleSeconds=$timer.Elapsed.TotalSeconds
+        Check 'GuidePickerStoppedRun.RepeatedActionSelectsThroughPicker' ($secondToggle -ceq 'SELECTED' -and @((Picker 'lstGuideActions' 'SelectedValues') -split "`n") -ccontains $ids[1])
+        Check 'GuidePickerStoppedRun.RepeatedActionResponsive' ($secondToggleSeconds -lt 5)
+
         [void](Control 'frmActionPaths' 'btnCreateGuide' 'Click')
         $runEditor=(Editor '' 'Count') -ceq '1'
         Check 'GuidePickerStoppedRun.RunCreateOpensEditorWithPickerPresent' ($runEditor -and (Picker '' 'Count') -ceq '1' -and (Editor 'lblGuideSource' 'Label').Contains($pathId))
+        if(-not $runEditor){throw 'Actual guide editor unavailable; not typing-performance RED.'}
+        $beforeStep=Editor 'lstGuideSteps' 'Selected'
+        $timer=[Diagnostics.Stopwatch]::StartNew()
+        $stepSelect=Editor 'lstGuideSteps' 'SelectDirect' '1'
+        $timer.Stop()
+        $stepSelectSeconds=$timer.Elapsed.TotalSeconds
+        $afterStep=Editor 'lstGuideSteps' 'Selected'
+        Check 'GuidePickerStoppedRun.GuideStepSelectionRetained' ($stepSelect -ceq 'SELECTED' -and $beforeStep -cne '' -and $afterStep -cne '' -and $afterStep -cne $beforeStep)
+        Check 'GuidePickerStoppedRun.GuideStepSelectionResponsive' ($stepSelectSeconds -lt 2.5)
+        # The test-only Type action exercises each real Change handler inside Excel.
+        $inputTimes=@{}; $inputLengths=@{}
+        foreach($spec in @(@('txtGuideName','Training guide title'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
+            $name=[string]$spec[0]; $value=[string]$spec[1]
+            $timer=[Diagnostics.Stopwatch]::StartNew()
+            if((Editor $name 'Type' $value) -cne 'DELIVERED'){
+                throw ('Actual guide editor text handler unavailable: '+$name+'; not typing-performance RED.')
+            }
+            $timer.Stop()
+            $inputTimes[$name]=$timer.Elapsed.TotalSeconds
+            $inputLengths[$name]=$value.Length
+            Check ('GuidePickerStoppedRun.'+$name+'.IncrementalTextPreserved') ((Editor $name 'Text') -ceq $value)
+            Check ('GuidePickerStoppedRun.'+$name+'.IncrementalInputResponsive') ($inputTimes[$name] -lt 2.5)
+        }
+        [pscustomobject]@{Stage='IncrementalEditorInput';SecondToggleSeconds=$secondToggleSeconds;StepSelectSeconds=$stepSelectSeconds;NameCharacters=$inputLengths['txtGuideName'];NameSeconds=$inputTimes['txtGuideName'];InstructionsCharacters=$inputLengths['txtGuideInstructions'];InstructionsSeconds=$inputTimes['txtGuideInstructions'];StepCharacters=$inputLengths['txtGuideStepInstruction'];StepSeconds=$inputTimes['txtGuideStepInstruction']} |
+            ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-editor-input-timing.json')
         [void](Editor 'txtGuideName' 'Write' 'Stopped run guide')
         [void](Editor 'btnSaveGuide' 'Click')
         $guideRoot=Join-Path $journalRoot 'Guides'
