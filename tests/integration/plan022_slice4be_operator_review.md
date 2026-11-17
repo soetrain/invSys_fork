@@ -1,6 +1,6 @@
 # Slice 4be-A operator comparison review
 
-**Status:** the final 2026-11-16 candidate is open for a second human preview in disposable warehouse WHT7025AE. No second-preview result is recorded yet. This is an early usability review under Architecture v4.11 D18-REPLAY-01 and Plan 022, not 4be-A acceptance.
+**Status:** the final 2026-11-16 candidate is open for a second human preview in disposable warehouse WHT7025AE. Justin published one guide version 1, and a read-only store count confirmed its file with no pending save. He reported very slow list selection and guide title/instruction typing; the complete/incomplete How-To and Diagnostic comparison is untried. This is early usability evidence under Architecture v4.11 D18-REPLAY-01 and Plan 022, not 4be-A acceptance.
 
 ## Candidate and safe setup
 
