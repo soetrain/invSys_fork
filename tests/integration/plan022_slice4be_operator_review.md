@@ -1,6 +1,6 @@
 # Slice 4be-A operator comparison review
 
-**Status:** the final 2026-11-16 candidate is open for a second human preview in disposable warehouse WHT7025AE. Justin published one guide version 1, and a read-only store count confirmed its file with no pending save. He reported very slow list selection and guide title/instruction typing; the complete/incomplete How-To and Diagnostic comparison is untried. This is early usability evidence under Architecture v4.11 D18-REPLAY-01 and Plan 022, not 4be-A acceptance.
+**Status:** Justin published one guide version 1 in disposable warehouse WHT7025AE; read-only storage inspection confirmed its file with no pending save. He reported slow list selection and guide title/instruction typing; the complete/incomplete How-To and Diagnostic comparison is untried. A focused packaged RED reproduced slow typing (24 PASS / 3 FAIL) on the unchanged final five-XLAM candidate. This is early usability evidence under Architecture v4.11 D18-REPLAY-01 and Plan 022, not 4be-A acceptance.
 
 ## Candidate and safe setup
 
@@ -11,6 +11,8 @@
 - Carry out both tasks through their ordinary controls. **Run How-To** is the separate executable replay path and is outside this 4be-A presentation review.
 
 The first preview's stopped-run picker selection took over 10 seconds in a focused packaged RED. PR17's five-XLAM candidate passed the same real-handler sequence 17/17 with a 0.84-second first selection, both guide Save routes and Cancel; retained curation passed 70/70. On the final candidate, empty Shipping Holds publication passed 86/86 and an audited Release 1 chain passed 33/33 with no Excel Application Error/Hang; early Receiving replay passed 121/121 technically on the preceding picker build. The first preview's `VBE7.DLL` crash remains unassigned; these tests do not substitute for the human comparison below.
+
+On 2026-11-16, the review Excel closed naturally with both open workbooks marked Saved. The focused actual-handler `GuidePickerStoppedRunOnly` run cold-compiled all five unchanged packages, then returned **RED 24 PASS / 3 FAIL**. Incremental entry preserved all three fields but took 19.89 s for 20 title characters, 26.36 s for 25 guide-instruction characters and 23.95 s for 22 step-instruction characters; each failed its 2.5 s responsiveness check. Both picker toggles and guide-step selection passed at about 1.0 s each, though the operator still finds list use slow. Both Save routes, Cancel and source-byte preservation passed. Excel exited naturally; this local fixture does not measure the NAS path. Ignored evidence is in `reports/runtime/slice4be-viewer-published-read/cf6b6fe9085d4da18cf6fe63f12c87a3/`. No product fix or GREEN is claimed.
 
 ## Operations: Receiving task
 
