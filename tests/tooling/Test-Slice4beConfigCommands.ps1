@@ -1847,6 +1847,7 @@ End Function
             if($CheckGuideDraft -or $CheckOperationsGuidePresentation){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
+                if($GuidePickerStoppedRunOnly){Install-GuideInputWriteProbe}
             }
             if($CheckGuideTransfer){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')

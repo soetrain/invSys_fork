@@ -4,6 +4,7 @@
 function Test-GuidePickerStoppedRun($Fixture,$Other) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
     function Control([string]$Form,[string]$Name,[string]$Action,[string]$Value='') {
         BoundControl $Name $Action $Value $Form
     }
@@ -13,6 +14,8 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
     function Editor([string]$Name,[string]$Action,[string]$Value='') {
         Control 'frmActionPathGuide' $Name $Action $Value
     }
+    function GuideWrites { [long](Run 'invSys.Core.xlam' 'TestGuideInputWriteCount.ReadCount') }
+    function ResetGuideWrites { [void](Run 'invSys.Core.xlam' 'TestGuideInputWriteCount.ResetCount') }
 
     CloseRecordingViewer
     SelectTarget $Fixture 'config-admin'
@@ -87,9 +90,12 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.GuideStepSelectionRetained' ($stepSelect -ceq 'SELECTED' -and $beforeStep -cne '' -and $afterStep -cne '' -and $afterStep -cne $beforeStep)
         Check 'GuidePickerStoppedRun.GuideStepSelectionResponsive' ($stepSelectSeconds -lt 2.5)
         # The test-only Type action exercises each real Change handler inside Excel.
-        $inputTimes=@{}; $inputLengths=@{}
-        foreach($spec in @(@('txtGuideName','Training guide title'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
+        $inputTimes=@{}; $inputLengths=@{}; $prior=''
+        foreach($spec in @(@('txtGuideName','Training guide title'),@('txtGuideTags','training, review'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
             $name=[string]$spec[0]; $value=[string]$spec[1]
+            if((Editor $name 'Focus') -cne 'FOCUSED'){throw ('Guide focus fixture unavailable: '+$name+'; not buffering RED.')}
+            if($prior){Check ('GuidePickerStoppedRun.'+$prior+'.OrdinaryBlurFlushesOnce') ((GuideWrites) -eq 1)}
+            ResetGuideWrites
             $timer=[Diagnostics.Stopwatch]::StartNew()
             if((Editor $name 'Type' $value) -cne 'DELIVERED'){
                 throw ('Actual guide editor text handler unavailable: '+$name+'; not typing-performance RED.')
@@ -99,17 +105,37 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             $inputLengths[$name]=$value.Length
             Check ('GuidePickerStoppedRun.'+$name+'.IncrementalTextPreserved') ((Editor $name 'Text') -ceq $value)
             Check ('GuidePickerStoppedRun.'+$name+'.IncrementalInputResponsive') ($inputTimes[$name] -lt 2.5)
+            Check ('GuidePickerStoppedRun.'+$name+'.TypingDoesNotWriteCore') ((GuideWrites) -eq 0)
+            $prior=$name
         }
-        [pscustomobject]@{Stage='IncrementalEditorInput';SecondToggleSeconds=$secondToggleSeconds;StepSelectSeconds=$stepSelectSeconds;NameCharacters=$inputLengths['txtGuideName'];NameSeconds=$inputTimes['txtGuideName'];InstructionsCharacters=$inputLengths['txtGuideInstructions'];InstructionsSeconds=$inputTimes['txtGuideInstructions'];StepCharacters=$inputLengths['txtGuideStepInstruction'];StepSeconds=$inputTimes['txtGuideStepInstruction']} |
+        [pscustomobject]@{Stage='IncrementalEditorInput';SecondToggleSeconds=$secondToggleSeconds;StepSelectSeconds=$stepSelectSeconds;NameCharacters=$inputLengths['txtGuideName'];NameSeconds=$inputTimes['txtGuideName'];TagsCharacters=$inputLengths['txtGuideTags'];TagsSeconds=$inputTimes['txtGuideTags'];InstructionsCharacters=$inputLengths['txtGuideInstructions'];InstructionsSeconds=$inputTimes['txtGuideInstructions'];StepCharacters=$inputLengths['txtGuideStepInstruction'];StepSeconds=$inputTimes['txtGuideStepInstruction']} |
             ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-editor-input-timing.json')
+        $stepBeforeSwitch=$afterStep
+        ResetGuideWrites
+        $switch=Editor 'lstGuideSteps' 'SelectDirect' '2'
+        $stepAfterSwitch=Editor 'lstGuideSteps' 'Selected'
+        Check 'GuidePickerStoppedRun.DirtyStepSwitchFlushesOnce' ($switch -ceq 'SELECTED' -and $stepAfterSwitch -cne $stepBeforeSwitch -and (GuideWrites) -eq 1)
+        Check 'GuidePickerStoppedRun.DirtyStepSwitchLoadsNewStep' ((Editor 'txtGuideStepInstruction' 'Text') -ceq '')
+        if((Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){throw 'Guide name focus before Save unavailable.'}
+        ResetGuideWrites
         [void](Editor 'txtGuideName' 'Write' 'Stopped run guide')
         [void](Editor 'btnSaveGuide' 'Click')
+        Check 'GuidePickerStoppedRun.SaveWhileNameFocusedFlushesOnce' ((GuideWrites) -eq 1)
         $guideRoot=Join-Path $journalRoot 'Guides'
         $saved=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json' -ErrorAction SilentlyContinue)
         $runGuide=$null
         if($saved.Count -eq 1){$runGuide=ReadGuideExpectationRecord $saved[0].FullName}
         Check 'GuidePickerStoppedRun.RunSavePublishesImmutableGuide' ($null -ne $runGuide -and $runGuide.Name -ceq 'Stopped run guide' -and
             $runGuide.SourceRun.ActionPathId -ceq $pathId -and $runGuide.SourceRun.JournalVersion -eq 12 -and @($runGuide.Steps).Count -eq 5)
+        $boundStep=@();$newStep=@()
+        if($null -ne $runGuide){
+            $boundStep=@($runGuide.Steps | Where-Object {$_.StepId -ceq $stepBeforeSwitch})
+            $newStep=@($runGuide.Steps | Where-Object {$_.StepId -ceq $stepAfterSwitch})
+        }
+        Check 'GuidePickerStoppedRun.SavePersistsExactTextAndPreviousStep' ($null -ne $runGuide -and
+            $runGuide.Instructions -ceq 'Follow the recorded steps' -and (@($runGuide.Tags) -join '|') -ceq 'training|review' -and
+            $boundStep.Count -eq 1 -and $boundStep[0].Instruction -ceq 'Check the saved action' -and
+            $newStep.Count -eq 1 -and $newStep[0].Instruction -ceq '')
 
         [void](Picker 'btnCreateSelectedGuide' 'Click')
         $directEditor=(Editor '' 'Count') -ceq '1'
@@ -124,6 +150,38 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.CancelClosesPickerAndOwnedEditor' ((Picker '' 'Count') -ceq '0' -and (Editor '' 'Count') -ceq '0')
         Check 'GuidePickerStoppedRun.CancelRetainsBothPublishedGuides' (@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json').Count -eq 2)
         Check 'GuidePickerStoppedRun.SourceActivityBytesUnchanged' (PinsRetained $activityBefore)
+
+        # Actual Cancel/X event order, including stale authority, must not
+        # turn dirty form text into a Core write or a published version.
+        [void](BoundLibrary 'Open')
+        [void](BoundLibrary 'Select' $pathId)
+        [void](Control 'frmActionPaths' 'btnCreateGuide' 'Click')
+        if((Editor '' 'Count') -cne '1' -or (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){
+            throw 'Dirty guide Cancel fixture unavailable; not behavioral RED.'
+        }
+        ResetGuideWrites
+        [void](Editor 'txtGuideName' 'Type' 'Discard this guide text')
+        [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+        $cancelled=Click-GuideCancelNative
+        Check 'GuidePickerStoppedRun.StaleDirtyCancelClosesWithoutCoreWriteOrPublication' ($cancelled -and
+            (Editor '' 'Count') -ceq '0' -and (GuideWrites) -eq 0 -and
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
+
+        CloseRecordingViewer;SelectTarget $Fixture 'config-admin';OpenRecordingViewer
+        if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' $pathId) -cne 'SELECTED'){
+            throw 'Dirty guide window-X source unavailable; not behavioral RED.'
+        }
+        [void](Control 'frmActionPaths' 'btnCreateGuide' 'Click')
+        if((Editor '' 'Count') -cne '1' -or (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){
+            throw 'Dirty guide window-X fixture unavailable; not behavioral RED.'
+        }
+        ResetGuideWrites
+        [void](Editor 'txtGuideName' 'Type' 'Close without writing')
+        [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+        $closed=Close-GuideWindowXNative
+        Check 'GuidePickerStoppedRun.StaleDirtyWindowXClosesWithoutCoreWriteOrPublication' ($closed -and
+            (Editor '' 'Count') -ceq '0' -and (GuideWrites) -eq 0 -and
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
     } finally {
         CloseRecordingViewer
         SelectTarget $Fixture 'config-admin'
