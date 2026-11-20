@@ -130,7 +130,31 @@ public static class PairedViewNativeLayout {
         OpenViewSettings;SaveViewPreference 'Compare both'
         [void](SettingsControl 'btnClose' 'Click');[void](OpenView)
         Check 'GuidePresentation.ViewsDoNotAppendOrRewriteTraining' (BoundSame $before (BoundPins $journalRoot))
-        Check 'GuidePresentation.ViewsDoNotWriteActivityConfigOrPublish' ((PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count -and (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configBefore -and (Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore)
+        $activityAfter=ActivityPins
+        $addedActivity=@($activityAfter.Keys|Where-Object {-not $activityBefore.ContainsKey($_)})
+        $activityRecords=@($addedActivity|ForEach-Object {
+            Get-Content -LiteralPath (Join-Path $activityRoot $_) -Raw|ConvertFrom-Json
+        })
+        $activityKinds=@($activityRecords|Group-Object ControlId,OutcomeCode|ForEach-Object {
+            [pscustomobject]@{ControlId=$_.Group[0].ControlId;OutcomeCode=$_.Group[0].OutcomeCode;Count=$_.Count}
+        })
+        [pscustomobject]@{
+            Stage='GuidePresentationPreferenceSaves'
+            Activity=(Get-GuidePinDeltaFacts $activityBefore $activityAfter)
+            ActivityKinds=$activityKinds
+            ConfigExact=((Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configBefore)
+            PublicationExact=((Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore)
+        }|ConvertTo-Json -Compress -Depth 5|Set-Content -LiteralPath (Join-Path $reportRoot 'guide-presentation-pin-delta.json')
+        # Four explicit Save My Preference clicks each append one requested and
+        # one completed activity. The advisory paired view adds none itself.
+        $requests=@($activityRecords|Where-Object {$_.ControlId -ceq 'VIEWER_PATH_PREFERENCE_SAVE' -and $_.OutcomeCode -ceq 'REQUESTED'})
+        $completed=@($activityRecords|Where-Object {$_.ControlId -ceq 'VIEWER_PATH_PREFERENCE_SAVE' -and $_.OutcomeCode -ceq 'COMPLETED'})
+        $paired=$requests.Count -eq 4 -and $completed.Count -eq 4
+        if($paired){foreach($request in $requests){if(@($completed|Where-Object ActivityId -CEQ $request.ActivityId).Count -ne 1){$paired=$false;break}}}
+        Check 'GuidePresentation.ViewsDoNotWriteActivityConfigOrPublish' ((PinsRetained $activityBefore) -and
+            $activityRecords.Count -eq 8 -and $paired -and
+            (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configBefore -and
+            (Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore)
         $guidePath=Join-Path $guideRoot ($FirstGuide.ActionPathId+'.1.json');$bytes=[IO.File]::ReadAllBytes($guidePath)
         try {
             [IO.File]::WriteAllText($guidePath,'{}',[Text.UTF8Encoding]::new($false))
