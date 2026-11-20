@@ -12,6 +12,12 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
     GuideDraftControlForTest = "MISSING"
     If owner Is Nothing Then Exit Function
     If action = "Caption" Then GuideDraftControlForTest = owner.Caption: Exit Function
+    If action = "Active" Then GuideDraftControlForTest = owner.ActiveControl.Name: Exit Function
+    If action = "Place" Then
+        If Not owner.Visible Then GuideDraftControlForTest = "UNAVAILABLE": Exit Function
+        owner.Left = 20: owner.Top = 20: owner.Repaint: DoEvents
+        GuideDraftControlForTest = "PLACED": Exit Function
+    End If
     If action = "Labels" Then
         For Each item In owner.Controls
             If TypeName(item) = "Label" Then labels = labels & item.Caption & vbLf
@@ -116,8 +122,8 @@ NextFitControl:
             GuideDraftControlForTest = "SELECTED"
         Case "Focus"
             If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then GuideDraftControlForTest = "DISABLED": Exit Function
-            control.SetFocus
-            GuideDraftControlForTest = "FOCUSED"
+            control.SetFocus: owner.Repaint: DoEvents
+            If owner.ActiveControl Is control Then GuideDraftControlForTest = "FOCUSED" Else GuideDraftControlForTest = "NOT FOCUSED"
         Case "Click", "Write", "Check", "Type"
             If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then
                 GuideDraftControlForTest = "DISABLED": Exit Function

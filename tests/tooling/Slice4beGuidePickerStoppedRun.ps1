@@ -81,6 +81,7 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         $runEditor=(Editor '' 'Count') -ceq '1'
         Check 'GuidePickerStoppedRun.RunCreateOpensEditorWithPickerPresent' ($runEditor -and (Picker '' 'Count') -ceq '1' -and (Editor 'lblGuideSource' 'Label').Contains($pathId))
         if(-not $runEditor){throw 'Actual guide editor unavailable; not typing-performance RED.'}
+        if((Editor '' 'Place') -cne 'PLACED'){throw 'Guide input form could not be placed on the current display; not behavioral RED.'}
         $beforeStep=Editor 'lstGuideSteps' 'Selected'
         $timer=[Diagnostics.Stopwatch]::StartNew()
         $stepSelect=Editor 'lstGuideSteps' 'SelectDirect' '1'
@@ -90,14 +91,13 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.GuideStepSelectionRetained' ($stepSelect -ceq 'SELECTED' -and $beforeStep -cne '' -and $afterStep -cne '' -and $afterStep -cne $beforeStep)
         Check 'GuidePickerStoppedRun.GuideStepSelectionResponsive' ($stepSelectSeconds -lt 2.5)
         # The test-only Type action exercises each real Change handler inside Excel.
-        $inputTimes=@{}; $inputLengths=@{}; $prior=''
+        $inputTimes=@{}; $inputLengths=@{}; $blurWrites=@{}
         foreach($spec in @(@('txtGuideName','Training guide title'),@('txtGuideTags','training, review'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
             $name=[string]$spec[0]; $value=[string]$spec[1]
-            if((Editor $name 'Focus') -cne 'FOCUSED'){throw ('Guide focus fixture unavailable: '+$name+'; not buffering RED.')}
-            if($prior){Check ('GuidePickerStoppedRun.'+$prior+'.OrdinaryBlurFlushesOnce') ((GuideWrites) -eq 1)}
+            if((Focus-GuideControlNative $name) -cne 'FOCUSED'){throw ('Native guide focus fixture unavailable: '+$name+'; not buffering RED.')}
             ResetGuideWrites
             $timer=[Diagnostics.Stopwatch]::StartNew()
-            if((Editor $name 'Type' $value) -cne 'DELIVERED'){
+            if((Type-GuideTextNative $name $value) -cne 'DELIVERED'){
                 throw ('Actual guide editor text handler unavailable: '+$name+'; not typing-performance RED.')
             }
             $timer.Stop()
@@ -106,7 +106,16 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             Check ('GuidePickerStoppedRun.'+$name+'.IncrementalTextPreserved') ((Editor $name 'Text') -ceq $value)
             Check ('GuidePickerStoppedRun.'+$name+'.IncrementalInputResponsive') ($inputTimes[$name] -lt 2.5)
             Check ('GuidePickerStoppedRun.'+$name+'.TypingDoesNotWriteCore') ((GuideWrites) -eq 0)
-            $prior=$name
+            if($name -cne 'txtGuideStepInstruction'){
+                if($name -ceq 'txtGuideName'){
+                    [void](Focus-GuideControlNative 'txtGuideTags')
+                    $newFocus=Editor '' 'Active'
+                } else {
+                    $newFocus=Move-GuideFocusByTabNative
+                }
+                $blurWrites[$name]=GuideWrites
+                Check ('GuidePickerStoppedRun.'+$name+'.OrdinaryBlurFlushesOnce') ($newFocus -cne $name -and $blurWrites[$name] -eq 1)
+            }
         }
         [pscustomobject]@{Stage='IncrementalEditorInput';SecondToggleSeconds=$secondToggleSeconds;StepSelectSeconds=$stepSelectSeconds;NameCharacters=$inputLengths['txtGuideName'];NameSeconds=$inputTimes['txtGuideName'];TagsCharacters=$inputLengths['txtGuideTags'];TagsSeconds=$inputTimes['txtGuideTags'];InstructionsCharacters=$inputLengths['txtGuideInstructions'];InstructionsSeconds=$inputTimes['txtGuideInstructions'];StepCharacters=$inputLengths['txtGuideStepInstruction'];StepSeconds=$inputTimes['txtGuideStepInstruction']} |
             ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-editor-input-timing.json')
@@ -114,7 +123,10 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         ResetGuideWrites
         $switch=Editor 'lstGuideSteps' 'SelectDirect' '2'
         $stepAfterSwitch=Editor 'lstGuideSteps' 'Selected'
-        Check 'GuidePickerStoppedRun.DirtyStepSwitchFlushesOnce' ($switch -ceq 'SELECTED' -and $stepAfterSwitch -cne $stepBeforeSwitch -and (GuideWrites) -eq 1)
+        $stepSwitchWrites=GuideWrites
+        [pscustomobject]@{Stage='InputBoundaries';BlurWrites=$blurWrites;StepSwitchWrites=$stepSwitchWrites;ActiveAfterSwitch=(Editor '' 'Active')} |
+            ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-input-boundary-counts.json')
+        Check 'GuidePickerStoppedRun.DirtyStepSwitchFlushesOnce' ($switch -ceq 'SELECTED' -and $stepAfterSwitch -cne $stepBeforeSwitch -and $stepSwitchWrites -eq 1)
         Check 'GuidePickerStoppedRun.DirtyStepSwitchLoadsNewStep' ((Editor 'txtGuideStepInstruction' 'Text') -ceq '')
         if((Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){throw 'Guide name focus before Save unavailable.'}
         ResetGuideWrites
@@ -137,6 +149,13 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             $boundStep.Count -eq 1 -and $boundStep[0].Instruction -ceq 'Check the saved action' -and
             $newStep.Count -eq 1 -and $newStep[0].Instruction -ceq '')
 
+        if((Focus-GuideControlNative 'txtGuideStepInstruction') -cne 'FOCUSED'){throw 'Native step blur fixture unavailable; not behavioral RED.'}
+        ResetGuideWrites
+        [void](Type-GuideTextNative 'txtGuideStepInstruction' 'Unpublished temporary step text')
+        $stepBlurFocus=Move-GuideFocusByTabNative
+        $stepBlurWrites=GuideWrites
+        Check 'GuidePickerStoppedRun.txtGuideStepInstruction.OrdinaryBlurFlushesOnce' ($stepBlurFocus -cne 'txtGuideStepInstruction' -and $stepBlurWrites -eq 1)
+
         [void](Picker 'btnCreateSelectedGuide' 'Click')
         $directEditor=(Editor '' 'Count') -ceq '1'
         Check 'GuidePickerStoppedRun.PickerCreateRebindsSingleEditor' ($directEditor -and (Editor 'lblGuideSource' 'Label') -match 'No recorded sequence; authored order is not execution evidence')
@@ -156,22 +175,7 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         [void](BoundLibrary 'Open')
         [void](BoundLibrary 'Select' $pathId)
         [void](Control 'frmActionPaths' 'btnCreateGuide' 'Click')
-        if((Editor '' 'Count') -cne '1' -or (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){
-            throw 'Dirty guide Cancel fixture unavailable; not behavioral RED.'
-        }
-        ResetGuideWrites
-        [void](Editor 'txtGuideName' 'Type' 'Discard this guide text')
-        [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
-        $cancelled=Click-GuideCancelNative
-        Check 'GuidePickerStoppedRun.StaleDirtyCancelClosesWithoutCoreWriteOrPublication' ($cancelled -and
-            (Editor '' 'Count') -ceq '0' -and (GuideWrites) -eq 0 -and
-            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
-
-        CloseRecordingViewer;SelectTarget $Fixture 'config-admin';OpenRecordingViewer
-        if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' $pathId) -cne 'SELECTED'){
-            throw 'Dirty guide window-X source unavailable; not behavioral RED.'
-        }
-        [void](Control 'frmActionPaths' 'btnCreateGuide' 'Click')
+        if((Editor '' 'Place') -cne 'PLACED'){throw 'Guide X form could not be placed on the current display; not behavioral RED.'}
         if((Editor '' 'Count') -cne '1' -or (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED'){
             throw 'Dirty guide window-X fixture unavailable; not behavioral RED.'
         }
@@ -179,7 +183,31 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         [void](Editor 'txtGuideName' 'Type' 'Close without writing')
         [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
         $closed=Close-GuideWindowXNative
+        $xEditors=Editor '' 'Count';$xWrites=GuideWrites
+        [pscustomobject]@{Stage='AfterWindowX';WindowClosed=$closed;LoadedEditors=$xEditors;WriteCalls=$xWrites} |
+            ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-input-close-state.json')
         Check 'GuidePickerStoppedRun.StaleDirtyWindowXClosesWithoutCoreWriteOrPublication' ($closed -and
+            $xEditors -ceq '0' -and $xWrites -eq 0 -and
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
+
+        [void](BoundLibrary 'Close')
+        CloseRecordingViewer;SelectTarget $Fixture 'config-admin';OpenRecordingViewer
+        if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' $pathId) -cne 'SELECTED'){
+            throw 'Dirty guide Cancel source unavailable; not behavioral RED.'
+        }
+        $cancelCreate=Control 'frmActionPaths' 'btnCreateGuide' 'Click'
+        if((Editor '' 'Place') -cne 'PLACED'){throw 'Guide Cancel form could not be placed on the current display; not behavioral RED.'}
+        $cancelEditorCount=Editor '' 'Count'
+        $cancelNameState=Editor 'txtGuideName' 'State'
+        $cancelFocus=if($cancelEditorCount -ceq '1'){Editor 'txtGuideName' 'Focus'}else{'NO EDITOR'}
+        if($cancelEditorCount -cne '1' -or $cancelFocus -cne 'FOCUSED'){
+            throw ("Dirty guide Cancel fixture unavailable; create=$cancelCreate; editor count=$cancelEditorCount; name state=$cancelNameState; focus=$cancelFocus; library status=$(BoundLibrary 'Status'); not behavioral RED.")
+        }
+        ResetGuideWrites
+        [void](Editor 'txtGuideName' 'Type' 'Discard this guide text')
+        [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+        $cancelled=Click-GuideCancelNative
+        Check 'GuidePickerStoppedRun.StaleDirtyCancelClosesWithoutCoreWriteOrPublication' ($cancelled -and
             (Editor '' 'Count') -ceq '0' -and (GuideWrites) -eq 0 -and
             @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
     } finally {
