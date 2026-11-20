@@ -158,8 +158,16 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
     OpenRecordingViewer
     [void](GuideSaveLibrary 'Open')
     [void](GuideSaveLibrary 'Select' $source.ActionPathId)
+    [pscustomobject]@{
+        Stage='GuideLibraryFinalRead'
+        Guides=(Get-GuidePinDeltaFacts $guidesBefore (GuidePins))
+        Source=(Get-GuidePinDeltaFacts $sourceBefore (SourcePins))
+        Activity=(Get-GuidePinDeltaFacts $activityBefore (ActivityPins))
+    } | ConvertTo-Json -Compress -Depth 4 | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-library-pin-delta.json')
+    # The two explicit Admin visibility-policy saves above append one requested
+    # tracking action each. Reader actions must add no other activity.
     Check 'GuideLibrary.ReadsPreserveGuideSourceAndActivityBytes' ((SamePins $guidesBefore (GuidePins)) -and (SamePins $sourceBefore (SourcePins)) -and
-        (PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count)
+        (Test-AddedActivityControls $activityBefore (ActivityPins) 'ADMIN_TRACKING_SAVE' 2))
     # Policy changes above are explicit commands; assert no extra changes after their restoration.
     Check 'GuideLibrary.NoBusinessPublication' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publishBefore)
 }

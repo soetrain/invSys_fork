@@ -63,6 +63,34 @@ function PinsRetained($Pins) {
     }
     return $true
 }
+function Get-GuidePinDeltaFacts($Before,$After) {
+    $missing=0;$changed=0;$added=0
+    foreach($key in $Before.Keys) {
+        if(-not $After.ContainsKey($key)){$missing++}
+        elseif($Before[$key] -cne $After[$key]){$changed++}
+    }
+    foreach($key in $After.Keys) {
+        if(-not $Before.ContainsKey($key)){$added++}
+    }
+    [pscustomobject]@{
+        BeforeCount=$Before.Count
+        AfterCount=$After.Count
+        AddedCount=$added
+        MissingCount=$missing
+        ChangedCount=$changed
+        Exact=($added -eq 0 -and $missing -eq 0 -and $changed -eq 0)
+    }
+}
+function Test-AddedActivityControls($Before,$After,[string]$ControlId,[int]$ExpectedCount) {
+    if(-not (PinsRetained $Before)){return $false}
+    $added=@($After.Keys|Where-Object {-not $Before.ContainsKey($_)})
+    if($added.Count -ne $ExpectedCount){return $false}
+    foreach($name in $added) {
+        $record=Get-Content -LiteralPath (Join-Path $activityRoot $name) -Raw|ConvertFrom-Json
+        if($record.ControlId -cne $ControlId -or $record.OutcomeCode -cne 'REQUESTED'){return $false}
+    }
+    return $true
+}
 $journalRoot=Join-Path $Fixture.Root ('Training/ActionPaths/'+$Fixture.Warehouse)
 function RecordingJournal([string]$Sequence) {
     if(-not $Sequence -or -not (Test-Path -LiteralPath $journalRoot)){return}
