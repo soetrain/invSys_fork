@@ -153,9 +153,14 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
                         $headers=Table $cfg 'tblEventTrackingPolicies';$controls=Table $cfg 'tblEventTrackingControls';$found=0
                         foreach($row in $headers.ListRows){if([int]$row.Range.Cells.Item(1,$headers.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version){$row.Range.Cells.Item(1,$headers.ListColumns.Item('CatalogVersion').Index).Value2=29.0;$found++}}
                         if($found -ne 1){throw 'Unique current policy required.'}
+                        $supported=@(([string](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.ControlIdsForVersion' @(29))) -split "`n")
+                        if($supported.Count -eq 0 -or @($supported|Where-Object {$_ -eq 'VIEWER_GUIDE_EXPORT' -or $_ -eq 'VIEWER_GUIDE_IMPORT'}).Count -ne 0){throw 'Exact older catalog fixture required.'}
+                        $supportedSet=@{};foreach($id in $supported){$supportedSet[$id]=$true}
+                        $guideControls=@($Guide.Steps|ForEach-Object ControlId)+@($Guide.Observations|ForEach-Object ControlId)+@($Guide.ExpectedConclusion.Steps|ForEach-Object ControlId)
+                        if(@($guideControls|Where-Object {-not $supportedSet.ContainsKey([string]$_)}).Count -gt 0){throw 'Older transfer policy fixture needs a guide using only catalog-29 controls; not product RED.'}
                         for($index=$controls.ListRows.Count;$index -ge 1;$index--){
                             $row=$controls.ListRows.Item($index)
-                            if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version -and [string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cin @('VIEWER_GUIDE_EXPORT','VIEWER_GUIDE_IMPORT')){$row.Delete()}
+                            if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version -and -not $supportedSet.ContainsKey([string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2)){$row.Delete()}
                         }
                         $cfg.Save()
                     }finally{$cfg.Close($false)}

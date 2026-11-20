@@ -20,6 +20,9 @@ End Function
 Public Function CurrentCatalogVersion() As Long
     CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
 End Function
+Public Function ControlIdsForVersion(ByVal version As Long) As String
+    ControlIdsForVersion = Join(modActivityCatalog.ControlIds(version), vbLf)
+End Function
 '@)
     $form=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmActionPathLibrary').CodeModule
     $form.AddFromString(@'
