@@ -16,6 +16,15 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
     }
     function GuideWrites { [long](Run 'invSys.Core.xlam' 'TestGuideInputWriteCount.ReadCount') }
     function ResetGuideWrites { [void](Run 'invSys.Core.xlam' 'TestGuideInputWriteCount.ResetCount') }
+    function OpenGuardEditor {
+        CloseRecordingViewer; SelectTarget $Fixture 'config-admin'; OpenRecordingViewer
+        if((BoundLibrary 'Open') -cne 'DELIVERED' -or
+           (BoundLibrary 'Select' $pathId) -cne 'SELECTED' -or
+           (Control 'frmActionPaths' 'btnCreateGuide' 'Click') -cne 'DELIVERED' -or
+           (Editor '' 'Count') -cne '1') {
+            throw 'Dirty guide guard editor unavailable; not behavioral RED.'
+        }
+    }
 
     CloseRecordingViewer
     SelectTarget $Fixture 'config-admin'
@@ -275,6 +284,140 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             (Editor 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and
             (Editor 'lblGuideStatus' 'Label') -match '(?i)unavailable|changed|reopen' -and
             @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+
+        # Change policy through the packaged Admin handler, then make the
+        # still-open editor dirty. No focus transition may turn this stale text
+        # into a successful guide write or a new immutable version.
+        OpenGuardEditor
+        try {
+            SaveGuideExpectationVisibility $false
+            ResetGuideWrites
+            [void](Editor 'txtGuideName' 'Write' 'Unpublished stale policy text')
+            [void](Editor 'btnSaveGuide' 'Click')
+            Check 'GuidePickerStoppedRun.StalePolicyDirtySaveRefusesPublication' ((GuideWrites) -eq 1 -and
+                (Editor 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and
+                @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+        } finally {
+            [void](Editor 'btnCancelGuide' 'Click')
+            SaveGuideExpectationVisibility $true
+        }
+
+        OpenGuardEditor
+        try {
+            SaveGuideExpectationVisibility $false
+            if((Editor '' 'Place') -cne 'PLACED' -or
+               (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED') {
+                throw 'Dirty stale-policy window-X fixture unavailable; not behavioral RED.'
+            }
+            ResetGuideWrites
+            [void](Editor 'txtGuideName' 'Type' 'Discard at X after policy change')
+            $policyClosed=Close-GuideWindowXNative
+            Check 'GuidePickerStoppedRun.StalePolicyDirtyWindowXDiscardsWithoutCoreWrite' ($policyClosed -and
+                (GuideWrites) -eq 0 -and (Editor '' 'Count') -ceq '0' -and
+                @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+        } finally {
+            [void](Editor 'btnCancelGuide' 'Click')
+            SaveGuideExpectationVisibility $true
+        }
+
+        OpenGuardEditor
+        try {
+            SaveGuideExpectationVisibility $false
+            if((Editor '' 'Place') -cne 'PLACED' -or
+               (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED') {
+                throw 'Dirty stale-policy Cancel fixture unavailable; not behavioral RED.'
+            }
+            ResetGuideWrites
+            [void](Editor 'txtGuideName' 'Type' 'Discard after policy change')
+            $policyCancelled=Click-GuideCancelNative
+            Check 'GuidePickerStoppedRun.StalePolicyDirtyCancelDiscardsWithoutCoreWrite' ($policyCancelled -and
+                (GuideWrites) -eq 0 -and (Editor '' 'Count') -ceq '0' -and
+                @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+        } finally {
+            [void](Editor 'btnCancelGuide' 'Click')
+            SaveGuideExpectationVisibility $true
+        }
+
+        OpenGuardEditor
+        $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
+        $authBytes=[IO.File]::ReadAllBytes($authPath)
+        try {
+            $auth=$excel.Workbooks.Open($authPath,0,$false)
+            try {
+                $caps=Table $auth 'tblCapabilities'; $revoked=0
+                foreach($row in $caps.ListRows) {
+                    if($row.Range.Cells.Item(1,$caps.ListColumns.Item('UserId').Index).Value2 -ceq 'config-admin' -and
+                       $row.Range.Cells.Item(1,$caps.ListColumns.Item('Capability').Index).Value2 -ceq 'ACTION_PATH_MAINT') {
+                        $row.Range.Cells.Item(1,$caps.ListColumns.Item('Status').Index).Value2='Inactive'; $revoked++
+                    }
+                }
+                if($revoked -ne 1){throw 'Dirty capability guard fixture is not unique.'}
+                $auth.Save()
+            } finally {$auth.Close($false)}
+            [void](Run 'invSys.Core.xlam' 'modAuth.LoadAuth' @($Fixture.Warehouse))
+            $allowed=Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1')
+            $signed=Run 'invSys.Core.xlam' 'modAuth.IsSignedIn'
+            if($allowed -isnot [bool] -or $allowed -or $signed -isnot [bool] -or -not $signed) {
+                throw 'Dirty capability loss is not isolated from sign-out.'
+            }
+            ResetGuideWrites
+            [void](Editor 'txtGuideName' 'Write' 'Unpublished revoked text')
+            [void](Editor 'btnSaveGuide' 'Click')
+            Check 'GuidePickerStoppedRun.StaleCapabilityDirtySaveRefusesPublication' ((GuideWrites) -eq 1 -and
+                (Editor 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and
+                @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+        } finally {
+            [void](Editor 'btnCancelGuide' 'Click')
+            CloseRecordingViewer
+            [IO.File]::WriteAllBytes($authPath,$authBytes)
+            SelectTarget $Fixture 'config-admin'
+        }
+        if([Convert]::ToBase64String([IO.File]::ReadAllBytes($authPath)) -cne
+           [Convert]::ToBase64String($authBytes)) {
+            throw 'Dirty capability fixture bytes were not restored.'
+        }
+
+        foreach($closeMode in @('Cancel','WindowX')) {
+            OpenGuardEditor
+            $authBytes=[IO.File]::ReadAllBytes($authPath)
+            try {
+                $auth=$excel.Workbooks.Open($authPath,0,$false)
+                try {
+                    $caps=Table $auth 'tblCapabilities'; $revoked=0
+                    foreach($row in $caps.ListRows) {
+                        if($row.Range.Cells.Item(1,$caps.ListColumns.Item('UserId').Index).Value2 -ceq 'config-admin' -and
+                           $row.Range.Cells.Item(1,$caps.ListColumns.Item('Capability').Index).Value2 -ceq 'ACTION_PATH_MAINT') {
+                            $row.Range.Cells.Item(1,$caps.ListColumns.Item('Status').Index).Value2='Inactive'; $revoked++
+                        }
+                    }
+                    if($revoked -ne 1){throw 'Dirty capability close fixture is not unique.'}
+                    $auth.Save()
+                } finally {$auth.Close($false)}
+                [void](Run 'invSys.Core.xlam' 'modAuth.LoadAuth' @($Fixture.Warehouse))
+                if([bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-admin',$Fixture.Warehouse,'S1'))) {
+                    throw 'Dirty capability close fixture still permits guide maintenance.'
+                }
+                if((Editor '' 'Place') -cne 'PLACED' -or
+                   (Editor 'txtGuideName' 'Focus') -cne 'FOCUSED') {
+                    throw 'Dirty capability close form unavailable; not behavioral RED.'
+                }
+                ResetGuideWrites
+                [void](Editor 'txtGuideName' 'Type' 'Discard after capability loss')
+                $closed=if($closeMode -ceq 'Cancel'){Click-GuideCancelNative}else{Close-GuideWindowXNative}
+                Check ('GuidePickerStoppedRun.StaleCapabilityDirty'+$closeMode+'DiscardsWithoutCoreWrite') ($closed -and
+                    (GuideWrites) -eq 0 -and (Editor '' 'Count') -ceq '0' -and
+                    @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+            } finally {
+                [void](Editor 'btnCancelGuide' 'Click')
+                CloseRecordingViewer
+                [IO.File]::WriteAllBytes($authPath,$authBytes)
+                SelectTarget $Fixture 'config-admin'
+            }
+            if([Convert]::ToBase64String([IO.File]::ReadAllBytes($authPath)) -cne
+               [Convert]::ToBase64String($authBytes)) {
+                throw 'Dirty capability close fixture bytes were not restored.'
+            }
+        }
     } finally {
         CloseRecordingViewer
         SelectTarget $Fixture 'config-admin'
