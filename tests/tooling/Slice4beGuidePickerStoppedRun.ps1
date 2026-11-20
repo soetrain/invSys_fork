@@ -137,6 +137,8 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         $saved=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json' -ErrorAction SilentlyContinue)
         $runGuide=$null
         if($saved.Count -eq 1){$runGuide=ReadGuideExpectationRecord $saved[0].FullName}
+        if($null -eq $runGuide){throw 'Saved run guide prerequisite invalid; not dirty-boundary RED.'}
+        $firstGuideHash=(Get-FileHash -LiteralPath $saved[0].FullName).Hash
         Check 'GuidePickerStoppedRun.RunSavePublishesImmutableGuide' ($null -ne $runGuide -and $runGuide.Name -ceq 'Stopped run guide' -and
             $runGuide.SourceRun.ActionPathId -ceq $pathId -and $runGuide.SourceRun.JournalVersion -eq 12 -and @($runGuide.Steps).Count -eq 5)
         $boundStep=@();$newStep=@()
@@ -156,7 +158,55 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         $stepBlurWrites=GuideWrites
         Check 'GuidePickerStoppedRun.txtGuideStepInstruction.OrdinaryBlurFlushesOnce' ($stepBlurFocus -cne 'txtGuideStepInstruction' -and $stepBlurWrites -eq 1)
 
-        [void](Picker 'btnCreateSelectedGuide' 'Click')
+        # Reorder must flush the text bound to the old StepId before the list
+        # changes selection. Save proves the exact assignment in the next version.
+        [void](Editor 'txtGuideStepInstruction' 'Write' 'Reordered step instruction')
+        ResetGuideWrites
+        $moved=Editor 'btnGuideStepUp' 'Click'
+        Check 'GuidePickerStoppedRun.DirtyReorderFlushesPreviousStepOnce' ($moved -ceq 'DELIVERED' -and
+            (GuideWrites) -eq 1 -and (Editor 'lstGuideSteps' 'Selected') -ceq $stepAfterSwitch -and
+            (Editor 'txtGuideStepInstruction' 'Text') -ceq 'Reordered step instruction')
+        [void](Editor 'btnSaveGuide' 'Click')
+        $revisedPath=Join-Path $guideRoot ($runGuide.ActionPathId+'.2.json')
+        $revised=ReadGuideExpectationRecord $revisedPath
+        if($null -eq $revised){throw 'Reordered guide version could not be read; not dirty-assignment RED.'}
+        $revisedGuideHash=(Get-FileHash -LiteralPath $revisedPath).Hash
+        $revisedStep=@($revised.Steps|Where-Object {$_.StepId -ceq $stepAfterSwitch})
+        Check 'GuidePickerStoppedRun.DirtyReorderSaveKeepsExactStepAssignment' ($null -ne $revised -and
+            $revisedStep.Count -eq 1 -and $revisedStep[0].Instruction -ceq 'Reordered step instruction' -and
+            @($revised.Steps)[1].StepId -ceq $stepAfterSwitch -and
+            (Get-FileHash -LiteralPath $saved[0].FullName).Hash -ceq $firstGuideHash)
+
+        [void](Editor 'txtGuideStepInstruction' 'Write' 'Remove this unsaved step')
+        ResetGuideWrites
+        $removed=Editor 'btnRemoveGuideStep' 'Click'
+        $remaining=@((Editor 'lstGuideSteps' 'Values') -split "`n"|Where-Object {$_ -cne ''})
+        Check 'GuidePickerStoppedRun.DirtyRemovalFlushesBoundStepBeforeRemoval' ($removed -ceq 'DELIVERED' -and
+            (GuideWrites) -eq 1 -and $remaining -cnotcontains $stepAfterSwitch -and
+            (Get-FileHash -LiteralPath $revisedPath).Hash -ceq $revisedGuideHash)
+
+        [void](Editor 'txtGuideTags' 'Write' 'expectation, pending')
+        ResetGuideWrites
+        $expectation=Editor 'btnGuideExpectedConclusion' 'Click'
+        $expectationOpened=(Control 'frmActionPathExpectation' '' 'Count') -ceq '1'
+        $expectationWrites=GuideWrites
+        $expectationCancelled=Control 'frmActionPathExpectation' 'btnCancelExpectation' 'Click'
+        Check 'GuidePickerStoppedRun.DirtyExpectationEntryFlushesAndReturnRetainsText' ($expectation -ceq 'DELIVERED' -and
+            $expectationOpened -and $expectationWrites -eq 1 -and $expectationCancelled -ceq 'DELIVERED' -and
+            (Editor 'txtGuideTags' 'Text') -ceq 'expectation, pending' -and
+            (Get-FileHash -LiteralPath $revisedPath).Hash -ceq $revisedGuideHash)
+
+        [void](Editor 'txtGuideName' 'Write' 'Rebound guide draft')
+        ResetGuideWrites
+        $reused=Control 'frmActionPaths' 'btnCreateGuide' 'Click'
+        Check 'GuidePickerStoppedRun.SameSourceReentryRetainsDirtyLocalBuffer' ($reused -ceq 'DELIVERED' -and
+            (GuideWrites) -eq 0 -and (Editor '' 'Count') -ceq '1' -and
+            (Editor 'txtGuideName' 'Text') -ceq 'Rebound guide draft' -and
+            (Get-FileHash -LiteralPath $revisedPath).Hash -ceq $revisedGuideHash)
+
+        $rebound=Picker 'btnCreateSelectedGuide' 'Click'
+        Check 'GuidePickerStoppedRun.DirtyRebindFlushesOnceBeforeReload' ($rebound -ceq 'DELIVERED' -and
+            (GuideWrites) -eq 1 -and (Get-FileHash -LiteralPath $revisedPath).Hash -ceq $revisedGuideHash)
         $directEditor=(Editor '' 'Count') -ceq '1'
         Check 'GuidePickerStoppedRun.PickerCreateRebindsSingleEditor' ($directEditor -and (Editor 'lblGuideSource' 'Label') -match 'No recorded sequence; authored order is not execution evidence')
         [void](Editor 'txtGuideName' 'Write' 'Selected published action guide')
@@ -188,7 +238,7 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             ConvertTo-Json -Compress | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-input-close-state.json')
         Check 'GuidePickerStoppedRun.StaleDirtyWindowXClosesWithoutCoreWriteOrPublication' ($closed -and
             $xEditors -ceq '0' -and $xWrites -eq 0 -and
-            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
 
         [void](BoundLibrary 'Close')
         CloseRecordingViewer;SelectTarget $Fixture 'config-admin';OpenRecordingViewer
@@ -209,7 +259,22 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         $cancelled=Click-GuideCancelNative
         Check 'GuidePickerStoppedRun.StaleDirtyCancelClosesWithoutCoreWriteOrPublication' ($cancelled -and
             (Editor '' 'Count') -ceq '0' -and (GuideWrites) -eq 0 -and
-            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 2)
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
+
+        CloseRecordingViewer;SelectTarget $Fixture 'config-admin';OpenRecordingViewer
+        if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' $pathId) -cne 'SELECTED' -or
+            (Control 'frmActionPaths' 'btnCreateGuide' 'Click') -cne 'DELIVERED' -or
+            (Editor '' 'Count') -cne '1'){
+            throw 'Dirty stale Save source unavailable; not behavioral RED.'
+        }
+        [void](Editor 'txtGuideName' 'Write' 'Do not publish after sign-out')
+        ResetGuideWrites
+        [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+        [void](Editor 'btnSaveGuide' 'Click')
+        Check 'GuidePickerStoppedRun.StaleDirtySaveRefusesAndClearsEvidence' ((GuideWrites) -eq 1 -and
+            (Editor 'txtGuideEvidence' 'Text') -cin @('','MISSING') -and
+            (Editor 'lblGuideStatus' 'Label') -match '(?i)unavailable|changed|reopen' -and
+            @(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.json').Count -eq 3)
     } finally {
         CloseRecordingViewer
         SelectTarget $Fixture 'config-admin'
