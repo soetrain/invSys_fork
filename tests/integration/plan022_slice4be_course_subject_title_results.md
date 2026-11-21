@@ -80,6 +80,11 @@ reports 391 components and 6767 procedures. Versus the 2026-11-20 scan,
 duplicate candidates remain 193, same-project late bindings remain 7,
 unresolved candidates remain 290 and warnings remain 30. Twenty changed
 PowerShell tooling files parse with zero errors; `git diff --check` is clean.
+The old Slice 12 cleanup contract script is not a current-candidate gate: its
+first invocation without `-RepoRoot` failed at parameter binding, and with
+`-RepoRoot .` it reported 7 PASS / 6 FAIL against its historical frozen
+baseline. Its late-binding check passed. This course checkpoint relies on the
+fresh scan comparison and does not claim a passing Slice 12 contract gate.
 
 ## Open gates
 
