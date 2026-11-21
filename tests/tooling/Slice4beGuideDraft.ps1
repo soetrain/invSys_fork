@@ -4,7 +4,7 @@ function Install-GuideDraftProbe {
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
 Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As String, ByVal action As String, Optional ByVal value As String = "") As String
-    Dim instance As Object, owner As Object, control As Object, item As Object, count As Long, labels As String, index As Long
+    Dim instance As Object, owner As Object, control As Object, item As Object, count As Long, labels As String, index As Long, column As Long
     For Each instance In VBA.UserForms
         If TypeName(instance) = formName Then Set owner = instance: count = count + 1
     Next instance
@@ -75,6 +75,16 @@ NextFitControl:
         Case "Text": GuideDraftControlForTest = CStr(control.Value)
         Case "Label": GuideDraftControlForTest = CStr(control.Caption)
         Case "Rows": GuideDraftControlForTest = CStr(control.ListCount)
+        Case "Columns": GuideDraftControlForTest = CStr(control.ColumnCount)
+        Case "VisibleRows"
+            For index = 0 To control.ListCount - 1
+                For column = 1 To control.ColumnCount - 1
+                    If column > 1 Then labels = labels & vbTab
+                    labels = labels & CStr(control.List(index, column))
+                Next column
+                labels = labels & vbLf
+            Next index
+            GuideDraftControlForTest = labels
         Case "Locked": GuideDraftControlForTest = CStr(control.Locked)
         Case "Selected": GuideDraftControlForTest = CStr(control.Value)
         Case "ViewportTop", "ViewportBottom"

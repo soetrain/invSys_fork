@@ -43,6 +43,12 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
     Check 'GuideLibrary.RepeatedEntryReusesReader' ($opened -and (GuideReader '' 'Count') -ceq '1')
     $expected=(GuideVersionKey $First)+"`n"+(GuideVersionKey $Second)+"`n"
     Check 'GuideLibrary.ListContainsBothExactVersionsInNumericOrder' ($opened -and (GuideReader 'lstPublishedGuides' 'Values') -ceq $expected)
+    $courseRows=GuideReader 'lstPublishedGuides' 'VisibleRows'
+    $courseLabels=GuideReader '' 'Labels'
+    Check 'GuideCourse.LibraryShowsSubjectTitleVersionTags' ($opened -and (GuideReader 'lstPublishedGuides' 'Columns') -ceq '5' -and
+        $courseLabels -cmatch 'Subject' -and $courseLabels -cmatch 'Title' -and $courseLabels -cmatch 'Version' -and $courseLabels -cmatch 'Tags' -and
+        $courseRows.Contains("Settings basics`t$($First.Name)`t1`t") -and
+        $courseRows.Contains("Settings basics`t$($Second.Name)`t2`t"))
     $selected=SelectGuideVersion $First
     $instructions=GuideReader 'txtPublishedInstructions' 'Text'
     $observations=GuideReader 'txtPublishedObservations' 'Text'
@@ -74,7 +80,7 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
         $revised.Contains([string]$Second.Steps[0].Instruction) -and $revised.Contains([string]$Second.Steps[1].Instruction) -and
         $revised.IndexOf([string]$Second.Steps[0].Instruction) -lt $revised.IndexOf([string]$Second.Steps[1].Instruction) -and
         (GuideReader 'txtPublishedObservations' 'Text') -ceq $observations)
-    foreach($case in @(@('Name','revised',1),@('Tag','TRAINING',2),@('Id',[string]$First.ActionPathId,2),@('Absent','no guide matches this text',0))){
+    foreach($case in @(@('Subject','Settings basics',2),@('Name','revised',1),@('Tag','TRAINING',2),@('Id',[string]$First.ActionPathId,2),@('Absent','no guide matches this text',0))){
         [void](GuideReader 'txtGuideSearch' 'Write' ([string]$case[1]))
         Check ('GuideLibrary.Search.'+$case[0]) ($opened -and (GuideReader 'lstPublishedGuides' 'Rows') -ceq [string]$case[2])
     }

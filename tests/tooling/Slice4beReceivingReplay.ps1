@@ -145,6 +145,7 @@ function Test-Slice4beReceivingReplay($Fixture,$Other) {
         if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' ([string]$source.ActionPathId)) -cne 'SELECTED'){throw 'Recorded source cannot be selected.'}
         $guideRoot=Join-Path $journalRoot 'Guides';$guideBefore=BoundPins $guideRoot
         Deliver 'frmActionPaths' 'btnCreateGuide' 'Click'
+        Deliver 'frmActionPathGuide' 'txtGuideSubject' 'Write' 'Receiving training'
         Deliver 'frmActionPathGuide' 'txtGuideName' 'Write' 'Receive one training item and prove application'
         Deliver 'frmActionPathGuide' 'txtGuideInstructions' 'Write' 'Open Receiving, refresh and clear staging, select an item, add the training receipt, then confirm writes. Verify the fresh source event.'
         Deliver 'frmActionPathGuide' 'btnGuideExpectedConclusion' 'Click'

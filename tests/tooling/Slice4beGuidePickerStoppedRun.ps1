@@ -101,7 +101,7 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.GuideStepSelectionResponsive' ($stepSelectSeconds -lt 2.5)
         # The test-only Type action exercises each real Change handler inside Excel.
         $inputTimes=@{}; $inputLengths=@{}; $blurWrites=@{}
-        foreach($spec in @(@('txtGuideName','Training guide title'),@('txtGuideTags','training, review'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
+        foreach($spec in @(@('txtGuideSubject','Training basics'),@('txtGuideName','Training guide title'),@('txtGuideTags','training, review'),@('txtGuideInstructions','Follow the recorded steps'),@('txtGuideStepInstruction','Check the saved action'))) {
             $name=[string]$spec[0]; $value=[string]$spec[1]
             if((Focus-GuideControlNative $name) -cne 'FOCUSED'){throw ('Native guide focus fixture unavailable: '+$name+'; not buffering RED.')}
             ResetGuideWrites
@@ -116,7 +116,10 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             Check ('GuidePickerStoppedRun.'+$name+'.IncrementalInputResponsive') ($inputTimes[$name] -lt 2.5)
             Check ('GuidePickerStoppedRun.'+$name+'.TypingDoesNotWriteCore') ((GuideWrites) -eq 0)
             if($name -cne 'txtGuideStepInstruction'){
-                if($name -ceq 'txtGuideName'){
+                if($name -ceq 'txtGuideSubject'){
+                    [void](Focus-GuideControlNative 'txtGuideName')
+                    $newFocus=Editor '' 'Active'
+                } elseif($name -ceq 'txtGuideName'){
                     [void](Focus-GuideControlNative 'txtGuideTags')
                     $newFocus=Editor '' 'Active'
                 } else {
@@ -218,6 +221,7 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
             (GuideWrites) -eq 1 -and (Get-FileHash -LiteralPath $revisedPath).Hash -ceq $revisedGuideHash)
         $directEditor=(Editor '' 'Count') -ceq '1'
         Check 'GuidePickerStoppedRun.PickerCreateRebindsSingleEditor' ($directEditor -and (Editor 'lblGuideSource' 'Label') -match 'No recorded sequence; authored order is not execution evidence')
+        [void](Editor 'txtGuideSubject' 'Write' 'Direct action training')
         [void](Editor 'txtGuideName' 'Write' 'Selected published action guide')
         [void](Editor 'btnSaveGuide' 'Click')
         $saved=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json' -ErrorAction SilentlyContinue)
@@ -228,6 +232,13 @@ function Test-GuidePickerStoppedRun($Fixture,$Other) {
         Check 'GuidePickerStoppedRun.CancelClosesPickerAndOwnedEditor' ((Picker '' 'Count') -ceq '0' -and (Editor '' 'Count') -ceq '0')
         Check 'GuidePickerStoppedRun.CancelRetainsBothPublishedGuides' (@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json').Count -eq 2)
         Check 'GuidePickerStoppedRun.SourceActivityBytesUnchanged' (PinsRetained $activityBefore)
+        $readerOpened=(Control 'frmActionPaths' 'btnPublishedGuides' 'Click') -ceq 'DELIVERED'
+        $libraryKeys=Control 'frmActionPathLibrary' 'lstPublishedGuides' 'Values'
+        $directKey=if($directGuide.Count -eq 1){[string]$directGuide[0].ActionPathId+'|1|'+[string]$directGuide[0].ContentSha256}else{''}
+        Check 'GuideCourse.LibrarySortsDistinctSubjectsBeforeCreationOrder' ($readerOpened -and $directKey -cne '' -and
+            $libraryKeys.StartsWith($directKey+"`n",[StringComparison]::Ordinal) -and
+            (Control 'frmActionPathLibrary' 'lstPublishedGuides' 'VisibleRows').StartsWith("Direct action training`tSelected published action guide`t1`t",[StringComparison]::Ordinal))
+        [void](Control 'frmActionPathLibrary' 'btnCloseGuides' 'Click')
 
         # Actual Cancel/X event order, including stale authority, must not
         # turn dirty form text into a Core write or a published version.

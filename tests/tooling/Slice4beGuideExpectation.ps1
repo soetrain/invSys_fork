@@ -41,6 +41,7 @@ function Test-GuideExpectation($Fixture,$Other) {
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Open','')) -cne 'DELIVERED'){throw 'Existing recording library cannot open; not guide-expectation RED.'}
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$source.ActionPathId)) -cne 'SELECTED'){throw 'Existing source cannot be selected; not guide-expectation RED.'}
         if((GuideExpectationControl 'btnCreateGuide' 'Click' '' 'frmActionPaths') -cne 'DELIVERED' -or (GuideAuthor '' 'Count') -cne '1'){throw 'Existing author fixture cannot open; not guide-expectation RED.'}
+        [void](GuideAuthor 'txtGuideSubject' 'Write' 'Settings basics')
         [void](GuideAuthor 'txtGuideName' 'Write' 'Guide with an authored conclusion')
     }
 

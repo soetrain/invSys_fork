@@ -46,7 +46,7 @@ function Test-GuideTransferEditAndRepeat($Source,$Destination,$Original,$Importe
     $instructions=[string]$Imported.Instructions+"`r`nLocal authored revision."
     [void](BoundControl 'txtGuideInstructions' 'Write' $instructions 'frmActionPathGuide')
     [void](BoundControl 'btnSaveGuide' 'Click' '' 'frmActionPathGuide')
-    $revision=TransferRead (Join-Path $root ($Imported.ActionPathId+'.2.json')) 'Guide' 2 $GuideFields
+    $revision=TransferRead (Join-Path $root ($Imported.ActionPathId+'.2.json')) 'Guide' 3 $GuideFields
     $saved=$null -ne $revision
     Check 'GuideTransfer.Edit.AppendsLocalVersionAndRetainsOrigin' ($opened -and $saved -and $revision.PreviousRecordId -ceq $Imported.RecordId -and $revision.PreviousSha256 -ceq $Imported.ContentSha256 -and $revision.Instructions -ceq $instructions -and (TransferJson $revision.TransferOrigin) -ceq (TransferJson $Imported.TransferOrigin) -and (TransferJson $revision.Observations) -ceq (TransferJson $Original.Observations) -and (TransferRetained $before (TransferPins $Destination.Root)))
     [void](BoundControl 'btnCancelGuide' 'Click' '' 'frmActionPathGuide')
@@ -71,7 +71,7 @@ function Test-GuideTransferEditAndRepeat($Source,$Destination,$Original,$Importe
     $clicked=(BoundControl 'btnImportGuide' 'Click') -ceq 'DELIVERED'
     $after=BoundPins $root
     $fresh=@($after.Keys|Where-Object {-not $before.ContainsKey($_)})
-    $again=$null;if($fresh.Count -eq 1){$again=TransferRead $fresh[0] 'Guide' 2 $GuideFields}
+    $again=$null;if($fresh.Count -eq 1){$again=TransferRead $fresh[0] 'Guide' 3 $GuideFields}
     Check 'GuideTransfer.Import.RepeatedImportCreatesDistinctIdentity' ($clicked -and $null -ne $again -and $again.ActionPathId -cne $Imported.ActionPathId -and $again.ActionPathId -cne $Original.ActionPathId -and $again.Version -eq 1 -and (TransferRetained $before $after))
     if($null -ne $package){
         TransferOpen $Source
@@ -79,7 +79,7 @@ function Test-GuideTransferEditAndRepeat($Source,$Destination,$Original,$Importe
         $before=BoundPins $sourceRoot;TransferSetFile $reexport
         $clicked=(BoundControl 'btnImportGuide' 'Click') -ceq 'DELIVERED'
         $after=BoundPins $sourceRoot;$fresh=@($after.Keys|Where-Object {-not $before.ContainsKey($_)})
-        $returned=$null;if($fresh.Count -eq 1){$returned=TransferRead $fresh[0] 'Guide' 2 $GuideFields}
+        $returned=$null;if($fresh.Count -eq 1){$returned=TransferRead $fresh[0] 'Guide' 3 $GuideFields}
         Check 'GuideTransfer.Import.ReexportCanReturnWithoutMerging' ($clicked -and $null -ne $returned -and $returned.ActionPathId -cne $Original.ActionPathId -and $returned.WarehouseId -ceq $Source.Warehouse -and $returned.TransferOrigin.SourceWarehouseId -ceq $Destination.Warehouse -and (TransferJson $returned.Observations) -ceq (TransferJson $Original.Observations) -and (TransferRetained $before $after))
     }
 }

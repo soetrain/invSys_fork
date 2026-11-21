@@ -20,6 +20,7 @@ Private mPublished As Boolean
 Private mDraftId As String
 Private mLoading As Boolean
 Private mDiscarding As Boolean
+Private mDirtySubject As Boolean
 Private mDirtyName As Boolean
 Private mDirtyTags As Boolean
 Private mDirtyInstructions As Boolean
@@ -30,6 +31,7 @@ Private mLayout As cOperationsAnchorManager
 Private mSource As MSForms.Label
 Private mStatus As MSForms.Label
 Private mEvidence As MSForms.TextBox
+Private WithEvents mSubject As MSForms.TextBox
 Private WithEvents mName As MSForms.TextBox
 Private WithEvents mTags As MSForms.TextBox
 Private WithEvents mInstructions As MSForms.TextBox
@@ -52,10 +54,12 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblGuideSource", "", 12, 10, 650, 96, 7), _
         Array("CommandButton", "btnGuideExpectedConclusion", "Expected conclusion", 672, 10, 208, 26, 6), _
         Array("Label", "lblGuideExpectationSummary", "Guide expectation: None", 672, 40, 208, 18, 6), _
-        Array("Label", "lblGuideName", "Guide name", 12, 114, 510, 18, 7), _
-        Array("TextBox", "txtGuideName", "", 12, 134, 510, 24, 7), _
-        Array("Label", "lblGuideTags", "Tags", 540, 114, 340, 18, 6), _
-        Array("TextBox", "txtGuideTags", "", 540, 134, 340, 24, 6), _
+        Array("Label", "lblGuideSubject", "Subject", 12, 114, 190, 18, 1), _
+        Array("TextBox", "txtGuideSubject", "", 12, 134, 190, 24, 1), _
+        Array("Label", "lblGuideName", "Title", 212, 114, 360, 18, 7), _
+        Array("TextBox", "txtGuideName", "", 212, 134, 360, 24, 7), _
+        Array("Label", "lblGuideTags", "Tags", 582, 114, 298, 18, 6), _
+        Array("TextBox", "txtGuideTags", "", 582, 134, 298, 24, 6), _
         Array("Label", "lblGuideInstructions", "Authored instructions for this guide", 12, 168, 868, 18, 7), _
         Array("TextBox", "txtGuideInstructions", "", 12, 188, 868, 64, 7), _
         Array("Label", "lblGuideSteps", "Authored step order", 12, 262, 320, 18, 3), _
@@ -78,6 +82,7 @@ Private Sub UserForm_Initialize()
         mLayout.RegisterControl control, CLng(definition(7))
     Next definition
     Set mSource = Me.Controls("lblGuideSource"): Set mStatus = Me.Controls("lblGuideStatus")
+    Set mSubject = Me.Controls("txtGuideSubject")
     Set mName = Me.Controls("txtGuideName"): Set mTags = Me.Controls("txtGuideTags")
     Set mInstructions = Me.Controls("txtGuideInstructions"): Set mStepInstruction = Me.Controls("txtGuideStepInstruction")
     Set mSteps = Me.Controls("lstGuideSteps"): Set mEvidence = Me.Controls("txtGuideEvidence")
@@ -129,13 +134,13 @@ End Function
 
 Private Function LoadDraft() As Boolean
     Dim rows As String, source As String, evidence As String, notice As String, selected As String, row As Variant, fields As Variant
-    Dim name As String, tags As String, instructions As String, instruction As String, summary As String
+    Dim subject As String, name As String, tags As String, instructions As String, instruction As String, summary As String
     If Not FlushDirty() Then Exit Function
     selected = SelectedStep()
     If Not modActionGuideDraft.ReadEditor(mContext, mDraftId, selected, rows, source, evidence, _
-        name, tags, instructions, instruction, summary, notice) Then Invalidate notice: Exit Function
+        subject, name, tags, instructions, instruction, summary, notice) Then Invalidate notice: Exit Function
     mLoading = True: mSteps.Clear
-    mName.Value = name: mTags.Value = tags: mInstructions.Value = instructions
+    mSubject.Value = subject: mName.Value = name: mTags.Value = tags: mInstructions.Value = instructions
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
@@ -185,7 +190,7 @@ Private Sub ReadStepInstruction()
 End Sub
 
 Private Sub ClearDirty()
-    mDirtyName = False: mDirtyTags = False
+    mDirtySubject = False: mDirtyName = False: mDirtyTags = False
     mDirtyInstructions = False: mDirtyStepInstruction = False
 End Sub
 
@@ -194,6 +199,7 @@ Private Function FlushDirtyField(ByVal field As String) As Boolean
     Dim value As String, dirty As Boolean
     If mDiscarding Then Exit Function
     Select Case field
+        Case "Subject": dirty = mDirtySubject: value = CStr(mSubject.Value)
         Case "Name": dirty = mDirtyName: value = CStr(mName.Value)
         Case "Tags": dirty = mDirtyTags: value = CStr(mTags.Value)
         Case "Instructions": dirty = mDirtyInstructions: value = CStr(mInstructions.Value)
@@ -213,6 +219,7 @@ Private Function FlushDirtyField(ByVal field As String) As Boolean
         Exit Function
     End If
     Select Case field
+        Case "Subject": mDirtySubject = False
         Case "Name": mDirtyName = False
         Case "Tags": mDirtyTags = False
         Case "Instructions": mDirtyInstructions = False
@@ -223,6 +230,7 @@ Private Function FlushDirtyField(ByVal field As String) As Boolean
 End Function
 
 Private Function FlushDirty() As Boolean
+    If Not FlushDirtyField("Subject") Then Exit Function
     If Not FlushDirtyField("Name") Then Exit Function
     If Not FlushDirtyField("Tags") Then Exit Function
     If Not FlushDirtyField("Instructions") Then Exit Function
@@ -269,6 +277,9 @@ Public Sub ReleaseDraft()
     mDraftId = "": mContext = "": mEditingStepId = ""
 End Sub
 
+Private Sub mSubject_Change()
+    If Not mLoading And Not mDiscarding Then mDirtySubject = True
+End Sub
 Private Sub mName_Change()
     If Not mLoading And Not mDiscarding Then mDirtyName = True
 End Sub
@@ -280,6 +291,14 @@ Private Sub mInstructions_Change()
 End Sub
 Private Sub mStepInstruction_Change()
     If Not mLoading And Not mDiscarding Then mDirtyStepInstruction = True
+End Sub
+Private Sub mSubject_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Subject")
+End Sub
+Private Sub mSubject_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Subject") Then KeyCode = 0
+    End If
 End Sub
 Private Sub mName_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     If Not mDiscarding Then Call FlushDirtyField("Name")
@@ -315,6 +334,9 @@ Private Sub mStepInstruction_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByV
 End Sub
 Private Sub FlushBeforePointerFocus(ByVal targetField As String)
     If mDiscarding Or mLoading Then Exit Sub
+    If targetField <> "Subject" Then
+        If Not FlushDirtyField("Subject") Then Exit Sub
+    End If
     If targetField <> "Name" Then
         If Not FlushDirtyField("Name") Then Exit Sub
     End If
@@ -325,6 +347,9 @@ Private Sub FlushBeforePointerFocus(ByVal targetField As String)
         If Not FlushDirtyField("Instructions") Then Exit Sub
     End If
     If targetField <> "Instruction" Then Call FlushDirtyField("Instruction")
+End Sub
+Private Sub mSubject_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Subject"
 End Sub
 Private Sub mName_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
     FlushBeforePointerFocus "Name"

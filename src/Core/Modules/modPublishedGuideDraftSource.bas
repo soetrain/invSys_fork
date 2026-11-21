@@ -60,6 +60,6 @@ Public Function SourceCaption(ByVal model As Object) As String
         SourceCaption = SourceCaption & vbCrLf & "Original source sequence: " & CStr(source("SequenceId")) & _
                         "; journal version: " & CStr(source("JournalVersion"))
     End If
-    If model("SchemaVersion") = 2 Then SourceCaption = SourceCaption & vbCrLf & modGuideOrigin.Caption(model)
+    If model.Exists("TransferOrigin") Then SourceCaption = SourceCaption & vbCrLf & modGuideOrigin.Caption(model)
     SourceCaption = SourceCaption & vbCrLf & "Authored instructions do not prove that a task ran."
 End Function

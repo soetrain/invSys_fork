@@ -4,8 +4,9 @@ Option Explicit
 ' D18 read-only primitive cross-XLAM boundary; models and policy stay in Core.
 Public Function ListGuides(ByVal context As String, ByVal search As String, ByRef rows As String, ByRef notice As String) As Boolean
     Dim target As WarehouseTarget, policy As Object, root As String, fso As Object, file As Object
-    Dim entries As Object, parts As Variant, version As Long, sortKey As Variant, keys As Variant
-    Dim model As Object, line As String, tags As String, invalid As Long, i As Long, j As Long, swap As Variant
+    Dim entries As Object, sortValues As Object, parts As Variant, version As Long, sortKey As Variant, keys As Variant
+    Dim model As Object, line As String, tags As String, subject As String, entryKey As String
+    Dim invalid As Long, i As Long, j As Long, swap As Variant, unassigned As Boolean
     On Error GoTo Failed
     rows = ""
     If Not modTrainingReadContext.Read(context, target, policy, notice) Then Exit Function
@@ -13,6 +14,7 @@ Public Function ListGuides(ByVal context As String, ByVal search As String, ByRe
     notice = "Unavailable: no readable published-guide folder."
     If root = "" Then ListGuides = True: Exit Function
     Set fso = CreateObject("Scripting.FileSystemObject"): Set entries = CreateObject("Scripting.Dictionary")
+    Set sortValues = CreateObject("Scripting.Dictionary")
     For Each file In fso.GetFolder(root).Files
         If LCase$(fso.GetExtensionName(file.Name)) = "json" Then
             parts = Split(file.Name, ".")
@@ -22,10 +24,16 @@ Public Function ListGuides(ByVal context As String, ByVal search As String, ByRe
             Set model = modGuideStore.ReadChain(target, CStr(parts(0)), version)
             If model Is Nothing Then GoTo BadEntry
             tags = modGuideModel.TagsText(model)
-            If search = "" Or InStr(1, CStr(model("Name")) & " " & tags & " " & CStr(model("ActionPathId")), search, vbTextCompare) > 0 Then
+            subject = modGuideModel.SubjectText(model)
+            unassigned = (subject = "")
+            If unassigned Then subject = "Unassigned"
+            If search = "" Or InStr(1, subject & " " & CStr(model("Name")) & " " & tags & " " & CStr(model("ActionPathId")), search, vbTextCompare) > 0 Then
                 line = CStr(model("ActionPathId")) & "|" & CStr(version) & "|" & CStr(model("ContentSha256")) & vbTab & _
-                    ListText(CStr(model("Name"))) & vbTab & "Version " & CStr(version) & " - " & ListText(tags)
-                entries.Add CStr(model("ActionPathId")) & "|" & Format$(version, "0000000000"), line
+                    ListText(subject) & vbTab & ListText(CStr(model("Name"))) & vbTab & CStr(version) & vbTab & ListText(tags)
+                entryKey = CStr(model("ActionPathId")) & "|" & Format$(version, "0000000000")
+                entries.Add entryKey, line
+                sortValues.Add entryKey, IIf(unassigned, "1", "0") & vbNullChar & _
+                    LCase$(subject) & vbNullChar & LCase$(CStr(model("Name"))) & vbNullChar & entryKey
             End If
         End If
         GoTo NextEntry
@@ -38,7 +46,7 @@ NextEntry:
         For i = 1 To UBound(keys)
             swap = keys(i): j = i - 1
             Do While j >= 0
-                If StrComp(CStr(keys(j)), CStr(swap), vbBinaryCompare) <= 0 Then Exit Do
+                If StrComp(CStr(sortValues(keys(j))), CStr(sortValues(swap)), vbBinaryCompare) <= 0 Then Exit Do
                 keys(j + 1) = keys(j): j = j - 1
             Loop
             keys(j + 1) = swap
@@ -69,7 +77,9 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
     If model Is Nothing Then Exit Function
     If CStr(model("ContentSha256")) <> CStr(parts(2)) Then Exit Function
     Set visible = modEvaluationMatches.PolicyControls(policy, False)
-    instructions = "Authored instruction" & vbCrLf & CStr(model("Name")) & vbCrLf & _
+    instructions = "Authored instruction" & vbCrLf & "Subject: " & _
+        IIf(modGuideModel.SubjectText(model) = "", "Unassigned", modGuideModel.SubjectText(model)) & vbCrLf & _
+        "Title: " & CStr(model("Name")) & vbCrLf & _
         "Tags: " & modGuideModel.TagsText(model) & vbCrLf & CStr(model("Instructions")) & vbCrLf
     For Each step In model("Steps")
         position = position + 1
@@ -84,7 +94,9 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
         If Not modEvaluationMatches.Permitted(visible, CStr(record("ControlId"))) Then hidden = hidden + 1
     Next record
     observations = modGuideDraftSource.Evidence(model("Observations"), visible)
-    provenance = "Guide: " & CStr(model("ActionPathId")) & "; version: " & CStr(version) & vbCrLf & _
+    provenance = "Subject: " & IIf(modGuideModel.SubjectText(model) = "", "Unassigned", modGuideModel.SubjectText(model)) & _
+        "; Title: " & CStr(model("Name")) & vbCrLf & _
+        "Guide: " & CStr(model("ActionPathId")) & "; version: " & CStr(version) & vbCrLf & _
         "SHA-256: " & CStr(model("ContentSha256")) & vbCrLf & _
         "Author: " & CStr(model("CreatedByUserId")) & "; saved: " & CStr(model("CreatedAtUTC"))
     Set source = model("SourceRun")
@@ -93,7 +105,7 @@ Public Function ReadGuide(ByVal context As String, ByVal key As String, ByRef in
             "; journal version: " & CStr(source("JournalVersion"))
         hidden = hidden + CLng(source("RestrictedObservationCount"))
     End If
-    If model("SchemaVersion") = 2 Then provenance = provenance & vbCrLf & modGuideOrigin.Caption(model)
+    If model.Exists("TransferOrigin") Then provenance = provenance & vbCrLf & modGuideOrigin.Caption(model)
     notice = "Published guide. Authored instructions are not an observed run or a diagnostic conclusion."
     If hidden > 0 Then notice = "Hidden by policy. Incomplete evidence: " & CStr(hidden) & " restricted observation(s)."
     If CLng(model("CatalogVersion")) < modActivityCatalog.CATALOG_VERSION Then

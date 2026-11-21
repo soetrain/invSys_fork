@@ -120,6 +120,7 @@ public static class CurationNativeLayout {
         Check 'GuideCuration.NoAutomaticExpectation' ($drafted -and (Draft 'lblGuideExpectationSummary' 'Label') -ceq 'Guide expectation: None')
         $evidence=Draft 'txtGuideEvidence' 'Text'
         Check 'GuideCuration.OriginalActionEvidenceDisplayed' ($drafted -and $evidence.Contains([string]$first.Attempt.ActivityId) -and $evidence.Contains([string]$second.Attempt.ActivityId) -and $evidence -match 'REQUESTED' -and $evidence -match 'COMPLETED')
+        [void](Draft 'txtGuideSubject' 'Write' 'Direct action training')
         [void](Draft 'txtGuideName' 'Write' 'Direct tracked-action guide')
         [void](Draft 'txtGuideTags' 'Write' 'direct, unrecorded')
         [void](Draft 'txtGuideInstructions' 'Write' 'Authored order is not execution evidence.')
@@ -138,7 +139,7 @@ public static class CurationNativeLayout {
         $files=@();if(Test-Path -LiteralPath $guideRoot){$files=@(Get-ChildItem -LiteralPath $guideRoot -File -Filter '*.1.json')}
         $guide=$null;if($files.Count -eq 1){$guide=ReadGuideExpectationRecord $files[0].FullName}
         $saved=$null -ne $guide
-        Check 'GuideCuration.SavePublishesValidatedSchemaOne' ($drafted -and $saved -and $guide.Version -eq 1 -and $guide.Name -ceq 'Direct tracked-action guide')
+        Check 'GuideCuration.SavePublishesValidatedSchemaThree' ($drafted -and $saved -and $guide.SchemaVersion -eq 3 -and $guide.Version -eq 1 -and $guide.Subject -ceq 'Direct action training' -and $guide.Name -ceq 'Direct tracked-action guide')
         Check 'GuideCuration.SaveHasNoFabricatedRunOrExpectation' ($saved -and @($guide.SourceRun.PSObject.Properties).Count -eq 0 -and $guide.ExpectedConclusion.TerminalKind -ceq 'None' -and @($guide.ExpectedConclusion.Steps).Count -eq 0)
         Check 'GuideCuration.SavePreservesEverySelectedOriginalBody' ($saved -and (ConvertTo-Json -InputObject @($guide.Observations) -Depth 25 -Compress) -ceq (ConvertTo-Json -InputObject $observations -Depth 25 -Compress))
         Check 'GuideCuration.SavePreservesAuthoredOrderAndSourceIdentity' ($saved -and $guide.Steps[0].StepId -ceq $stepIds[1] -and $guide.Steps[1].StepId -ceq $stepIds[0] -and $guide.Steps[0].SourceActivityId -ceq $groups[1].SourceId -and $guide.Steps[1].SourceActivityId -ceq $groups[0].SourceId -and $guide.Steps[0].Instruction -ceq 'First authored instruction.')

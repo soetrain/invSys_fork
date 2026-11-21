@@ -35,6 +35,7 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
         $index=[Array]::IndexOf($ids,[string]$action.Attempt.ActivityId)
         if($index -lt 0 -or (BoundControl 'lstGuideActions' 'Toggle' ([string]$index) 'frmGuideActionPicker') -cne 'SELECTED'){throw 'Older-safe Save Value action was not selectable.'}
         if((BoundControl 'btnCreateSelectedGuide' 'Click' '' 'frmGuideActionPicker') -cne 'DELIVERED'){throw 'Older-safe guide editor unavailable.'}
+        [void](BoundControl 'txtGuideSubject' 'Write' 'Guide transfer training' 'frmActionPathGuide')
         [void](BoundControl 'txtGuideName' 'Write' 'Catalog 29 transfer guide' 'frmActionPathGuide')
         if((BoundControl 'btnSaveGuide' 'Click' '' 'frmActionPathGuide') -cne 'DELIVERED'){throw 'Older-safe guide Save unavailable.'}
         $fresh=@(Get-ChildItem -LiteralPath $guideRoot -Filter '*.1.json' -File|Where-Object {$_.FullName -cnotin $before})

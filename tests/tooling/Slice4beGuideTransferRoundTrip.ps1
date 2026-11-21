@@ -4,7 +4,7 @@ function Test-GuideTransferRoundTrip($Fixture,$Other,$Guide) {
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTransferWire.ps1')
     $fields='SchemaVersion|RecordKind|TransferId|ExportedAtUTC|ExportedByUserId|SourceWarehouseId|Guide|ContentSha256'
-    $guideFields='SchemaVersion|RecordKind|ActionPathId|Version|RecordId|PreviousRecordId|PreviousSha256|WarehouseId|OriginWarehouseId|CreatedByUserId|CreatedAtUTC|Lifecycle|Name|Tags|Instructions|CatalogVersion|PackageSetVersion|BuildIdentity|PolicyVersion|Steps|Observations|SourceRun|ExpectedConclusion|ContentSha256|TransferOrigin'
+    $guideFields='SchemaVersion|RecordKind|ActionPathId|Version|RecordId|PreviousRecordId|PreviousSha256|WarehouseId|OriginWarehouseId|CreatedByUserId|CreatedAtUTC|Lifecycle|Subject|Name|Tags|Instructions|CatalogVersion|PackageSetVersion|BuildIdentity|PolicyVersion|Steps|Observations|SourceRun|ExpectedConclusion|ContentSha256|TransferOrigin'
     $files=Join-Path $runRoot 'guide-transfers';New-Item -ItemType Directory -Path $files|Out-Null
     $long=('Training instruction with retained detail. '*80)+"`r`nSecond line: "+[char]0x03a9+"`r`nFinal line marker."
     $guideRoot=Join-Path $journalRoot 'Guides'
@@ -60,9 +60,10 @@ function Test-GuideTransferRoundTrip($Fixture,$Other,$Guide) {
         $clicked=(BoundControl 'btnImportGuide' 'Click') -ceq 'DELIVERED'
         $importFiles=@();if(Test-Path -LiteralPath $destinationRoot){$importFiles=@(Get-ChildItem -LiteralPath $destinationRoot -File -Filter '*.json')}
         $imported=$null
-        if($importFiles.Count -eq 1){$imported=TransferRead $importFiles[0].FullName 'Guide' 2 $guideFields}
+        if($importFiles.Count -eq 1){$imported=TransferRead $importFiles[0].FullName 'Guide' 3 $guideFields}
         $importOK=$null -ne $imported
         Check 'GuideTransfer.Import.ActualHandlerCreatesOneLocalGuide' ($clicked -and $importOK)
+        Check 'GuideCourse.TransferPreservesAuthoredSubjectAndTitle' ($importOK -and $imported.Subject -ceq $source.Subject -and $imported.Name -ceq $source.Name)
         Check 'GuideTransfer.RoundTrip.UsesActualExport' ($exported -and $importOK -and $inputPath -ceq $export)
         Check 'GuideTransfer.Import.NewLocalIdentityAndRetainedOrigin' ($importOK -and $imported.ActionPathId -cne $source.ActionPathId -and $imported.RecordId -cne $source.RecordId -and $imported.Version -eq 1 -and $imported.PreviousRecordId -ceq '' -and $imported.PreviousSha256 -ceq '' -and $imported.WarehouseId -ceq $Other.Warehouse -and $imported.OriginWarehouseId -ceq $Fixture.Warehouse)
         $originOK=$false;$contentOK=$false
@@ -70,7 +71,7 @@ function Test-GuideTransferRoundTrip($Fixture,$Other,$Guide) {
             $origin=$imported.TransferOrigin
             $originOK=(@($origin.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'ActionPathId|ContentSha256|RecordId|SourceWarehouseId|TransferId|TransferSha256|Version' -and $origin.TransferId -ceq $inputPackage.TransferId -and $origin.TransferSha256 -ceq $inputPackage.ContentSha256 -and $origin.SourceWarehouseId -ceq $Fixture.Warehouse -and $origin.ActionPathId -ceq $source.ActionPathId -and $origin.Version -eq 3 -and $origin.RecordId -ceq $source.RecordId -and $origin.ContentSha256 -ceq $source.ContentSha256
             $contentOK=$true
-            foreach($field in @('Name','Tags','Instructions','Steps','Observations','SourceRun','ExpectedConclusion')){if((TransferJson $imported.$field) -cne (TransferJson $source.$field)){$contentOK=$false}}
+            foreach($field in @('Subject','Name','Tags','Instructions','Steps','Observations','SourceRun','ExpectedConclusion')){if((TransferJson $imported.$field) -cne (TransferJson $source.$field)){$contentOK=$false}}
             [void](BoundControl 'btnRefreshGuides' 'Click');BoundSelect $imported
         }
         Check 'GuideTransfer.Import.ExactTransferProvenance' $originOK

@@ -74,6 +74,7 @@ function Test-ProductionLifecyclePresentation($Fixture) {
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source selection unavailable.'}
         RequireDelivery (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         Check 'LifecyclePresentation.SixObservedControlsBecomeGuideSteps' ((Author 'lstGuideSteps' 'Rows') -ceq '6')
+        RequireDelivery (Author 'txtGuideSubject' 'Write' 'Production training')
         RequireDelivery (Author 'txtGuideName' 'Write' 'Process and Recipe lifecycle')
         RequireDelivery (Author 'txtGuideInstructions' 'Write' 'Save and release a Process, save and release its Recipe, then obsolete the Recipe and Process.')
         for($i=0;$i -lt 6;$i++){

@@ -31,6 +31,7 @@ Public Function OpenPublishedDraft(ByVal context As String, ByVal key As String,
     mContext = context: mPublishedKey = key: mDraftId = modTrainingWire.NewId()
     mPolicyHash = hash: mPolicyVersion = version: Set mHeader = model: Set mSaved = model
     Set mText = CreateObject("Scripting.Dictionary"): Set mSteps = New Collection
+    mText.Add "Subject", modGuideModel.SubjectText(model)
     mText.Add "Name", CStr(model("Name")): mText.Add "Tags", modGuideModel.TagsText(model)
     mText.Add "Instructions", CStr(model("Instructions"))
     For Each original In model("Steps")
@@ -72,7 +73,7 @@ Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef
     mPolicyVersion = policyVersion
     Set mSteps = New Collection: Set mText = CreateObject("Scripting.Dictionary")
     Set mExpectation = modExpectationModel.NoneDefinition()
-    mText.Add "Name", "": mText.Add "Tags", "": mText.Add "Instructions", ""
+    mText.Add "Subject", "": mText.Add "Name", "": mText.Add "Tags", "": mText.Add "Instructions", ""
     For Each record In records
         If record("OutcomeCode") = "REQUESTED" And modEvaluationMatches.Permitted(visible, CStr(record("ControlId"))) Then
             Set step = CreateObject("Scripting.Dictionary")
@@ -143,11 +144,11 @@ End Function
 
 Public Function ReadEditor(ByVal context As String, ByVal draftId As String, ByRef selectedStep As String, _
                            ByRef rows As String, ByRef source As String, ByRef evidence As String, _
-                           ByRef name As String, ByRef tags As String, ByRef instructions As String, _
+                           ByRef subject As String, ByRef name As String, ByRef tags As String, ByRef instructions As String, _
                            ByRef instruction As String, ByRef summary As String, ByRef notice As String) As Boolean
     Dim step As Object
     On Error GoTo Failed
-    name = "": tags = "": instructions = "": instruction = "": summary = ""
+    subject = "": name = "": tags = "": instructions = "": instruction = "": summary = ""
     If Not ReadDraft(context, draftId, rows, source, evidence, notice) Then Exit Function
     Set step = FindStep(selectedStep)
     If step Is Nothing And mSteps.Count > 0 Then Set step = mSteps(1)
@@ -155,13 +156,13 @@ Public Function ReadEditor(ByVal context As String, ByVal draftId As String, ByR
     If Not step Is Nothing Then
         selectedStep = CStr(step("StepId")): instruction = CStr(step("Instruction"))
     End If
-    name = CStr(mText("Name")): tags = CStr(mText("Tags")): instructions = CStr(mText("Instructions"))
+    subject = CStr(mText("Subject")): name = CStr(mText("Name")): tags = CStr(mText("Tags")): instructions = CStr(mText("Instructions"))
     summary = ExpectationSummary()
     ReadEditor = True
     Exit Function
 Failed:
     rows = "": source = "": evidence = "": selectedStep = ""
-    name = "": tags = "": instructions = "": instruction = "": summary = ""
+    subject = "": name = "": tags = "": instructions = "": instruction = "": summary = ""
     notice = "Unavailable: the guide draft could not be read.": Discard
 End Function
 
@@ -291,13 +292,15 @@ Public Function SaveDraft(ByVal context As String, ByVal draftId As String, ByRe
     Dim records As Collection, visible As Object, target As WarehouseTarget, model As Object, hash As String, step As Object
     On Error GoTo Failed
     If Not Guard(context, draftId, records, visible, notice) Then Exit Function
-    notice = "A guide name is required."
+    notice = "A subject is required."
+    If Trim$(CStr(mText("Subject"))) = "" Then Exit Function
+    notice = "A title is required."
     If Trim$(CStr(mText("Name"))) = "" Then Exit Function
     notice = "At least one authored step is required."
     If mSteps.Count = 0 Then Exit Function
     notice = "Guide save exceeds 1 MiB. No authored text or observations were truncated."
     ' The complete encoded record cannot be smaller than any one authored field.
-    If Len(mText("Name")) >= 1048576 Or Len(mText("Tags")) >= 1048576 Or Len(mText("Instructions")) >= 1048576 Then Exit Function
+    If Len(mText("Subject")) >= 1048576 Or Len(mText("Name")) >= 1048576 Or Len(mText("Tags")) >= 1048576 Or Len(mText("Instructions")) >= 1048576 Then Exit Function
     For Each step In mSteps
         If Len(step("Instruction")) >= 1048576 Then Exit Function
     Next step
