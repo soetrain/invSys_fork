@@ -57,6 +57,12 @@ Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal v
             RecordingLibraryForTest = "NOT FOUND": Exit Function
         Case "Search": library.Controls("txtPathSearch").Value = value
         Case "SearchFocus": library.Controls("txtPathSearch").SetFocus: RecordingLibraryForTest = library.ActiveControl.Name: Exit Function
+        Case "SearchBounds"
+            Set control = library.Controls("txtPathSearch")
+            RecordingLibraryForTest = CStr(control.Left) & "|" & CStr(control.Top) & "|" & _
+                CStr(control.Width) & "|" & CStr(control.Height) & "|" & _
+                CStr(library.InsideWidth) & "|" & CStr(library.InsideHeight)
+            Exit Function
         Case "SearchActive": RecordingLibraryForTest = library.ActiveControl.Name: Exit Function
         Case "SearchText": RecordingLibraryForTest = CStr(library.Controls("txtPathSearch").Value): Exit Function
         Case "SearchPaint": library.Repaint: RecordingLibraryForTest = CStr(library.Controls("lstActionPaths").ListCount): Exit Function

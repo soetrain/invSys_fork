@@ -436,13 +436,14 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
 }
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
     $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
+    $savedNativeSearch=$CheckRecordingNativeSearch -and $CheckRecordingReader -and $VisibleExcelForTest -and -not $GuideDraftOnly
     $savedSeed=$AdminSeedGuideTimingOnly -and $AdminSeedGuidePaths -and $AdminSeedRecordingBoundaries -and $AdminSeedOutcomeOnly
     $savedAggregation=$AdminAggregationRestartOnly -and $AdminAggregationOnly -and $AdminAggregationBoundaryMatrix
     $savedPrint=$RunPrintBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and $PrintSeedBoundaryForTest -cne 'BareSeed'
     $savedCheckIn=$RunCheckInActivityOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
     $savedComplete=$RunCompleteBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $RunNextBaselineOnly -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
-    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedGuide -or $savedComplete -or $savedPrint -or $savedCheckIn -or $savedSeed -or $savedAggregation)){
-        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy guide/completion/Print/Check In gate.'
+    if($ViewerStartupPackageStateForTest -ne 'SavedCopies' -or -not $CompileEvaluationProbesForTest -or -not ($savedNativeSearch -or $savedGuide -or $savedComplete -or $savedPrint -or $savedCheckIn -or $savedSeed -or $savedAggregation)){
+        throw 'Package-state comparison requires startup tracing or an isolated compiled saved-copy native Search/guide/completion/Print/Check In gate.'
     }
 }
 if($CheckBoxingActivity){$CheckShippingRecording=$true}
@@ -630,6 +631,12 @@ if($CheckRecordingRestart) {
 if($CheckRecordingReader) { $CheckActionRecording = $true }
 if($CheckRecordingNativeSearch -and (-not $CheckRecordingReader -or -not $VisibleExcelForTest)) {
     throw 'Native recording Search requires the visible reader fixture.'
+}
+if($CheckRecordingNativeSearch -and $ViewerStartupPackageStateForTest -ne 'SavedCopies') {
+    throw 'Native recording Search requires saved disposable instrumented packages before Viewer entry.'
+}
+if($CheckRecordingNativeSearch -and ($GuideDraftOnly -or $GuideCaptureSavedWorkbookForTest -or $TraceViewerStartupForTest)) {
+    throw 'Native recording Search requires its isolated saved-host fixture.'
 }
 if($CheckReceivingReplay) {
     if(-not $CompileEvaluationProbesForTest){throw 'Receiving replay requires compiled packaged probes.'}
@@ -2469,10 +2476,20 @@ End Function
     if($CheckReceivingReplay){$templateRoot=Join-Path $inputDeploy 'templates'}
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetWarehouseBootstrapTemplateRootOverride' @($templateRoot))
     [void](Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @((Join-Path $runRoot 'operators')))
-    if($GuideCaptureSavedWorkbookForTest){
+    if($GuideCaptureSavedWorkbookForTest -or $CheckRecordingNativeSearch){
         . (Join-Path $PSScriptRoot 'Slice4beViewerStartup.ps1')
         Initialize-Slice4beViewerStartupWorkbook
         if($CheckGuideTransfer){Write-GuideTransferHostState 'Initialized'}
+        if($CheckRecordingNativeSearch){
+            $excel.Visible=$true
+            $nativeHost=$excel.ActiveWorkbook
+            if($null -eq $nativeHost -or $nativeHost.FullName -cne $script:ViewerStartupWorkbookPath -or
+                $script:ViewerStartupWorkbook.Saved -isnot [bool] -or -not $script:ViewerStartupWorkbook.Saved -or
+                $excel.Visible -isnot [bool] -or -not $excel.Visible){
+                throw 'Native Search saved operator host is unavailable; not behavioral RED.'
+            }
+            Check 'Harness.NativeSearchSavedHostReady' $true
+        }
     }
     $step='Admin-generated fixtures'; Write-Output $step
     if($PrintSeedBoundaryForTest -ne 'None'){'BeforeFixtureA'|Add-Content (Join-Path $reportRoot 'print-seed-fixtures.txt')}
@@ -3087,6 +3104,12 @@ finally {
                 Check 'GuideCapture.SavedWorkbookIdentityPreserved' ($null -ne $script:ViewerStartupWorkbook -and $script:ViewerStartupWorkbook.FullName -ceq $script:ViewerStartupWorkbookPath -and $script:ViewerStartupWorkbook.Saved -is [bool] -and $script:ViewerStartupWorkbook.Saved)
                 Close-Slice4beViewerStartupWorkbook 'GuideCapture.SavedWorkbookBytesPreservedAfterClose'
             } catch {Check 'Harness.Exception.guide capture workbook cleanup' $false}
+        }
+        if($CheckRecordingNativeSearch){
+            try {
+                Check 'Harness.NativeSearchSavedHostIdentityPreserved' ($null -ne $script:ViewerStartupWorkbook -and $script:ViewerStartupWorkbook.FullName -ceq $script:ViewerStartupWorkbookPath)
+                Close-Slice4beViewerStartupWorkbook 'Harness.NativeSearchSavedHostBytesPreservedAfterClose'
+            } catch {Check 'Harness.Exception.native Search workbook cleanup' $false}
         }
         try {
             if(Test-LoadedPackage 'invSys.Admin.xlam') {
