@@ -69,6 +69,12 @@ Direct tracked-action guide creation passed **70/70** on the current candidate,
 including an explicit schema-three assertion. All tests ended with Excel
 closed naturally.
 
+Published-guide Edit passed **60/60** on the same candidate. The actual editor
+reopened the exact Subject and Title, changed both in an immutable schema-3
+successor, retained the predecessor hash and original observations, then
+reopened the new Subject and Title. Ignored evidence:
+`reports/runtime/slice4be-viewer-published-read/578fd5fc6f8d484c88ab2624fef6b29f/green.json`.
+
 The static inventory at `reports/runtime/action-course-static-20261121`
 reports 391 components and 6767 procedures. Versus the 2026-11-20 scan,
 duplicate candidates remain 193, same-project late bindings remain 7,

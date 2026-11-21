@@ -44,6 +44,8 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         $opened=(EditSelected) -ceq 'DELIVERED' -and (EditControl '' 'Count') -ceq '1'
         Check 'GuideEdit.ActualHandlerOpensExistingGuideEditor' $opened
         Check 'GuideEdit.ReopenRestoresSavedName' ($opened -and (EditControl 'txtGuideName' 'Text') -ceq $SecondGuide.Name)
+        Check 'GuideCourse.EditReopensExactSubjectAndTitle' ($opened -and (EditControl 'txtGuideSubject' 'Text') -ceq $SecondGuide.Subject -and
+            (EditControl 'txtGuideName' 'Text') -ceq $SecondGuide.Name -and (EditControl 'lblGuideName' 'Label') -ceq 'Title')
         Check 'GuideEdit.ReopenRetainsDraftNotice' ($opened -and (EditControl 'lblGuideStatus' 'Label') -match '^Draft only\.')
         $ids=(@($SecondGuide.Steps.StepId) -join "`n")+"`n"
         Check 'GuideEdit.ReopenRestoresOriginalAuthoredStepIds' ($opened -and (EditControl 'lstGuideSteps' 'Values') -ceq $ids)
@@ -54,6 +56,7 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         Check 'GuideEdit.ReopenRestoresExplicitExpectationIdsAndConclusion' ($opened -and (EditExpected 'lstExpectedSteps' 'Values') -ceq $expectedIds -and (EditExpected 'cboTerminalKind' 'Selected') -ceq $SecondGuide.ExpectedConclusion.TerminalKind)
         [void](EditExpected 'btnCancelExpectation' 'Click')
         Check 'GuideEdit.OpenDoesNotWriteTrainingOrConfig' ((BoundSame $before (BoundPins $journalRoot)) -and (Get-FileHash -LiteralPath $Fixture.Config).Hash -ceq $configBefore)
+        [void](EditControl 'txtGuideSubject' 'Write' 'Advanced Settings')
         [void](EditControl 'txtGuideName' 'Write' 'Reopened authored guide')
         [void](EditControl 'txtGuideTags' 'Write' 'reopened, retained order')
         [void](EditControl 'txtGuideInstructions' 'Write' 'Authored revision; original observations remain separate.')
@@ -75,6 +78,9 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         $third=ReadGuideExpectationRecord (Join-Path $guideRoot ($SecondGuide.ActionPathId+'.3.json'))
         $saved=$null -ne $third
         Check 'GuideEdit.SaveAppendsSameGuideVersionThree' ($opened -and $saved -and $third.ActionPathId -ceq $SecondGuide.ActionPathId -and $third.Version -eq 3 -and $third.RecordId -cne $SecondGuide.RecordId)
+        Check 'GuideCourse.EditedSubjectAndTitleAppendWithoutChangingPredecessor' ($saved -and $third.SchemaVersion -eq 3 -and
+            $third.Subject -ceq 'Advanced Settings' -and $third.Name -ceq 'Reopened authored guide' -and
+            $SecondGuide.Subject -ceq 'Settings basics' -and $third.PreviousSha256 -ceq $SecondGuide.ContentSha256)
         Check 'GuideEdit.RevisionLinksExactPredecessor' ($opened -and $saved -and $third.PreviousRecordId -ceq $SecondGuide.RecordId -and $third.PreviousSha256 -ceq $SecondGuide.ContentSha256)
         Check 'GuideEdit.RevisionPreservesSourceObservationsAndProvenance' ($opened -and $saved -and ($third.Observations|ConvertTo-Json -Depth 20 -Compress) -ceq ($SecondGuide.Observations|ConvertTo-Json -Depth 20 -Compress) -and ($third.SourceRun|ConvertTo-Json -Depth 12 -Compress) -ceq ($SecondGuide.SourceRun|ConvertTo-Json -Depth 12 -Compress))
         Check 'GuideEdit.AuthoredReorderDoesNotRewriteExpectation' ($opened -and $saved -and ($third.ExpectedConclusion|ConvertTo-Json -Depth 12 -Compress) -ceq ($SecondGuide.ExpectedConclusion|ConvertTo-Json -Depth 12 -Compress))
@@ -89,7 +95,7 @@ function Test-PublishedGuideEdit($Fixture,$Other,$FirstGuide,$SecondGuide,$Obser
         [void](BoundControl 'btnRefreshGuides' 'Click')
         $reopen=$SecondGuide;if($saved){$reopen=$third}
         EditExact $reopen
-        Check 'GuideEdit.ClosedEditorRestoresAuthoredFields' ($opened -and $saved -and (EditControl 'txtGuideName' 'Text') -ceq 'Reopened authored guide' -and (EditControl 'txtGuideTags' 'Text') -ceq 'reopened, retained order' -and (EditControl 'txtGuideInstructions' 'Text') -ceq 'Authored revision; original observations remain separate.')
+        Check 'GuideEdit.ClosedEditorRestoresAuthoredFields' ($opened -and $saved -and (EditControl 'txtGuideSubject' 'Text') -ceq 'Advanced Settings' -and (EditControl 'txtGuideName' 'Text') -ceq 'Reopened authored guide' -and (EditControl 'txtGuideTags' 'Text') -ceq 'reopened, retained order' -and (EditControl 'txtGuideInstructions' 'Text') -ceq 'Authored revision; original observations remain separate.')
         [void](EditControl 'lstGuideSteps' 'Select' '0')
         Check 'GuideEdit.ClosedEditorRestoresStepInstruction' ($opened -and $saved -and (EditControl 'txtGuideStepInstruction' 'Text') -ceq 'Retained instruction after reopening.')
         if($opened){EditCapture 'reopened'}
