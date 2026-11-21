@@ -4,7 +4,7 @@ function Install-GuideDraftProbe {
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
 Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As String, ByVal action As String, Optional ByVal value As String = "") As String
-    Dim instance As Object, owner As Object, control As Object, item As Object, count As Long, labels As String, index As Long
+    Dim instance As Object, owner As Object, control As Object, item As Object, count As Long, labels As String, index As Long, column As Long
     For Each instance In VBA.UserForms
         If TypeName(instance) = formName Then Set owner = instance: count = count + 1
     Next instance
@@ -12,6 +12,12 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
     GuideDraftControlForTest = "MISSING"
     If owner Is Nothing Then Exit Function
     If action = "Caption" Then GuideDraftControlForTest = owner.Caption: Exit Function
+    If action = "Active" Then GuideDraftControlForTest = owner.ActiveControl.Name: Exit Function
+    If action = "Place" Then
+        If Not owner.Visible Then GuideDraftControlForTest = "UNAVAILABLE": Exit Function
+        owner.Left = 20: owner.Top = 20: owner.Repaint: DoEvents
+        GuideDraftControlForTest = "PLACED": Exit Function
+    End If
     If action = "Labels" Then
         For Each item In owner.Controls
             If TypeName(item) = "Label" Then labels = labels & item.Caption & vbLf
@@ -65,9 +71,20 @@ NextFitControl:
     If control Is Nothing Then Exit Function
     Select Case action
         Case "State": GuideDraftControlForTest = CStr(control.Visible) & "|" & CStr(control.Enabled)
+        Case "Bounds": GuideDraftControlForTest = CStr(control.Left) & "|" & CStr(control.Top) & "|" & CStr(control.Width) & "|" & CStr(control.Height) & "|" & CStr(owner.InsideWidth) & "|" & CStr(owner.InsideHeight)
         Case "Text": GuideDraftControlForTest = CStr(control.Value)
         Case "Label": GuideDraftControlForTest = CStr(control.Caption)
         Case "Rows": GuideDraftControlForTest = CStr(control.ListCount)
+        Case "Columns": GuideDraftControlForTest = CStr(control.ColumnCount)
+        Case "VisibleRows"
+            For index = 0 To control.ListCount - 1
+                For column = 1 To control.ColumnCount - 1
+                    If column > 1 Then labels = labels & vbTab
+                    labels = labels & CStr(control.List(index, column))
+                Next column
+                labels = labels & vbLf
+            Next index
+            GuideDraftControlForTest = labels
         Case "Locked": GuideDraftControlForTest = CStr(control.Locked)
         Case "Selected": GuideDraftControlForTest = CStr(control.Value)
         Case "ViewportTop", "ViewportBottom"
@@ -107,11 +124,26 @@ NextFitControl:
             If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
             control.ListIndex = -1: control.ListIndex = index
             GuideDraftControlForTest = "SELECTED"
-        Case "Click", "Write", "Check"
+        Case "SelectDirect"
+            If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then GuideDraftControlForTest = "DISABLED": Exit Function
+            index = CLng(value)
+            If index < 0 Or index >= control.ListCount Then GuideDraftControlForTest = "OUT OF RANGE": Exit Function
+            control.ListIndex = index
+            GuideDraftControlForTest = "SELECTED"
+        Case "Focus"
+            If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then GuideDraftControlForTest = "DISABLED": Exit Function
+            control.SetFocus: owner.Repaint: DoEvents
+            If owner.ActiveControl Is control Then GuideDraftControlForTest = "FOCUSED" Else GuideDraftControlForTest = "NOT FOCUSED"
+        Case "Click", "Write", "Check", "Type"
             If Not owner.Visible Or Not control.Visible Or Not control.Enabled Then
                 GuideDraftControlForTest = "DISABLED": Exit Function
             End If
-            If action = "Click" Then
+            If action = "Type" Then
+                If TypeName(control) <> "TextBox" Then GuideDraftControlForTest = "NOT TEXT": Exit Function
+                ' One packaged call invokes each native Change handler without per-character COM round trips.
+                control.Value = ""
+                For index = 1 To Len(value): control.Value = Left$(value, index): Next index
+            ElseIf action = "Click" Then
                 control.Value = True
             ElseIf action = "Check" Then
                 control.Value = CBool(value)
@@ -122,6 +154,33 @@ NextFitControl:
     End Select
 End Function
 '@)
+}
+
+# Count attempts at the actual Core boundary in the disposable compiled copy.
+# The counter changes no result or source file and is restricted to this gate.
+function Install-GuideInputWriteProbe {
+    $component=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1)
+    $component.Name='TestGuideInputWriteCount'
+    $component.CodeModule.AddFromString(@'
+Option Explicit
+Private mCount As Long
+Public Sub MarkWrite()
+    mCount = mCount + 1
+End Sub
+Public Sub ResetCount()
+    mCount = 0
+End Sub
+Public Function ReadCount() As Long
+    ReadCount = mCount
+End Function
+'@)
+    $draft=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modActionGuideDraft').CodeModule
+    $start=$draft.ProcStartLine('WriteText',0);$count=$draft.ProcCountLines('WriteText',0)
+    $anchor=@(for($line=$start;$line -lt $start+$count;$line++){
+        if($draft.Lines($line,1).Trim() -ceq 'On Error GoTo Failed'){$line}
+    })
+    if($anchor.Count -ne 1){throw 'Exact guide WriteText probe anchor changed; not behavioral RED.'}
+    $draft.InsertLines($anchor[0]+1,'    TestGuideInputWriteCount.MarkWrite')
 }
 
 function Test-GuideDraftEntry($Fixture,$Other) {

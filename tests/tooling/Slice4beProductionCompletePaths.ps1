@@ -140,6 +140,7 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Guide source unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
         $instruction='Prepare valid '+$Mode.ToLowerInvariant()+' Production allocations, Check In, select the output and enter its actual quantity. Click Complete Run. Inspect the result before continuing; partial work is not automatically retried or rolled back.'
+        Delivered (Author 'txtGuideSubject' 'Write' 'Production training')
         Delivered (Author 'txtGuideName' 'Write' ('Complete '+$Mode.ToLowerInvariant()+' Production'))
         Delivered (Author 'txtGuideInstructions' 'Write' ($instruction+' Command completion and published Inventory application are separate conclusions.'))
         Pass 'OneObservedGuideStep' ((Author 'lstGuideSteps' 'Rows') -ceq '1')

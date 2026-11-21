@@ -41,6 +41,7 @@ function Test-GuideExpectation($Fixture,$Other) {
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Open','')) -cne 'DELIVERED'){throw 'Existing recording library cannot open; not guide-expectation RED.'}
         if([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.RecordingLibraryForTest' @('Select',$source.ActionPathId)) -cne 'SELECTED'){throw 'Existing source cannot be selected; not guide-expectation RED.'}
         if((GuideExpectationControl 'btnCreateGuide' 'Click' '' 'frmActionPaths') -cne 'DELIVERED' -or (GuideAuthor '' 'Count') -cne '1'){throw 'Existing author fixture cannot open; not guide-expectation RED.'}
+        [void](GuideAuthor 'txtGuideSubject' 'Write' 'Settings basics')
         [void](GuideAuthor 'txtGuideName' 'Write' 'Guide with an authored conclusion')
     }
 
@@ -219,7 +220,21 @@ function Test-GuideExpectation($Fixture,$Other) {
         Check 'GuideExpectation.TargetChangeInvalidatesPendingGuideIntent' ($opened -and $hadPending -and (GuideExpectationControl 'lstExpectedSteps' 'Rows') -cin @('0','MISSING') -and
             (GuideExpectationSamePins $savedPins (GuideExpectationPins $guideRoot)))
         $sourcesUnchanged=$true;foreach($path in $sourcePins.Keys){if((Get-FileHash -LiteralPath $path).Hash -cne $sourcePins[$path]){$sourcesUnchanged=$false}}
-        Check 'GuideExpectation.AllActionsPreserveRecordedExpectationsAndActivity' ($sourcesUnchanged -and (PinsRetained $activityBefore) -and (ActivityPins).Count -eq $activityBefore.Count)
+        $sourceAfter=@{};foreach($file in Get-ChildItem -LiteralPath $journalRoot -File){$sourceAfter[$file.FullName]=(Get-FileHash -LiteralPath $file.FullName).Hash}
+        [pscustomobject]@{
+            Stage='GuideExpectationFinalAction'
+            Source=(Get-GuidePinDeltaFacts $sourcePins $sourceAfter)
+            SourceRetained=$sourcesUnchanged
+            Activity=(Get-GuidePinDeltaFacts $activityBefore (ActivityPins))
+        } | ConvertTo-Json -Compress -Depth 4 | Set-Content -LiteralPath (Join-Path $reportRoot 'guide-expectation-pin-delta.json')
+        # This test deliberately starts/stops another recording and saves the
+        # Admin visibility policy twice. Preserve earlier evidence exactly and
+        # admit only those bounded new records.
+        $newSources=@($sourceAfter.Keys|Where-Object {-not $sourcePins.ContainsKey($_)})
+        $sourceTypes=@($newSources|ForEach-Object {(Get-Content -LiteralPath $_ -Raw|ConvertFrom-Json).RecordType}|Sort-Object)
+        Check 'GuideExpectation.AllActionsPreserveRecordedExpectationsAndActivity' ($sourcesUnchanged -and $newSources.Count -eq 2 -and
+            ($sourceTypes -join '|') -ceq 'Close|Start' -and
+            (Test-AddedActivityControls $activityBefore (ActivityPins) 'ADMIN_TRACKING_SAVE' 2))
         Check 'GuideExpectation.NoBusinessPublicationOrEvaluationResult' ([long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publicationBefore -and
             (GuideExpectationSamePins $evaluationBefore (GuideExpectationPins (Join-Path $journalRoot 'Evaluations'))))
     } finally {

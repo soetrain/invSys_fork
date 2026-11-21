@@ -15,6 +15,7 @@ Public Sub OpenForRun(ByVal context As String, ByVal pathId As String, ByVal lib
         If mPublishedReader Is Nothing And mActionPicker Is Nothing And mContext = context And mPathId = pathId And mEditor.Visible Then
             If mEditor.ValidateBinding() Then Exit Sub
         End If
+        If Not mEditor.FlushPendingText() Then Exit Sub
         CloseEditor
     End If
     Set mEditor = New frmActionPathGuide
@@ -29,6 +30,7 @@ Public Sub OpenForSelectedActions(ByVal context As String, ByVal token As String
                 If mEditor.ValidateBinding() Then Exit Sub
             End If
         End If
+        If Not mEditor.FlushPendingText() Then Exit Sub
         CloseEditor
     End If
     Set mEditor = New frmActionPathGuide
@@ -48,6 +50,7 @@ Public Sub OpenForPublishedGuide(ByVal context As String, ByVal key As String, B
                 If mEditor.ValidateBinding() Then Exit Sub
             End If
         End If
+        If Not mEditor.FlushPendingText() Then Exit Sub
         CloseEditor
     End If
     If Not modActionGuideDraft.CanEditPublished(context, key) Then Exit Sub
@@ -71,6 +74,16 @@ End Sub
 Public Sub CancelEditor(ByVal editor As frmActionPathGuide)
     If mEditor Is Nothing Then Exit Sub
     If mEditor Is editor Then CloseEditor
+End Sub
+
+' QueryClose lets the native title-bar close finish; it must not unload the
+' same form recursively while MSForms is processing that close event.
+Public Sub ForgetWindowClosed(ByVal editor As frmActionPathGuide)
+    If mEditor Is Nothing Then Exit Sub
+    If Not mEditor Is editor Then Exit Sub
+    Set mEditor = Nothing: Set mLibrary = Nothing
+    Set mPublishedReader = Nothing: Set mActionPicker = Nothing
+    mContext = "": mPathId = "": mPublishedKey = "": mCurationId = ""
 End Sub
 
 Public Sub CloseLibrary(ByVal library As frmActionPaths)

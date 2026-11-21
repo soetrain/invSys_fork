@@ -19,11 +19,19 @@ Private mContext As String
 Private mPublished As Boolean
 Private mDraftId As String
 Private mLoading As Boolean
+Private mDiscarding As Boolean
+Private mDirtySubject As Boolean
+Private mDirtyName As Boolean
+Private mDirtyTags As Boolean
+Private mDirtyInstructions As Boolean
+Private mDirtyStepInstruction As Boolean
+Private mEditingStepId As String
 Private mResizeReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private mSource As MSForms.Label
 Private mStatus As MSForms.Label
 Private mEvidence As MSForms.TextBox
+Private WithEvents mSubject As MSForms.TextBox
 Private WithEvents mName As MSForms.TextBox
 Private WithEvents mTags As MSForms.TextBox
 Private WithEvents mInstructions As MSForms.TextBox
@@ -46,10 +54,12 @@ Private Sub UserForm_Initialize()
         Array("Label", "lblGuideSource", "", 12, 10, 650, 96, 7), _
         Array("CommandButton", "btnGuideExpectedConclusion", "Expected conclusion", 672, 10, 208, 26, 6), _
         Array("Label", "lblGuideExpectationSummary", "Guide expectation: None", 672, 40, 208, 18, 6), _
-        Array("Label", "lblGuideName", "Guide name", 12, 114, 510, 18, 7), _
-        Array("TextBox", "txtGuideName", "", 12, 134, 510, 24, 7), _
-        Array("Label", "lblGuideTags", "Tags", 540, 114, 340, 18, 6), _
-        Array("TextBox", "txtGuideTags", "", 540, 134, 340, 24, 6), _
+        Array("Label", "lblGuideSubject", "Subject", 12, 114, 190, 18, 1), _
+        Array("TextBox", "txtGuideSubject", "", 12, 134, 190, 24, 1), _
+        Array("Label", "lblGuideName", "Title", 212, 114, 360, 18, 7), _
+        Array("TextBox", "txtGuideName", "", 212, 134, 360, 24, 7), _
+        Array("Label", "lblGuideTags", "Tags", 582, 114, 298, 18, 6), _
+        Array("TextBox", "txtGuideTags", "", 582, 134, 298, 24, 6), _
         Array("Label", "lblGuideInstructions", "Authored instructions for this guide", 12, 168, 868, 18, 7), _
         Array("TextBox", "txtGuideInstructions", "", 12, 188, 868, 64, 7), _
         Array("Label", "lblGuideSteps", "Authored step order", 12, 262, 320, 18, 3), _
@@ -72,11 +82,13 @@ Private Sub UserForm_Initialize()
         mLayout.RegisterControl control, CLng(definition(7))
     Next definition
     Set mSource = Me.Controls("lblGuideSource"): Set mStatus = Me.Controls("lblGuideStatus")
+    Set mSubject = Me.Controls("txtGuideSubject")
     Set mName = Me.Controls("txtGuideName"): Set mTags = Me.Controls("txtGuideTags")
     Set mInstructions = Me.Controls("txtGuideInstructions"): Set mStepInstruction = Me.Controls("txtGuideStepInstruction")
     Set mSteps = Me.Controls("lstGuideSteps"): Set mEvidence = Me.Controls("txtGuideEvidence")
     Set mUp = Me.Controls("btnGuideStepUp"): Set mDown = Me.Controls("btnGuideStepDown")
     Set mRemove = Me.Controls("btnRemoveGuideStep"): Set mCancel = Me.Controls("btnCancelGuide")
+    mCancel.TakeFocusOnClick = False
     Set mSave = Me.Controls("btnSaveGuide")
     Set mExpected = Me.Controls("btnGuideExpectedConclusion")
     Set mExpectationSummary = Me.Controls("lblGuideExpectationSummary")
@@ -91,6 +103,7 @@ End Sub
 
 Public Function BindContext(ByVal context As String, ByVal pathId As String) As Boolean
     Dim notice As String
+    If Not FlushDirty() Then Exit Function
     mContext = context
     If Not modActionGuideDraft.OpenDraft(context, pathId, mDraftId, notice) Then Invalidate notice: Exit Function
     BindContext = LoadDraft()
@@ -98,6 +111,7 @@ End Function
 
 Public Function BindPublishedContext(ByVal context As String, ByVal key As String) As Boolean
     Dim notice As String
+    If Not FlushDirty() Then Exit Function
     mContext = context: mPublished = True
     If Not modActionGuideDraft.OpenPublishedDraft(context, key, mDraftId, notice) Then Invalidate notice: Exit Function
     BindPublishedContext = LoadDraft()
@@ -105,6 +119,7 @@ End Function
 
 Public Function BindSelectedActions(ByVal context As String, ByVal token As String) As Boolean
     Dim notice As String
+    If Not FlushDirty() Then Exit Function
     mContext = context
     If Not modActionGuideDraft.OpenDraft(context, "", mDraftId, notice, token) Then Invalidate notice: Exit Function
     BindSelectedActions = LoadDraft()
@@ -119,12 +134,13 @@ End Function
 
 Private Function LoadDraft() As Boolean
     Dim rows As String, source As String, evidence As String, notice As String, selected As String, row As Variant, fields As Variant
-    Dim name As String, tags As String, instructions As String, instruction As String, summary As String
+    Dim subject As String, name As String, tags As String, instructions As String, instruction As String, summary As String
+    If Not FlushDirty() Then Exit Function
     selected = SelectedStep()
     If Not modActionGuideDraft.ReadEditor(mContext, mDraftId, selected, rows, source, evidence, _
-        name, tags, instructions, instruction, summary, notice) Then Invalidate notice: Exit Function
+        subject, name, tags, instructions, instruction, summary, notice) Then Invalidate notice: Exit Function
     mLoading = True: mSteps.Clear
-    mName.Value = name: mTags.Value = tags: mInstructions.Value = instructions
+    mSubject.Value = subject: mName.Value = name: mTags.Value = tags: mInstructions.Value = instructions
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
@@ -136,6 +152,8 @@ Private Function LoadDraft() As Boolean
     If mSteps.ListIndex < 0 And mSteps.ListCount > 0 Then mSteps.ListIndex = 0
     mSource.Caption = source: mEvidence.Value = evidence: mStatus.Caption = notice
     mStepInstruction.Value = instruction
+    mEditingStepId = SelectedStep()
+    ClearDirty
     mStepInstruction.Enabled = (SelectedStep() <> "" And mDraftId <> "")
     mExpectationSummary.Caption = summary
     mLoading = False
@@ -144,11 +162,13 @@ End Function
 
 Public Sub RefreshExpectation()
     Dim sequenceId As String, definition As String, summary As String, notice As String
+    If Not FlushDirty() Then Exit Sub
     If Not modActionGuideDraft.ReadExpectation(mContext, mDraftId, sequenceId, definition, summary, notice) Then Invalidate notice: Exit Sub
     mExpectationSummary.Caption = summary
 End Sub
 
 Private Sub mExpected_Click()
+    If Not FlushDirty() Then Exit Sub
     If ValidateBinding() Then modExpectationEditor.OpenForGuide mContext, mDraftId, Me
 End Sub
 
@@ -159,25 +179,73 @@ End Function
 Private Sub ReadStepInstruction()
     Dim value As String, notice As String, id As String
     If mLoading Then Exit Sub
+    If Not FlushDirty() Then Exit Sub
     id = SelectedStep()
     If id <> "" Then
         If Not modActionGuideDraft.ReadText(mContext, mDraftId, "Instruction", id, value, notice) Then Invalidate notice: Exit Sub
     End If
     mLoading = True: mStepInstruction.Value = value: mLoading = False
+    mEditingStepId = id
     mStepInstruction.Enabled = (id <> "" And mDraftId <> "")
 End Sub
 
-Private Sub StageText(ByVal field As String, ByVal value As String)
-    Dim notice As String, stepId As String
-    If mLoading Then Exit Sub
-    If field = "Instruction" Then stepId = SelectedStep()
-    If Not modActionGuideDraft.WriteText(mContext, mDraftId, field, stepId, value, notice) Then Invalidate notice: Exit Sub
-    mStatus.Caption = notice
+Private Sub ClearDirty()
+    mDirtySubject = False: mDirtyName = False: mDirtyTags = False
+    mDirtyInstructions = False: mDirtyStepInstruction = False
 End Sub
+
+Private Function FlushDirtyField(ByVal field As String) As Boolean
+    Dim notice As String, stepId As String
+    Dim value As String, dirty As Boolean
+    If mDiscarding Then Exit Function
+    Select Case field
+        Case "Subject": dirty = mDirtySubject: value = CStr(mSubject.Value)
+        Case "Name": dirty = mDirtyName: value = CStr(mName.Value)
+        Case "Tags": dirty = mDirtyTags: value = CStr(mTags.Value)
+        Case "Instructions": dirty = mDirtyInstructions: value = CStr(mInstructions.Value)
+        Case "Instruction"
+            dirty = mDirtyStepInstruction: value = CStr(mStepInstruction.Value)
+            stepId = mEditingStepId
+        Case Else: Exit Function
+    End Select
+    If Not dirty Then FlushDirtyField = True: Exit Function
+    If mDraftId = "" Or (field = "Instruction" And stepId = "") Then
+        Invalidate "Unavailable: the guide draft changed. Reopen Create guide."
+        Exit Function
+    End If
+    If Not modActionGuideDraft.WriteText(mContext, mDraftId, field, stepId, value, notice) Then
+        If notice = "" Then notice = "Unavailable: authored text could not be staged."
+        Invalidate notice
+        Exit Function
+    End If
+    Select Case field
+        Case "Subject": mDirtySubject = False
+        Case "Name": mDirtyName = False
+        Case "Tags": mDirtyTags = False
+        Case "Instructions": mDirtyInstructions = False
+        Case "Instruction": mDirtyStepInstruction = False
+    End Select
+    mStatus.Caption = notice
+    FlushDirtyField = True
+End Function
+
+Private Function FlushDirty() As Boolean
+    If Not FlushDirtyField("Subject") Then Exit Function
+    If Not FlushDirtyField("Name") Then Exit Function
+    If Not FlushDirtyField("Tags") Then Exit Function
+    If Not FlushDirtyField("Instructions") Then Exit Function
+    If Not FlushDirtyField("Instruction") Then Exit Function
+    FlushDirty = True
+End Function
+
+Public Function FlushPendingText() As Boolean
+    FlushPendingText = FlushDirty()
+End Function
 
 Private Sub ChangeStep(ByVal command As String)
     Dim notice As String
     If mLoading Then Exit Sub
+    If Not FlushDirty() Then Exit Sub
     If modActionGuideDraft.EditStep(mContext, mDraftId, SelectedStep(), command, notice) Then
         LoadDraft
     ElseIf ValidateBinding() Then
@@ -187,6 +255,7 @@ End Sub
 
 Private Sub Invalidate(ByVal notice As String)
     Dim control As Object, name As Variant
+    mDiscarding = True
     ReleaseDraft
     mLoading = True
     mSource.Caption = "": mEvidence.Value = "": mSteps.Clear
@@ -198,25 +267,101 @@ Private Sub Invalidate(ByVal notice As String)
     mSave.Enabled = False
     mExpected.Enabled = False: mExpectationSummary.Caption = ""
     mStatus.Caption = notice: mLoading = False
+    mEditingStepId = "": ClearDirty
 End Sub
 
 Public Sub ReleaseDraft()
+    mDiscarding = True: ClearDirty
     modExpectationEditor.CloseGuide Me
     modActionGuideDraft.CloseDraft mContext, mDraftId
-    mDraftId = "": mContext = ""
+    mDraftId = "": mContext = "": mEditingStepId = ""
 End Sub
 
+Private Sub mSubject_Change()
+    If Not mLoading And Not mDiscarding Then mDirtySubject = True
+End Sub
 Private Sub mName_Change()
-    StageText "Name", CStr(mName.Value)
+    If Not mLoading And Not mDiscarding Then mDirtyName = True
 End Sub
 Private Sub mTags_Change()
-    StageText "Tags", CStr(mTags.Value)
+    If Not mLoading And Not mDiscarding Then mDirtyTags = True
 End Sub
 Private Sub mInstructions_Change()
-    StageText "Instructions", CStr(mInstructions.Value)
+    If Not mLoading And Not mDiscarding Then mDirtyInstructions = True
 End Sub
 Private Sub mStepInstruction_Change()
-    StageText "Instruction", CStr(mStepInstruction.Value)
+    If Not mLoading And Not mDiscarding Then mDirtyStepInstruction = True
+End Sub
+Private Sub mSubject_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Subject")
+End Sub
+Private Sub mSubject_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Subject") Then KeyCode = 0
+    End If
+End Sub
+Private Sub mName_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Name")
+End Sub
+Private Sub mName_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Name") Then KeyCode = 0
+    End If
+End Sub
+Private Sub mTags_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Tags")
+End Sub
+Private Sub mTags_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Tags") Then KeyCode = 0
+    End If
+End Sub
+Private Sub mInstructions_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Instructions")
+End Sub
+Private Sub mInstructions_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Instructions") Then KeyCode = 0
+    End If
+End Sub
+Private Sub mStepInstruction_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+    If Not mDiscarding Then Call FlushDirtyField("Instruction")
+End Sub
+Private Sub mStepInstruction_KeyDown(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    If Not mDiscarding And KeyCode = vbKeyTab Then
+        If Not FlushDirtyField("Instruction") Then KeyCode = 0
+    End If
+End Sub
+Private Sub FlushBeforePointerFocus(ByVal targetField As String)
+    If mDiscarding Or mLoading Then Exit Sub
+    If targetField <> "Subject" Then
+        If Not FlushDirtyField("Subject") Then Exit Sub
+    End If
+    If targetField <> "Name" Then
+        If Not FlushDirtyField("Name") Then Exit Sub
+    End If
+    If targetField <> "Tags" Then
+        If Not FlushDirtyField("Tags") Then Exit Sub
+    End If
+    If targetField <> "Instructions" Then
+        If Not FlushDirtyField("Instructions") Then Exit Sub
+    End If
+    If targetField <> "Instruction" Then Call FlushDirtyField("Instruction")
+End Sub
+Private Sub mSubject_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Subject"
+End Sub
+Private Sub mName_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Name"
+End Sub
+Private Sub mTags_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Tags"
+End Sub
+Private Sub mInstructions_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Instructions"
+End Sub
+Private Sub mStepInstruction_MouseDown(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+    FlushBeforePointerFocus "Instruction"
 End Sub
 Private Sub mSteps_Change()
     ReadStepInstruction
@@ -231,10 +376,13 @@ Private Sub mRemove_Click()
     ChangeStep "Remove"
 End Sub
 Private Sub mCancel_Click()
+    mDiscarding = True: ClearDirty
     modGuideEditor.CancelEditor Me
 End Sub
 Private Sub mSave_Click()
     Dim notice As String
+    If mDraftId = "" Then Exit Sub
+    If Not FlushDirty() Then Exit Sub
     If modActionGuideDraft.SaveDraft(mContext, mDraftId, notice) Then
         mStatus.Caption = notice
     ElseIf ValidateBinding() Then
@@ -243,8 +391,10 @@ Private Sub mSave_Click()
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    mDiscarding = True: ClearDirty
     If CloseMode = 0 Then
-        Cancel = True: modGuideEditor.CancelEditor Me
+        ReleaseDraft
+        modGuideEditor.ForgetWindowClosed Me
     Else
         ReleaseDraft
     End If

@@ -19,6 +19,42 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
     $packageHash=(Get-FileHash -LiteralPath $packagePath).Hash
     $invalid=Join-Path $files 'invalid.json';[IO.File]::WriteAllText($invalid,'{}',[Text.Encoding]::ASCII)
     $guideRoot=Join-Path $Fixture.Root ('Training/ActionPaths/'+$Fixture.Warehouse+'/Guides')
+
+    function CreateOlderSafeTransferSource {
+        CloseRecordingViewer;SelectTarget $Fixture 'config-admin';SetRecordingPolicy $false
+        $action=SaveRecordedSetting '803'
+        $published=Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest'
+        $publication=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
+        $valid=Run 'invSys.Core.xlam' 'modInventoryViewerData.PublishedReadFixtureValidForTest' @($publication,$Fixture.Warehouse)
+        if($published -isnot [bool] -or -not $published -or $valid -isnot [bool] -or -not $valid){throw 'Older-safe activity publication fixture unavailable.'}
+        $before=@(Get-ChildItem -LiteralPath $guideRoot -Filter '*.1.json' -File|ForEach-Object FullName)
+        OpenRecordingViewer
+        if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Older-safe Action Paths entry unavailable.'}
+        if((BoundControl 'btnChooseGuideActions' 'Click' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Older-safe action picker unavailable.'}
+        $ids=@((BoundControl 'lstGuideActions' 'Values' '' 'frmGuideActionPicker') -split "`n"|Where-Object {$_ -cne ''})
+        $index=[Array]::IndexOf($ids,[string]$action.Attempt.ActivityId)
+        if($index -lt 0 -or (BoundControl 'lstGuideActions' 'Toggle' ([string]$index) 'frmGuideActionPicker') -cne 'SELECTED'){throw 'Older-safe Save Value action was not selectable.'}
+        if((BoundControl 'btnCreateSelectedGuide' 'Click' '' 'frmGuideActionPicker') -cne 'DELIVERED'){throw 'Older-safe guide editor unavailable.'}
+        [void](BoundControl 'txtGuideSubject' 'Write' 'Guide transfer training' 'frmActionPathGuide')
+        [void](BoundControl 'txtGuideName' 'Write' 'Catalog 29 transfer guide' 'frmActionPathGuide')
+        if((BoundControl 'btnSaveGuide' 'Click' '' 'frmActionPathGuide') -cne 'DELIVERED'){throw 'Older-safe guide Save unavailable.'}
+        $fresh=@(Get-ChildItem -LiteralPath $guideRoot -Filter '*.1.json' -File|Where-Object {$_.FullName -cnotin $before})
+        if($fresh.Count -ne 1){throw 'Older-safe guide must publish exactly one version.'}
+        $safe=ReadGuideExpectationRecord $fresh[0].FullName
+        if($null -eq $safe -or @($safe.Steps).Count -ne 1 -or @($safe.Observations).Count -ne 2 -or
+           @($safe.Steps|Where-Object ControlId -CNE 'ADMIN_SETTINGS_SAVE_VALUE').Count -or
+           @($safe.Observations|Where-Object ControlId -CNE 'ADMIN_SETTINGS_SAVE_VALUE').Count){throw 'Older-safe guide contains a newer control.'}
+        CloseRecordingViewer;SetRecordingPolicy $true
+        $export=Join-Path $files 'catalog29-export.json'
+        TransferOpen $Fixture;BoundSelect $safe
+        try {
+            TransferSetFile $export
+            if((BoundControl 'btnExportGuide' 'Click') -cne 'DELIVERED' -or -not(Test-Path -LiteralPath $export -PathType Leaf)){throw 'Older-safe actual Export fixture unavailable.'}
+        } finally {TransferSetFile '';CloseRecordingViewer}
+        return [pscustomobject]@{Guide=$safe;Package=$export}
+    }
+
+    $olderSafe=CreateOlderSafeTransferSource
     $otherPins=BoundPins $Other.Root;$originalActivity=BoundPins $activityRoot
     $initialVersion=Get-TrackingPolicyVersion $Fixture
 
@@ -89,7 +125,7 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
         }else{$owner=$owner -and $added.Count -eq 0}
         if($Case -ceq 'Success' -and $Mode -ceq 'Export'){
             $wire=TransferRead $path 'GuideTransfer' 1 'SchemaVersion|RecordKind|TransferId|ExportedAtUTC|ExportedByUserId|SourceWarehouseId|Guide|ContentSha256'
-            $owner=$owner -and $null -ne $wire -and $wire.Guide.ContentSha256 -ceq $Guide.ContentSha256
+            $owner=$owner -and $null -ne $wire -and $wire.Guide.ContentSha256 -ceq $activeGuide.ContentSha256
         }
         $evidence=$records.Count -eq 0
         if($policyMode -ceq 'Recovery'){
@@ -142,6 +178,9 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
 
     try {
         foreach($policyMode in @('ControlOff','UserOff','Older','StoreUnavailable','Recovery')){
+            $activeGuide=if($policyMode -ceq 'Older'){$olderSafe.Guide}else{$Guide}
+            $packagePath=if($policyMode -ceq 'Older'){$olderSafe.Package}else{Join-Path $runRoot 'transfer-activity/export.json'}
+            $packageHash=(Get-FileHash -LiteralPath $packagePath).Hash
             $savedPolicy=ConfigurePolicy $policyMode;$version=[int]$savedPolicy.Version
             Check ('GuideTransferPolicy.'+$policyMode+'.ActualPolicyHandlerAppendsOneVersion') ($version -eq $savedPolicy.Previous+1)
             $pristine=$null;$moved=$false;$marker=$false
@@ -153,14 +192,19 @@ function Test-GuideTransferPolicy($Fixture,$Other,$Guide) {
                         $headers=Table $cfg 'tblEventTrackingPolicies';$controls=Table $cfg 'tblEventTrackingControls';$found=0
                         foreach($row in $headers.ListRows){if([int]$row.Range.Cells.Item(1,$headers.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version){$row.Range.Cells.Item(1,$headers.ListColumns.Item('CatalogVersion').Index).Value2=29.0;$found++}}
                         if($found -ne 1){throw 'Unique current policy required.'}
+                        $supported=@(([string](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.ControlIdsForVersion' @(29))) -split "`n")
+                        if($supported.Count -eq 0 -or @($supported|Where-Object {$_ -eq 'VIEWER_GUIDE_EXPORT' -or $_ -eq 'VIEWER_GUIDE_IMPORT'}).Count -ne 0){throw 'Exact older catalog fixture required.'}
+                        $supportedSet=@{};foreach($id in $supported){$supportedSet[$id]=$true}
+                        $guideControls=@($activeGuide.Steps|ForEach-Object ControlId)+@($activeGuide.Observations|ForEach-Object ControlId)+@($activeGuide.ExpectedConclusion.Steps|ForEach-Object ControlId)
+                        if(@($guideControls|Where-Object {-not $supportedSet.ContainsKey([string]$_)}).Count -gt 0){throw 'Older transfer policy fixture needs a guide using only catalog-29 controls; not product RED.'}
                         for($index=$controls.ListRows.Count;$index -ge 1;$index--){
                             $row=$controls.ListRows.Item($index)
-                            if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version -and [string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2 -cin @('VIEWER_GUIDE_EXPORT','VIEWER_GUIDE_IMPORT')){$row.Delete()}
+                            if([int]$row.Range.Cells.Item(1,$controls.ListColumns.Item('PolicyVersion').Index).Value2 -eq $version -and -not $supportedSet.ContainsKey([string]$row.Range.Cells.Item(1,$controls.ListColumns.Item('ControlId').Index).Value2)){$row.Delete()}
                         }
                         $cfg.Save()
                     }finally{$cfg.Close($false)}
                 }
-                TransferOpen $Fixture;BoundSelect $Guide
+                TransferOpen $Fixture;BoundSelect $activeGuide
                 $expected=if($policyMode -cin @('ControlOff','UserOff')){'True|False'}elseif($policyMode -ceq 'Older'){'False|False'}else{'True|True'}
                 foreach($id in @('VIEWER_GUIDE_EXPORT','VIEWER_GUIDE_IMPORT')){
                     if([string](Run 'invSys.Core.xlam' 'TestGuideTransferActivity.Policy' @($id)) -cne $expected){throw 'Effective transfer policy prerequisite mismatch; not product RED.'}

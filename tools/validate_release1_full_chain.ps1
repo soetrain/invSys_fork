@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path -LiteralPath $RepoRoot).Path
 $deployPath = (Resolve-Path -LiteralPath (Join-Path $repo $DeployRoot)).Path
 if(Get-Process EXCEL -ErrorAction SilentlyContinue){throw 'Close Excel before isolated full-chain validation.'}
+$runStartLocal = Get-Date
 . (Join-Path $repo 'tests/tooling/Slice4beRecordingLifecycle.ps1')
 $localSettingsBefore = Get-InvSysTestSettingsSnapshot
 $resultPath = Join-Path $repo "tests/integration/slice14_results.md"
@@ -1008,6 +1009,24 @@ finally {
     Wait-RecordingCleanup -Creator $null -Worker $null
     Add-Result 'LocalSettingsRestored' (Restore-InvSysTestSettingsSnapshot $localSettingsBefore) `
         'Pre-test invSys local setting values and types restored after Excel exits.'
+    try {
+        $applicationEvents = @(Get-WinEvent -FilterHashtable @{
+            LogName = 'Application'
+            Id = @(1000, 1002)
+            StartTime = $runStartLocal
+        } -ErrorAction Stop)
+        $excelFaults = @($applicationEvents | Where-Object { $_.Message -match '(?i)\bEXCEL\.EXE\b' })
+        Add-Result 'ExcelNativeFaultsAbsent' ($excelFaults.Count -eq 0) `
+            ('Excel Application Error/Hang events during this run=' + $excelFaults.Count)
+    } catch {
+        if ([string]$_.FullyQualifiedErrorId -like 'NoMatchingEventsFound*') {
+            Add-Result 'ExcelNativeFaultsAbsent' $true `
+                'No Application Error/Hang events occurred during this run.'
+        } else {
+            Add-Result 'ExcelNativeFaultsAbsent' $false `
+                'The Application event log could not be audited.'
+        }
+    }
     Write-Evidence
     if (-not $KeepArtifacts -and (Test-Path -LiteralPath $tempRoot -PathType Container)) {
         $resolvedTemp = (Resolve-Path -LiteralPath $tempRoot).Path

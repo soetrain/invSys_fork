@@ -28,7 +28,7 @@ End Function
 
 Public Function Caption(ByVal model As Object) As String
     Dim origin As Object
-    If model("SchemaVersion") <> 2 Then Exit Function
+    If model("SchemaVersion") <> 2 And model("SchemaVersion") <> 3 Then Exit Function
     Set origin = model("TransferOrigin")
     Caption = "Imported origin evidence; not locally observed" & vbCrLf & _
         "Source warehouse: " & CStr(origin("SourceWarehouseId")) & "; guide: " & CStr(origin("ActionPathId")) & "; version: " & CStr(origin("Version")) & vbCrLf & _

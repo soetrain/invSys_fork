@@ -39,7 +39,7 @@ function Test-GuideSave($Fixture,$Other) {
             $text=[IO.File]::ReadAllText($File.FullName)
             if($File.Length -ne $text.Length -or $text -match '[^\x00-\x7f]'){return $null}
             $value=$text|ConvertFrom-Json
-            $fields='SchemaVersion|RecordKind|ActionPathId|Version|RecordId|PreviousRecordId|PreviousSha256|WarehouseId|OriginWarehouseId|CreatedByUserId|CreatedAtUTC|Lifecycle|Name|Tags|Instructions|CatalogVersion|PackageSetVersion|BuildIdentity|PolicyVersion|Steps|Observations|SourceRun|ExpectedConclusion|ContentSha256' -split '\|'
+            $fields='SchemaVersion|RecordKind|ActionPathId|Version|RecordId|PreviousRecordId|PreviousSha256|WarehouseId|OriginWarehouseId|CreatedByUserId|CreatedAtUTC|Lifecycle|Name|Subject|Tags|Instructions|CatalogVersion|PackageSetVersion|BuildIdentity|PolicyVersion|Steps|Observations|SourceRun|ExpectedConclusion|ContentSha256' -split '\|'
             $actual=@($value.PSObject.Properties.Name)
             if($actual.Count -ne $fields.Count -or @($actual|Where-Object {$_ -cnotin $fields}).Count){return $null}
             $sourceFields='ActionPathId|SequenceId|JournalVersion|RecordId|ContentSha256|RecordedByUserId|EntryCreatedAtUTC|Lifecycle|ReasonCode|ActionCount|CapturePolicyVersion|CatalogVersion|PackageSetVersion|BuildIdentity|RestrictedObservationCount' -split '\|'
@@ -84,6 +84,7 @@ function Test-GuideSave($Fixture,$Other) {
         if((GuideSaveLibrary 'Select' $source.ActionPathId) -cne 'SELECTED'){throw 'Save guard fixture cannot select its source.'}
         if((GuideSaveControl 'btnCreateGuide' 'Click' '' 'frmActionPaths') -cne 'DELIVERED'){throw 'Save guard fixture cannot deliver Create guide.'}
         if((GuideSaveControl '' 'Count') -cne '1'){throw 'Save guard fixture has no unique guide editor.'}
+        [void](GuideSaveControl 'txtGuideSubject' 'Write' 'Settings basics')
         [void](GuideSaveControl 'txtGuideName' 'Write' 'Guarded draft must not be published')
     }
     function SaveGuideVisibility([bool]$Visible) {
@@ -114,12 +115,15 @@ function Test-GuideSave($Fixture,$Other) {
        (GuideSaveControl '' 'Count') -cne '1' -or (GuideSaveControl 'lstGuideSteps' 'Rows') -cne '2'){
         throw 'Accepted guide draft editor unavailable; not guide-save RED.'
     }
+    Check 'GuideCourse.SubjectFieldAvailable' ((GuideSaveControl 'txtGuideSubject' 'State') -ceq 'True|True')
+    Check 'GuideCourse.TitleLabel' ((GuideSaveControl 'lblGuideName' 'Label') -ceq 'Title')
     $guideRoot=Join-Path $journalRoot 'Guides'
     if(@(GuideFiles).Count){throw 'Guide-save fixture is not empty.'}
     $sourcePins=SourcePins; $activity=ActivityPins; $configHash=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     $publishedBefore=[long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest')
     $observed=GuideSaveControl 'txtGuideEvidence' 'Text'
     try {
+        [void](GuideSaveControl 'txtGuideSubject' 'Write' 'Settings basics')
         [void](GuideSaveControl 'txtGuideName' 'Write' 'Review and verify a Settings change')
         [void](GuideSaveControl 'txtGuideTags' 'Write' 'training, settings')
         [void](GuideSaveControl 'txtGuideInstructions' 'Write' 'Read the setting, save it, and inspect the observed outcome.')
@@ -133,16 +137,23 @@ function Test-GuideSave($Fixture,$Other) {
         $savePresent=(GuideSaveControl 'btnSaveGuide' 'State') -ceq 'True|True'
         Check 'GuideSave.ActualSaveControlAvailable' $savePresent
         Check 'GuideSave.PublicationMeaningVisibleBeforeSave' ((GuideSaveControl '' 'Labels') -match '(?i)save.*publish.*version')
+        [void](GuideSaveControl 'txtGuideSubject' 'Write' '   ')
+        [void](GuideSaveControl 'btnSaveGuide' 'Click')
+        Check 'GuideCourse.BlankSubjectRejectedWithoutPublication' (@(GuideFiles).Count -eq 0 -and (GuideSaveControl 'lblGuideStatus' 'Label') -match '(?i)subject.*required')
+        [void](GuideSaveControl 'txtGuideSubject' 'Write' 'Settings basics')
         [void](GuideSaveControl 'txtGuideName' 'Write' '   ')
         $blank=GuideSaveControl 'btnSaveGuide' 'Click'
-        Check 'GuideSave.BlankNameRejectedWithoutPublication' ($savePresent -and $blank -ceq 'DELIVERED' -and @(GuideFiles).Count -eq 0 -and (GuideSaveControl 'lblGuideStatus' 'Label') -match '(?i)name.*required|enter.*name')
+        Check 'GuideSave.BlankNameRejectedWithoutPublication' ($savePresent -and $blank -ceq 'DELIVERED' -and @(GuideFiles).Count -eq 0 -and (GuideSaveControl 'lblGuideStatus' 'Label') -match '(?i)title.*required|enter.*title')
         [void](GuideSaveControl 'txtGuideName' 'Write' 'Review and verify a Settings change')
         $save=GuideSaveControl 'btnSaveGuide' 'Click'
         $files=@(GuideFiles)
         $firstFile=if($files.Count -eq 1){$files[0]}else{$null}
         $firstRecord=ReadSavedGuide $firstFile
         $validFirst=($null -ne $firstRecord)
-        Check 'GuideSave.FirstSavePublishesOneValidatedRecord' ($save -ceq 'DELIVERED' -and $validFirst -and $firstRecord.RecordKind -ceq 'Guide' -and $firstRecord.SchemaVersion -eq 1 -and $firstRecord.Version -eq 1 -and $firstRecord.Lifecycle -ceq 'Published')
+        Check 'GuideCourse.SavedSubjectAndTitle' ($validFirst -and $firstRecord.SchemaVersion -eq 3 -and
+            $null -ne $firstRecord.PSObject.Properties['Subject'] -and $firstRecord.Subject -ceq 'Settings basics' -and
+            $firstRecord.Name -ceq 'Review and verify a Settings change')
+        Check 'GuideSave.FirstSavePublishesOneValidatedRecord' ($save -ceq 'DELIVERED' -and $validFirst -and $firstRecord.RecordKind -ceq 'Guide' -and $firstRecord.SchemaVersion -eq 3 -and $firstRecord.Version -eq 1 -and $firstRecord.Lifecycle -ceq 'Published')
         $guideId=if($validFirst){[string]$firstRecord.ActionPathId}else{''}
         $guideGuid=[guid]::Empty
         Check 'GuideSave.NewGuideIdentityIsDistinctFromSourceAndSteps' ($validFirst -and [guid]::TryParse($guideId,[ref]$guideGuid) -and $guideGuid -ne [guid]::Empty -and $guideId -cnotin @($source.ActionPathId,$sequence,$firstStep,$secondStep) -and $firstFile.Name -ceq ($guideId+'.1.json'))

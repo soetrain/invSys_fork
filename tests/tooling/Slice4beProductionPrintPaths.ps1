@@ -20,6 +20,7 @@ function Test-ProductionPrintPaths($Fixture,$Runs){
         Delivered (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Print guide source unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
+        Delivered (Author 'txtGuideSubject' 'Write' 'Production training')
         Delivered (Author 'txtGuideName' 'Write' 'Review a Production recall preview')
         Delivered (Author 'txtGuideInstructions' 'Write' $instruction)
         Pass 'OneObservedGuideStep' ((Author 'lstGuideSteps' 'Rows') -ceq '1')

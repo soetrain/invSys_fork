@@ -36,7 +36,12 @@ function ReadGuideExpectationRecord([string]$Path) {
             if($text -match '[^\x00-\x7f]' -or $length -ne $text.Length -or $length -gt 1048576){return $null}
             $value=$text|ConvertFrom-Json
             $match=[regex]::Match($text,',"ContentSha256":"([0-9a-f]{64})"\}$')
-            if(-not $match.Success -or $value.RecordKind -cne 'Guide' -or $value.SchemaVersion -ne 1 -or @($value.PSObject.Properties).Count -ne 24){return $null}
+            if(-not $match.Success -or $value.RecordKind -cne 'Guide'){return $null}
+            $fields=@($value.PSObject.Properties.Name)
+            if($value.SchemaVersion -eq 1){if($fields.Count -ne 24 -or $fields -contains 'Subject' -or $fields -contains 'TransferOrigin'){return $null}}
+            elseif($value.SchemaVersion -eq 2){if($fields.Count -ne 25 -or $fields -contains 'Subject' -or $fields -notcontains 'TransferOrigin'){return $null}}
+            elseif($value.SchemaVersion -eq 3){if($fields.Count -ne (25 + [int]($fields -contains 'TransferOrigin')) -or $fields -notcontains 'Subject'){return $null}}
+            else{return $null}
             $body=$text.Substring(0,$match.Index)+'}';$sha=[Security.Cryptography.SHA256]::Create()
             try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
             if($value.ContentSha256 -cne $hash){return $null}

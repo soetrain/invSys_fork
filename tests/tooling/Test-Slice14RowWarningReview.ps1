@@ -26,6 +26,22 @@ $positive=Classify-StaticWarningDelta -ActualWarnings $extra -BaselineWarnings @
 Check 'StaticRowReview.NewRowUseStillFails' (@($positive.Reviewed).Count -eq 6 -and @($positive.Unreviewed).Count -eq 1)
 $changed=Classify-StaticWarningDelta -ActualWarnings $warnings -BaselineWarnings @() -RepoRoot (Join-Path $repo 'tests')
 Check 'StaticRowReview.SourceChangeRequiresReview' (@($changed.Reviewed).Count -eq 0 -and @($changed.Unreviewed).Count -eq 6)
+$mutationRoot=Join-Path ([IO.Path]::GetTempPath()) ('invsys-static-row-review-'+[guid]::NewGuid().ToString('N'))
+try{
+    $mutatedPath=Join-Path $mutationRoot ($paths[2] -replace '/','\')
+    New-Item -ItemType Directory -Path (Split-Path -Parent $mutatedPath) -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repo ($paths[2] -replace '/','\')) -Destination $mutatedPath
+    [IO.File]::AppendAllText($mutatedPath,"' test-only source change`r`n")
+    $mutated=Classify-StaticWarningDelta -ActualWarnings @($warnings[2]) -BaselineWarnings @() -RepoRoot $mutationRoot
+    Check 'StaticRowReview.ContentChangeRequiresReview' (@($mutated.Reviewed).Count -eq 0 -and @($mutated.Unreviewed).Count -eq 1)
+}finally{
+    if(Test-Path -LiteralPath $mutationRoot){
+        $resolved=[IO.Path]::GetFullPath($mutationRoot)
+        $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+        if(-not $resolved.StartsWith($temp+'\invsys-static-row-review-',[StringComparison]::OrdinalIgnoreCase)){throw 'Static review test cleanup target escaped temporary root.'}
+        Remove-Item -LiteralPath $resolved -Recurse -Force
+    }
+}
 $old=Classify-StaticWarningDelta -ActualWarnings $warnings -BaselineWarnings @($warnings[0]) -RepoRoot $repo
 Check 'StaticRowReview.HistoricalBaselinePreserved' (@($old.Reviewed).Count -eq 5 -and @($old.Unreviewed).Count -eq 0)
 $wrongCode=Classify-StaticWarningDelta -ActualWarnings @([pscustomobject]@{code='OTHER_WARNING';sourcePath=$paths[0]}) -BaselineWarnings @() -RepoRoot $repo

@@ -16,6 +16,12 @@ Public Function Create(ByVal previous As Object, ByVal text As Object, ByVal dra
     model("CatalogVersion") = modActivityCatalog.CATALOG_VERSION: model("PolicyVersion") = policyVersion
     model("PackageSetVersion") = CStr(ThisWorkbook.CustomDocumentProperties("invSysPackageSetVersion").Value)
     model("BuildIdentity") = CStr(ThisWorkbook.CustomDocumentProperties("invSysBuildIdentity").Value)
+    model("SchemaVersion") = 3&
+    If model.Exists("Subject") Then
+        model("Subject") = Trim$(CStr(text("Subject")))
+    Else
+        model.Add "Subject", Trim$(CStr(text("Subject")))
+    End If
     model("Name") = Trim$(CStr(text("Name"))): model("Instructions") = CStr(text("Instructions"))
     ' Unchanged tag text retains the exact ordered collection, including older values.
     If CStr(text("Tags")) <> modGuideModel.TagsText(previous) Then

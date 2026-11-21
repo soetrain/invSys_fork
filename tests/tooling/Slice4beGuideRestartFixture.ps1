@@ -48,6 +48,7 @@ function Initialize-GuideRestartFixture($Fixture,[switch]$ForPublishedEdit) {
         throw 'Actual source library selection unavailable.'
     }
     if((FixtureControl 'frmActionPaths' 'btnCreateGuide' 'Click') -cne 'DELIVERED'){throw 'Actual Create guide unavailable.'}
+    [void](FixtureControl 'frmActionPathGuide' 'txtGuideSubject' 'Write' 'Settings basics')
     [void](FixtureControl 'frmActionPathGuide' 'txtGuideName' 'Write' 'Preference restart guide')
     [void](FixtureControl 'frmActionPathGuide' 'txtGuideInstructions' 'Write' 'Authored instructions stay separate from observed actions.')
     if($ForPublishedEdit){

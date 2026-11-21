@@ -18,6 +18,7 @@ Option Explicit
 Private mContext As String, mToken As String
 Private mOwner As frmActionPaths
 Private mLoading As Boolean, mResizeReady As Boolean
+Private mRenderedSelected As Object
 Private mLayout As cOperationsAnchorManager
 Private mSource As MSForms.Label, mStatus As MSForms.Label
 Private WithEvents mSearch As MSForms.TextBox
@@ -62,19 +63,25 @@ End Function
 
 Public Function RefreshChoices() As Boolean
     Dim rows As String, source As String, notice As String, count As Long, row As Variant, fields As Variant, column As Long
+    Dim rendered As Object, id As String, selected As Boolean
     On Error GoTo Failed
     If mLoading Or mToken = "" Then Exit Function
     If Not modGuideActionPicker.ReadRows(mContext, mToken, CStr(mSearch.Value), rows, source, count, notice) Then Invalidate notice: Exit Function
+    Set rendered = CreateObject("Scripting.Dictionary")
     mLoading = True: mActions.Clear
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
             If UBound(fields) <> 4 Then GoTo Failed
-            mActions.AddItem CStr(fields(0))
+            id = CStr(fields(0)): selected = (fields(4) = "1")
+            If rendered.Exists(id) Then GoTo Failed
+            rendered.Add id, selected
+            mActions.AddItem id
             For column = 1 To 3: mActions.List(mActions.ListCount - 1, column) = CStr(fields(column)): Next column
-            mActions.Selected(mActions.ListCount - 1) = (fields(4) = "1")
+            mActions.Selected(mActions.ListCount - 1) = selected
         End If
     Next row
+    Set mRenderedSelected = rendered
     mSource.Caption = source: mStatus.Caption = notice: mCreate.Enabled = (count > 0)
     mLoading = False: RefreshChoices = True
     Exit Function
@@ -83,15 +90,21 @@ Failed:
 End Function
 
 Private Sub mActions_Change()
-    Dim index As Long, notice As String
+    Dim index As Long, notice As String, id As String, selected As Boolean, changed As Boolean
     If mLoading Or mToken = "" Then Exit Sub
+    If mRenderedSelected Is Nothing Then Invalidate "Unavailable: the selected action list changed. Reopen Choose tracked actions.": Exit Sub
     mLoading = True
     For index = 0 To mActions.ListCount - 1
-        If Not modGuideActionPicker.Choose(mContext, mToken, CStr(mActions.List(index, 0)), mActions.Selected(index), notice) Then Invalidate notice: Exit Sub
+        id = CStr(mActions.List(index, 0)): selected = mActions.Selected(index)
+        If Not mRenderedSelected.Exists(id) Then Invalidate "Unavailable: the selected action list changed. Reopen Choose tracked actions.": Exit Sub
+        If selected <> CBool(mRenderedSelected(id)) Then
+            If Not modGuideActionPicker.Choose(mContext, mToken, id, selected, notice) Then Invalidate notice: Exit Sub
+            mRenderedSelected(id) = selected: changed = True
+        End If
     Next index
-    modGuideEditor.CloseActionPicker Me
+    If changed Then modGuideEditor.CloseActionPicker Me
     mLoading = False
-    RefreshChoices
+    If changed Then RefreshChoices
 End Sub
 
 Private Sub mSearch_Change()
@@ -115,6 +128,7 @@ End Sub
 Public Sub ReleaseSelection()
     modGuideEditor.CloseActionPicker Me
     modGuideActionPicker.CloseSelection mContext, mToken
+    Set mRenderedSelected = Nothing
     mToken = "": mContext = ""
 End Sub
 

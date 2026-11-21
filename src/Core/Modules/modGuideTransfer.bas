@@ -89,7 +89,8 @@ Public Function ImportGuide(ByVal context As String, ByVal path As String, ByRef
     For Each field In Array("ActionPathId", "Version", "RecordId", "ContentSha256"): origin.Add CStr(field), source(field): Next field
     Set model = modTrainingJson.DecodeObject(modTrainingJson.EncodeObject(source))
     model.Remove "ContentSha256"
-    model("SchemaVersion") = 2&: model("ActionPathId") = modTrainingWire.NewId(): model("RecordId") = modTrainingWire.NewId()
+    model("SchemaVersion") = 3&: model("ActionPathId") = modTrainingWire.NewId(): model("RecordId") = modTrainingWire.NewId()
+    If Not model.Exists("Subject") Then model.Add "Subject", ""
     model("Version") = 1&: model("PreviousRecordId") = "": model("PreviousSha256") = ""
     model("WarehouseId") = target.WarehouseId: model("CreatedByUserId") = modAuth.GetCurrentUserId()
     model("CreatedAtUTC") = modTrainingWire.UtcTimestamp(): model("PolicyVersion") = version

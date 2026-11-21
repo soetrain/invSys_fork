@@ -25,6 +25,7 @@ function Test-OperationsGuidePresentation([string]$Stage,[ref]$GuideState) {
         $activity=ActivityPins;$config=(Get-FileHash -LiteralPath $Fixture.Config).Hash
         $publication=(Get-FileHash -LiteralPath $eventsPath).Hash
         Deliver 'frmActionPaths' 'btnCreateGuide' 'Click'
+        Deliver 'frmActionPathGuide' 'txtGuideSubject' 'Write' 'Receiving training'
         Deliver 'frmActionPathGuide' 'txtGuideName' 'Write' 'Receive items and verify applied source events'
         Deliver 'frmActionPathGuide' 'txtGuideInstructions' 'Write' 'Stage items and confirm writes. Refresh published evidence and verify every source event before concluding.'
         Deliver 'frmActionPathGuide' 'btnGuideExpectedConclusion' 'Click'

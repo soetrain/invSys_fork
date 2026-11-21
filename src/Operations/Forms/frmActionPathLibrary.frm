@@ -50,12 +50,16 @@ Private Sub UserForm_Initialize()
     Set mLayout = modOperationsLayout.OperationsAnchorManager()
     mLayout.ConfigureForForm Me, 760, 600
     For Each definition In Array( _
-        Array("Label", "lblPublishedSearch", "Search name, tags or ID", 12, 12, 150, 20, 3), _
+        Array("Label", "lblPublishedSearch", "Search Subject, Title, Tags or ID", 12, 12, 150, 20, 3), _
         Array("TextBox", "txtGuideSearch", "", 170, 10, 384, 24, 7), _
         Array("CommandButton", "btnExportGuide", "Export", 566, 10, 98, 26, 6), _
         Array("CommandButton", "btnImportGuide", "Import", 674, 10, 98, 26, 6), _
         Array("CommandButton", "btnRefreshGuides", "Refresh", 782, 10, 98, 26, 6), _
-        Array("ListBox", "lstPublishedGuides", "", 12, 46, 868, 116, 7), _
+        Array("Label", "lblPublishedSubject", "Subject", 12, 44, 190, 18, 1), _
+        Array("Label", "lblPublishedTitle", "Title", 212, 44, 260, 18, 7), _
+        Array("Label", "lblPublishedVersion", "Version", 482, 44, 80, 18, 6), _
+        Array("Label", "lblPublishedTags", "Tags", 572, 44, 308, 18, 6), _
+        Array("ListBox", "lstPublishedGuides", "", 12, 66, 868, 96, 7), _
         Array("Label", "lblPublishedGuideSource", "", 12, 172, 868, 108, 7), _
         Array("Label", "lblPublishedGuideStatus", "", 12, 284, 868, 24, 7), _
         Array("Label", "lblPublishedAuthored", "Authored instructions - reviewed guide order", 12, 312, 350, 20, 3), _
@@ -85,8 +89,8 @@ Private Sub UserForm_Initialize()
     Set mConfigure = Me.Controls("btnConfigureExecution"): mConfigure.Enabled = False
     Set mRunHowTo = Me.Controls("btnRunHowTo"): mRunHowTo.Enabled = False
     mUse.Enabled = False: mEdit.Enabled = False
-    mGuides.ColumnCount = 3: mGuides.BoundColumn = 1
-    mGuides.ColumnWidths = "0 pt;400 pt;420 pt": mGuides.IntegralHeight = False
+    mGuides.ColumnCount = 5: mGuides.BoundColumn = 1
+    mGuides.ColumnWidths = "0 pt;170 pt;240 pt;65 pt;220 pt": mGuides.IntegralHeight = False
     For Each definition In Array("txtPublishedInstructions", "txtPublishedObservations")
         Set control = Me.Controls(CStr(definition))
         control.MultiLine = True: control.WordWrap = True: control.Locked = True: control.ScrollBars = fmScrollBarsVertical
@@ -171,9 +175,9 @@ Private Sub RefreshGuides()
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
-            If UBound(fields) <> 2 Then GoTo Failed
+            If UBound(fields) <> 4 Then GoTo Failed
             mGuides.AddItem CStr(fields(0))
-            For index = 1 To 2: mGuides.List(mGuides.ListCount - 1, index) = CStr(fields(index)): Next index
+            For index = 1 To 4: mGuides.List(mGuides.ListCount - 1, index) = CStr(fields(index)): Next index
             If CStr(fields(0)) = selected Then mGuides.ListIndex = mGuides.ListCount - 1
         End If
     Next row

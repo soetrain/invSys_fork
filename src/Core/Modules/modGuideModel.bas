@@ -14,13 +14,17 @@ Public Function TagsText(ByVal model As Object) As String
     Next tag
 End Function
 
+Public Function SubjectText(ByVal model As Object) As String
+    If model.Exists("Subject") Then SubjectText = CStr(model("Subject"))
+End Function
+
 Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draftSteps As Collection, _
                        ByVal records As Collection, ByVal visible As Object, ByVal policyVersion As Long, _
                        ByVal previous As Object, ByVal expectation As Object, Optional ByVal recordedSource As Boolean = True) As Object
     Dim model As Object, source As Object, field As Variant, tag As Variant, step As Object, authored As Object, record As Object
     Dim tags As New Collection, steps As New Collection, observations As New Collection, hidden As Long
     Set model = CreateObject("Scripting.Dictionary")
-    model.Add "SchemaVersion", 1&: model.Add "RecordKind", "Guide"
+    model.Add "SchemaVersion", 3&: model.Add "RecordKind", "Guide"
     If previous Is Nothing Then
         model.Add "ActionPathId", modTrainingWire.NewId(): model.Add "Version", 1&
         model.Add "RecordId", modTrainingWire.NewId(): model.Add "PreviousRecordId", "": model.Add "PreviousSha256", ""
@@ -32,7 +36,8 @@ Public Function Create(ByVal header As Object, ByVal text As Object, ByVal draft
     End If
     model.Add "WarehouseId", header("WarehouseId"): model.Add "OriginWarehouseId", header("WarehouseId")
     model.Add "CreatedByUserId", modAuth.GetCurrentUserId(): model.Add "CreatedAtUTC", modTrainingWire.UtcTimestamp()
-    model.Add "Lifecycle", "Published": model.Add "Name", Trim$(CStr(text("Name")))
+    model.Add "Lifecycle", "Published": model.Add "Subject", Trim$(CStr(text("Subject")))
+    model.Add "Name", Trim$(CStr(text("Name")))
     For Each tag In Split(CStr(text("Tags")), ",")
         If Trim$(CStr(tag)) <> "" Then tags.Add Trim$(CStr(tag))
     Next tag
@@ -70,13 +75,19 @@ End Function
 Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object) As Boolean
     Dim field As Variant, tag As Variant, step As Object, record As Object, definition As Object
     Dim identities As Object, actions As Object, stepIds As Object, source As Object, id As String
-    Dim imported As Boolean, observationTarget As WarehouseTarget
+    Dim imported As Boolean, observationTarget As WarehouseTarget, expectedFields As String
     On Error GoTo Invalid
     imported = model.Exists("TransferOrigin")
+    expectedFields = FIELDS
+    If model.Exists("SchemaVersion") Then
+        If modEvaluationModel.IsInteger(model("SchemaVersion")) Then
+            If CLng(model("SchemaVersion")) = 3 Then expectedFields = expectedFields & "|Subject"
+        End If
+    End If
     If imported Then
-        If Not modEvaluationModel.HasFields(model, FIELDS & "|TransferOrigin") Then Exit Function
+        If Not modEvaluationModel.HasFields(model, expectedFields & "|TransferOrigin") Then Exit Function
     Else
-        If Not modEvaluationModel.HasFields(model, FIELDS) Then Exit Function
+        If Not modEvaluationModel.HasFields(model, expectedFields) Then Exit Function
     End If
     For Each field In model.Keys
         Select Case CStr(field)
@@ -94,11 +105,11 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
     If model("WarehouseId") <> target.WarehouseId Then Exit Function
     Set observationTarget = target
     If imported Then
-        If model("SchemaVersion") <> 2 Or Not modGuideOrigin.Valid(model) Then Exit Function
+        If (model("SchemaVersion") <> 2 And model("SchemaVersion") <> 3) Or Not modGuideOrigin.Valid(model) Then Exit Function
         Set observationTarget = New WarehouseTarget
         observationTarget.WarehouseId = CStr(model("OriginWarehouseId"))
     Else
-        If model("SchemaVersion") <> 1 Or model("OriginWarehouseId") <> target.WarehouseId Then Exit Function
+        If (model("SchemaVersion") <> 1 And model("SchemaVersion") <> 3) Or model("OriginWarehouseId") <> target.WarehouseId Then Exit Function
     End If
     If model("Steps").Count > 256 Or model("Observations").Count > 512 Then Exit Function
     If model("Version") < 1 Or model("PolicyVersion") < 0 Then Exit Function
@@ -107,6 +118,10 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
         If Trim$(CStr(model(field))) = "" Then Exit Function
     Next field
     If model("Name") <> Trim$(CStr(model("Name"))) Or Not modTrainingWire.ValidUtcTimestamp(CStr(model("CreatedAtUTC"))) Then Exit Function
+    If model("SchemaVersion") = 3 Then
+        If model("Subject") <> Trim$(CStr(model("Subject"))) Then Exit Function
+        If model("Subject") = "" And (Not imported Or model("Version") <> 1) Then Exit Function
+    End If
     Set identities = CreateObject("Scripting.Dictionary"): Set actions = CreateObject("Scripting.Dictionary")
     For Each field In Array("ActionPathId", "RecordId")
         id = CStr(model(field))

@@ -146,6 +146,7 @@ function Test-LocalRecordedGuide($Fixture,[string]$Case,$Closed,[string]$Prefix)
             $shown=$delivered -ceq 'DELIVERED' -and (BoundControl '' 'Count' '' 'frmActionPathGuide') -ceq '1'
             if($shown){
                 $name='Local recording '+$Case
+                [void](BoundControl 'txtGuideSubject' 'Write' 'Admin reconciliation' 'frmActionPathGuide')
                 [void](BoundControl 'txtGuideName' 'Write' $name 'frmActionPathGuide')
                 [void](BoundControl 'txtGuideInstructions' 'Write' 'Inspect the selected entity and submit its correction.' 'frmActionPathGuide')
                 $saved=(BoundControl 'btnSaveGuide' 'Click' '' 'frmActionPathGuide') -ceq 'DELIVERED'

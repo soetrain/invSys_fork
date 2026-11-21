@@ -20,6 +20,7 @@ function Test-GuideTransferPaths($Fixture,$Runs) {
         Delivered (BoundLibrary 'Open')
         if((BoundLibrary 'Select' $source.Journal.ActionPathId) -cne 'SELECTED'){throw 'Exact transfer guide source unavailable.'}
         Delivered (BoundControl 'btnCreateGuide' 'Click' '' 'frmActionPaths')
+        Delivered (Author 'txtGuideSubject' 'Write' 'Guide transfer training')
         Delivered (Author 'txtGuideName' 'Write' ($mode+' a published guide'))
         Delivered (Author 'txtGuideInstructions' 'Write' $instruction)
         Pass 'OneObservedGuideStep' ((Author 'lstGuideSteps' 'Rows') -ceq '1')
