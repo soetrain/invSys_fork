@@ -17,6 +17,9 @@ Option Explicit
 
 Private mContext As String
 Private mLoading As Boolean
+Private mLoadedRows As String
+Private mLoadedNotice As String
+Private mSnapshotReady As Boolean
 Private mResizeReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private WithEvents mSearch As MSForms.TextBox
@@ -103,29 +106,61 @@ Private Function ContextValid() As Boolean
 End Function
 
 Private Sub RefreshPaths()
-    Dim rows As String, notice As String, row As Variant, fields As Variant, selected As String, index As Long
+    Dim rows As String, notice As String, selected As String
     On Error GoTo Failed
     If mLoading Then Exit Sub
     If Not ContextValid() Then Exit Sub
     If mPaths.ListIndex >= 0 Then selected = CStr(mPaths.List(mPaths.ListIndex, 0))
-    mLoading = True: mPaths.Clear: mEvidence.Value = ""
-    If Not modActionPathRead.ListPaths(mContext, CStr(mSearch.Value), rows, notice) Then GoTo Done
-    For Each row In Split(rows, vbCrLf)
-        If CStr(row) <> "" Then
-            fields = Split(CStr(row), vbTab)
-            If UBound(fields) <> 2 Then GoTo Failed
-            mPaths.AddItem CStr(fields(0))
-            For index = 1 To 2: mPaths.List(mPaths.ListCount - 1, index) = CStr(fields(index)): Next index
-            If CStr(fields(0)) = selected Then mPaths.ListIndex = mPaths.ListCount - 1
-        End If
-    Next row
-Done:
-    mLoading = False: mStatus.Caption = notice
+    mSnapshotReady = False: mLoadedRows = "": mLoadedNotice = ""
+    mLoading = True: mPaths.Clear: mEvidence.Value = "": mLoading = False
+    If Not modActionPathRead.ListPaths(mContext, "", rows, notice) Then
+        ClearSelectedRecording
+        mChooseGuideActions.Enabled = False
+        mStatus.Caption = notice
+        Exit Sub
+    End If
+    mLoadedRows = rows: mLoadedNotice = notice: mSnapshotReady = True
+    FilterLoadedPaths selected
+    mStatus.Caption = notice
     ReadSelection
     Exit Sub
 Failed:
     mLoading = False
     ClearContent "Unavailable: the recording library could not be displayed."
+End Sub
+
+Private Sub FilterLoadedPaths(ByVal selected As String)
+    Dim row As Variant, fields As Variant, index As Long, search As String
+
+    mLoading = True: mPaths.Clear
+    If mSnapshotReady Then
+        search = CStr(mSearch.Value)
+        For Each row In Split(mLoadedRows, vbCrLf)
+            If CStr(row) <> "" Then
+                If search = "" Or InStr(1, CStr(row), search, vbTextCompare) > 0 Then
+                    fields = Split(CStr(row), vbTab)
+                    If UBound(fields) <> 2 Then Err.Raise 5, , "Invalid recording header."
+                    mPaths.AddItem CStr(fields(0))
+                    For index = 1 To 2: mPaths.List(mPaths.ListCount - 1, index) = CStr(fields(index)): Next index
+                    If CStr(fields(0)) = selected Then mPaths.ListIndex = mPaths.ListCount - 1
+                End If
+            End If
+        Next row
+    End If
+    mLoading = False
+End Sub
+
+Private Sub ClearSelectedRecording()
+    If mSelectedId = "" And mPaths.ListIndex < 0 And CStr(mEvidence.Value) = "" Then Exit Sub
+    CloseActionPathView
+    ClosePublishedGuides
+    ClearEvaluation
+    modExpectationEditor.CloseLibrary Me
+    modGuideEditor.CloseLibrary Me
+    modActionPathRead.ClearSelection mContext
+    mSelectedId = "": mBinding = "": mEvidence.Value = "": mSummary.Caption = ""
+    mExpected.Enabled = False: mEvaluate.Enabled = False: mCreateGuide.Enabled = False
+    mViewActionPath.Enabled = False
 End Sub
 
 Private Sub ReadSelection()
@@ -224,6 +259,7 @@ Public Sub ClearContent(ByVal notice As String)
     modExpectationEditor.CloseLibrary Me
     modGuideEditor.CloseLibrary Me
     modActionPathRead.ClearSelection mContext
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
     mLoading = True
     mPaths.Clear: mEvidence.Value = "": mStatus.Caption = notice
     mSelectedId = "": mBinding = "": mSummary.Caption = "": mExpected.Enabled = False
@@ -238,7 +274,16 @@ Private Sub mPaths_Change()
 End Sub
 
 Private Sub mSearch_Change()
-    RefreshPaths
+    On Error GoTo Failed
+    If mLoading Then Exit Sub
+    If Not ContextValid() Then Exit Sub
+    ClearSelectedRecording
+    FilterLoadedPaths ""
+    If mSnapshotReady Then mStatus.Caption = mLoadedNotice
+    Exit Sub
+Failed:
+    mLoading = False
+    ClearContent "Unavailable: the recording library could not be displayed."
 End Sub
 
 Private Sub mRefresh_Click()

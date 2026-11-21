@@ -4,6 +4,22 @@
 function Test-Slice4beRecordingReader($Fixture,$OtherFixture,[bool]$InstallOnly=$false) {
     if(-not $InstallOnly){CloseRecordingViewer}
     if(-not $script:RecordingReaderProbeInstalled){
+    $policyModule=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modActivityPolicy').CodeModule
+    $policyDeclaration=0; $policyOnError=0
+    for($line=1;$line -le [Math]::Min(35,$policyModule.CountOfLines);$line++){
+        $sourceLine=[string]$policyModule.Lines($line,1)
+        if($sourceLine.Trim() -ceq 'Option Private Module'){$policyDeclaration=$line}
+        if($sourceLine.Trim() -ceq 'On Error GoTo Failed'){$policyOnError=$line;break}
+    }
+    if($policyDeclaration -eq 0 -or $policyOnError -eq 0){throw 'Policy read probe cannot bind to the loaded Core module; not behavioral RED.'}
+    $policyModule.InsertLines($policyOnError+1,'    RecordingPolicyReadCountForTest = RecordingPolicyReadCountForTest + 1')
+    $policyModule.InsertLines($policyDeclaration+1,'Public RecordingPolicyReadCountForTest As Long')
+    $readerModule=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modActionPathRead').CodeModule
+    $readerModule.AddFromString(@'
+Public Function RecordingPolicyReadsForTest() As Long
+    RecordingPolicyReadsForTest = modActivityPolicy.RecordingPolicyReadCountForTest
+End Function
+'@)
     $manager=$packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('modInventoryViewer').CodeModule
     $manager.AddFromString(@'
 Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal value As String = "") As String
@@ -44,6 +60,12 @@ Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal v
         Case "Rows": RecordingLibraryForTest = CStr(library.Controls("lstActionPaths").ListCount): Exit Function
         Case "Evidence": RecordingLibraryForTest = CStr(library.Controls("txtPathEvidence").Value): Exit Function
         Case "Status": RecordingLibraryForTest = CStr(library.Controls("lblPathStatus").Caption): Exit Function
+        Case "DependentActions"
+            RecordingLibraryForTest = CStr(library.Controls("btnExpectedConclusion").Enabled) & "|" & _
+                CStr(library.Controls("btnEvaluatePath").Enabled) & "|" & _
+                CStr(library.Controls("btnCreateGuide").Enabled) & "|" & _
+                CStr(library.Controls("btnViewActionPath").Enabled)
+            Exit Function
         Case "ReadOnly": RecordingLibraryForTest = CStr(library.Controls("txtPathEvidence").Locked): Exit Function
         Case "Close": library.Controls("btnClose").Value = True
         Case "Visible": RecordingLibraryForTest = CStr(library.Visible): Exit Function
@@ -135,6 +157,31 @@ End Function
         Check 'RecordingRead.SearchFiltersLibrary' ((Library 'Rows') -ceq '0')
         [void](Library 'Search' '')
         Check 'RecordingRead.SearchClearRestoresRun' ((Library 'Select' $pathId) -ceq 'SELECTED')
+        $loadedCount=[int](Library 'Rows')
+        $policyReadsBefore=[long](Run 'invSys.Core.xlam' 'modActionPathRead.RecordingPolicyReadsForTest')
+        [void](Library 'Search' 'Recorded')
+        $policyReadsAfter=[long](Run 'invSys.Core.xlam' 'modActionPathRead.RecordingPolicyReadsForTest')
+        Check 'RecordingRead.SearchEditDoesNotReadPolicy' ($policyReadsAfter -eq $policyReadsBefore)
+        Check 'RecordingRead.SearchEditClearsSelectedEvidence' ((Library 'Evidence') -ceq '' -and
+            (Library 'DependentActions') -ceq 'False|False|False|False')
+        Check 'RecordingRead.SearchEditsFilterImmediately' ([int](Library 'Rows') -eq $loadedCount -and $loadedCount -gt 0)
+        try {
+            foreach($file in $bytes.Keys){Remove-Item -LiteralPath $file -ErrorAction Stop}
+            [void](Library 'Search' $pathId)
+            Check 'RecordingRead.SearchUsesLoadedHeadersWithoutJournalRead' ((Library 'Rows') -ceq '1')
+            [void](Library 'Refresh')
+            Check 'RecordingRead.RefreshReloadsCurrentHeaders' ((Library 'Rows') -ceq '0')
+        } finally {
+            foreach($file in $bytes.Keys){[IO.File]::WriteAllBytes($file,$bytes[$file])}
+        }
+        [void](Library 'Refresh')
+        Check 'RecordingRead.RefreshRestoresReturnedJournal' ((Library 'Select' $pathId) -ceq 'SELECTED')
+        [void](Library 'Refresh')
+        Check 'RecordingRead.RefreshRetainsSelectedRun' ((Library 'Evidence').Contains($first.Attempt.ActivityId) -and
+            (Library 'DependentActions').Split('|')[0] -ceq 'True')
+        [void](Library 'Search' 'Recorded')
+        Check 'RecordingRead.SearchReselectionUsesCurrentPolicy' ((Library 'Select' $pathId) -ceq 'SELECTED' -and
+            (Library 'Evidence').Contains($first.Attempt.ActivityId))
         foreach($fault in @('MissingClose','MissingMiddle','DamagedHash','BrokenPreviousLink','ClosingObservationOmitted','RepeatedOrdinal',
             'ObservationPackageMismatch','ObservationBuildMismatch','ObservationCatalogMismatch','ForeignWarehouse','UnsupportedSchema','OlderPackage','OlderBuild','OlderCatalog')) {
             try {
@@ -186,7 +233,9 @@ End Function
         $text=InspectRun
         Check 'RecordingRead.RestoredJournalReadsAgain' ($text -match '(?i)stopped' -and $text.Contains($second.Attempt.ActivityId))
         SaveVisibility $false
-        [void](Library 'Search' 'Recorded')
+        [void](Library 'Search' $pathId)
+        Check 'RecordingRead.SearchRetainsLoadedHeadersAfterPolicyChange' ((Library 'Rows') -ceq '1' -and
+            (Library 'Evidence') -ceq '' -and (Library 'DependentActions') -ceq 'False|False|False|False')
         [void](Library 'Select' $pathId)
         $text=(Library 'Status')+"`n"+(Library 'Evidence')
         Check 'RecordingRead.CurrentPolicyHidesLoadedObservations' ($text -match '(?i)incomplete evidence' -and -not $text.Contains($first.Attempt.ActivityId) -and -not $text.Contains($second.Attempt.ActivityId))
@@ -204,6 +253,9 @@ End Function
         [void](Library 'Select' $pathId)
         if($null -eq $OtherFixture -or $OtherFixture.Warehouse -ceq $Fixture.Warehouse){throw 'Distinct warehouse fixture is required.'}
         SelectTarget $OtherFixture 'config-reader'
+        [void](Library 'Search' 'Recorded')
+        Check 'RecordingRead.SearchAfterTargetChangeClearsLoadedHeaders' ((Library 'Rows') -ceq '0' -and
+            (Library 'Evidence') -ceq '')
         [void](Library 'Refresh')
         $text=(Library 'Status')+"`n"+(Library 'Evidence')
         Check 'RecordingRead.TargetChangeClearsCapturedEvidence' ((Library 'Count') -ceq '1' -and $text -match '(?i)(session|warehouse|context|unavailable)' -and -not $text.Contains($first.Attempt.ActivityId))
@@ -213,6 +265,9 @@ End Function
         [void](Library 'Open')
         Check 'RecordingRead.ReopenAfterTargetChangeReadsOriginalRun' ((Library 'Select' $pathId) -ceq 'SELECTED' -and (Library 'Evidence').Contains($first.Attempt.ActivityId))
         [void](Run 'invSys.Core.xlam' 'modAuth.SignOut')
+        [void](Library 'Search' 'Recorded')
+        Check 'RecordingRead.SearchAfterSignOutClearsLoadedHeaders' ((Library 'Rows') -ceq '0' -and
+            (Library 'Evidence') -ceq '')
         [void](Library 'Refresh')
         $text=(Library 'Status')+"`n"+(Library 'Evidence')
         Check 'RecordingRead.SignOutClearsCapturedEvidence' ((Library 'Count') -ceq '1' -and $text -match '(?i)(session|sign.in|context|unavailable)' -and -not $text.Contains($first.Attempt.ActivityId))
