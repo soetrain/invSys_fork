@@ -56,8 +56,13 @@ Public Function RecordingLibraryForTest(ByVal action As String, Optional ByVal v
             Next r
             RecordingLibraryForTest = "NOT FOUND": Exit Function
         Case "Search": library.Controls("txtPathSearch").Value = value
+        Case "SearchFocus": library.Controls("txtPathSearch").SetFocus: RecordingLibraryForTest = library.ActiveControl.Name: Exit Function
+        Case "SearchActive": RecordingLibraryForTest = library.ActiveControl.Name: Exit Function
+        Case "SearchText": RecordingLibraryForTest = CStr(library.Controls("txtPathSearch").Value): Exit Function
+        Case "SearchPaint": library.Repaint: RecordingLibraryForTest = CStr(library.Controls("lstActionPaths").ListCount): Exit Function
         Case "Refresh": library.Controls("btnPathRefresh").Value = True
         Case "Rows": RecordingLibraryForTest = CStr(library.Controls("lstActionPaths").ListCount): Exit Function
+        Case "ListIndex": RecordingLibraryForTest = CStr(library.Controls("lstActionPaths").ListIndex): Exit Function
         Case "Evidence": RecordingLibraryForTest = CStr(library.Controls("txtPathEvidence").Value): Exit Function
         Case "Status": RecordingLibraryForTest = CStr(library.Controls("lblPathStatus").Caption): Exit Function
         Case "DependentActions"
@@ -165,6 +170,11 @@ End Function
         Check 'RecordingRead.SearchEditClearsSelectedEvidence' ((Library 'Evidence') -ceq '' -and
             (Library 'DependentActions') -ceq 'False|False|False|False')
         Check 'RecordingRead.SearchEditsFilterImmediately' ([int](Library 'Rows') -eq $loadedCount -and $loadedCount -gt 0)
+        Check 'RecordingRead.SearchEditLeavesNoSelectedRow' ((Library 'ListIndex') -ceq '-1')
+        if($CheckRecordingNativeSearch) {
+            . (Join-Path $PSScriptRoot 'Slice4beRecordingSearchNative.ps1')
+            Test-RecordingSearchNative $pathId
+        }
         try {
             foreach($file in $bytes.Keys){Remove-Item -LiteralPath $file -ErrorAction Stop}
             [void](Library 'Search' $pathId)

@@ -240,6 +240,7 @@ param(
     [switch]$CheckRecordingLimits,
     [switch]$CheckRecordingStorageBounds,
     [switch]$CheckRecordingReader,
+    [switch]$CheckRecordingNativeSearch,
     [switch]$CheckGuideDraft,
     [switch]$CheckGuideSave,
     [switch]$CheckGuideLibrary,
@@ -627,6 +628,9 @@ if($CheckRecordingRestart) {
     $CheckRecordingReader = $true
 }
 if($CheckRecordingReader) { $CheckActionRecording = $true }
+if($CheckRecordingNativeSearch -and (-not $CheckRecordingReader -or -not $VisibleExcelForTest)) {
+    throw 'Native recording Search requires the visible reader fixture.'
+}
 if($CheckReceivingReplay) {
     if(-not $CompileEvaluationProbesForTest){throw 'Receiving replay requires compiled packaged probes.'}
     $CheckGuideDraft = $true
