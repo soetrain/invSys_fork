@@ -140,7 +140,8 @@ Public Function ReadRows(ByVal context As String, ByVal token As String, ByVal q
         Set candidate = mCandidates(id): Set record = candidate("Requested")
         If query = "" Or InStr(1, CStr(record("Caption")) & " " & CStr(record("ControlId")), query, vbTextCompare) > 0 Then
             rows = rows & CStr(id) & vbTab & CStr(record("Caption")) & vbTab & CStr(record("OccurredAtUTC")) & vbTab & _
-                   CStr(candidate("Outcomes")) & vbTab & IIf(mSelected.Exists(id), "1", "0") & vbCrLf
+                   CStr(candidate("Outcomes")) & vbTab & IIf(mSelected.Exists(id), "1", "0") & vbTab & _
+                   CStr(record("ControlId")) & vbCrLf
         End If
     Next id
     source = SourceCaption(mHeader): selectedCount = mSelected.Count

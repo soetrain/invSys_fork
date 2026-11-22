@@ -75,6 +75,7 @@ NextFitControl:
         Case "Text": GuideDraftControlForTest = CStr(control.Value)
         Case "Label": GuideDraftControlForTest = CStr(control.Caption)
         Case "Rows": GuideDraftControlForTest = CStr(control.ListCount)
+        Case "PaintRows": owner.Repaint: GuideDraftControlForTest = CStr(control.ListCount)
         Case "Columns": GuideDraftControlForTest = CStr(control.ColumnCount)
         Case "VisibleRows"
             For index = 0 To control.ListCount - 1
@@ -86,7 +87,12 @@ NextFitControl:
             Next index
             GuideDraftControlForTest = labels
         Case "Locked": GuideDraftControlForTest = CStr(control.Locked)
-        Case "Selected": GuideDraftControlForTest = CStr(control.Value)
+        Case "Selected"
+            If IsNull(control.Value) Then
+                GuideDraftControlForTest = ""
+            Else
+                GuideDraftControlForTest = CStr(control.Value)
+            End If
         Case "ViewportTop", "ViewportBottom"
             If TypeName(control) <> "TextBox" Then GuideDraftControlForTest = "NOT TEXT": Exit Function
             If Not control.Locked Or Not control.Visible Or Not owner.Visible Then GuideDraftControlForTest = "UNAVAILABLE": Exit Function
@@ -228,6 +234,43 @@ End Function
     })
     if($anchor.Count -ne 1){throw 'Exact guide WriteText probe anchor changed; not behavioral RED.'}
     $draft.InsertLines($anchor[0]+1,'    TestGuideInputWriteCount.MarkWrite')
+}
+
+# Test-copy only: count guarded library and policy reads at their Core entry
+# points. The form tests compare counts immediately around Search handlers.
+function Install-GuideSearchReadProbe {
+    $project=$packages['invSys.Core.xlam'].VBProject
+    $probe=$project.VBComponents.Add(1)
+    $probe.Name='TestGuideSearchReadCount'
+    $probe.CodeModule.AddFromString(@'
+Option Explicit
+Private mPicker As Long, mLibrary As Long, mPolicy As Long
+Public Sub MarkPicker()
+    mPicker = mPicker + 1
+End Sub
+Public Sub MarkLibrary()
+    mLibrary = mLibrary + 1
+End Sub
+Public Sub MarkPolicy()
+    mPolicy = mPolicy + 1
+End Sub
+Public Function Facts() As String
+    Facts = CStr(mPicker) & "|" & CStr(mLibrary) & "|" & CStr(mPolicy)
+End Function
+'@)
+    foreach($spec in @(
+        @('modCuratedGuideSource','ReadRows','On Error GoTo Failed','    TestGuideSearchReadCount.MarkPicker'),
+        @('modGuideLibraryRead','ListGuides','On Error GoTo Failed','    TestGuideSearchReadCount.MarkLibrary'),
+        @('modTrainingReadContext','Read','version = 0','    TestGuideSearchReadCount.MarkPolicy')
+    )){
+        $module=$project.VBComponents.Item($spec[0]).CodeModule
+        $start=$module.ProcStartLine($spec[1],0);$count=$module.ProcCountLines($spec[1],0)
+        $anchors=@(for($line=$start;$line -lt $start+$count;$line++){
+            if($module.Lines($line,1).Trim() -ceq $spec[2]){$line}
+        })
+        if($anchors.Count -ne 1){throw ('Exact guide Search probe anchor changed in '+$spec[0]+'.'+$spec[1]+'; not behavioral RED.')}
+        $module.InsertLines($anchors[0]+1,$spec[3])
+    }
 }
 
 function Test-GuideDraftEntry($Fixture,$Other) {

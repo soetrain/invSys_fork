@@ -17,6 +17,8 @@ Option Explicit
 
 Private mContext As String
 Private mLoading As Boolean
+Private mLoadedRows As String, mLoadedNotice As String
+Private mSnapshotReady As Boolean
 Private mResizeReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private mOwner As frmActionPaths
@@ -119,6 +121,7 @@ Private Function ContextValid() As Boolean
     If Not ContextValid Then
         mImport.Enabled = False
         mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
+        mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
         mLoading = True: mGuides.Clear: mLoading = False
         ClearSelection "Unavailable: the invSys session or warehouse changed. Reopen Viewer."
     End If
@@ -163,24 +166,18 @@ Public Sub ValidateSelection(Optional ByRef transferNoticeCurrent As Boolean = F
 End Sub
 
 Private Sub RefreshGuides()
-    Dim rows As String, notice As String, row As Variant, fields As Variant, selected As String, index As Long
+    Dim rows As String, notice As String, selected As String
     On Error GoTo Failed
     If mLoading Then Exit Sub
     If Not ContextValid() Then Exit Sub
     mImport.Enabled = modGuideTransfer.CanImport(mContext, notice)
     If mGuides.ListIndex >= 0 Then selected = CStr(mGuides.Value)
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
     mLoading = True: mGuides.Clear
     ClearSelection "Loading published guides."
-    If Not modGuideLibraryRead.ListGuides(mContext, CStr(mSearch.Value), rows, notice) Then GoTo Done
-    For Each row In Split(rows, vbCrLf)
-        If CStr(row) <> "" Then
-            fields = Split(CStr(row), vbTab)
-            If UBound(fields) <> 4 Then GoTo Failed
-            mGuides.AddItem CStr(fields(0))
-            For index = 1 To 4: mGuides.List(mGuides.ListCount - 1, index) = CStr(fields(index)): Next index
-            If CStr(fields(0)) = selected Then mGuides.ListIndex = mGuides.ListCount - 1
-        End If
-    Next row
+    If Not modGuideLibraryRead.ListGuides(mContext, "", rows, notice) Then GoTo Done
+    mLoadedRows = rows: mLoadedNotice = notice: mSnapshotReady = True
+    If Not FilterLoadedGuides(selected) Then Exit Sub
 Done:
     mLoading = False: mStatus.Caption = notice
     If mGuides.ListIndex >= 0 Then
@@ -193,8 +190,38 @@ Done:
     Exit Sub
 Failed:
     mLoading = False
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
+    mGuides.Clear
     ClearSelection "Unavailable: the published-guide library could not be displayed."
 End Sub
+
+Private Function FilterLoadedGuides(ByVal selected As String) As Boolean
+    Dim row As Variant, fields As Variant, key As Variant, query As String, index As Long
+    On Error GoTo Failed
+    If Not mSnapshotReady Or Not ContextValid() Then Exit Function
+    query = CStr(mSearch.Value)
+    mLoading = True: mGuides.Clear
+    For Each row In Split(mLoadedRows, vbCrLf)
+        If CStr(row) <> "" Then
+            fields = Split(CStr(row), vbTab)
+            If UBound(fields) <> 4 Then GoTo Failed
+            key = Split(CStr(fields(0)), "|")
+            If UBound(key) <> 2 Then GoTo Failed
+            If query = "" Or InStr(1, CStr(fields(1)) & " " & CStr(fields(2)) & " " & _
+                CStr(fields(4)) & " " & CStr(key(0)), query, vbTextCompare) > 0 Then
+                mGuides.AddItem CStr(fields(0))
+                For index = 1 To 4: mGuides.List(mGuides.ListCount - 1, index) = CStr(fields(index)): Next index
+                If selected <> "" And CStr(fields(0)) = selected Then mGuides.ListIndex = mGuides.ListCount - 1
+            End If
+        End If
+    Next row
+    mLoading = False: FilterLoadedGuides = True
+    Exit Function
+Failed:
+    mLoading = False: mGuides.Clear
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
+    ClearSelection "Unavailable: the published-guide library could not be displayed."
+End Function
 
 Private Sub ClearSelection(ByVal notice As String)
     mTransferStatus = ""
@@ -267,6 +294,7 @@ Public Sub ReleaseReader()
     modGuideEditor.ClosePublishedReader Me
     mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
     Set mOwner = Nothing: mContext = ""
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
     mLoading = True: mGuides.Clear: mSearch.Value = "": mLoading = False
     ClearSelection ""
 End Sub
@@ -341,7 +369,18 @@ Private Sub mUse_Click()
 End Sub
 
 Private Sub mSearch_Change()
-    mRefresh_Click
+    On Error GoTo Failed
+    If mLoading Then Exit Sub
+    If Not ContextValid() Then Exit Sub
+    ClearSelection "Select a published guide version."
+    mObservedId = "": mObservedBinding = "": mObserved.Caption = ""
+    If Not FilterLoadedGuides("") Then Exit Sub
+    mStatus.Caption = mLoadedNotice
+    Exit Sub
+Failed:
+    mLoading = False: mGuides.Clear
+    mLoadedRows = "": mLoadedNotice = "": mSnapshotReady = False
+    ClearSelection "Unavailable: the published-guide library could not be displayed."
 End Sub
 
 Private Sub mRefresh_Click()

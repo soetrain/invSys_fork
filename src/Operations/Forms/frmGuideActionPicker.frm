@@ -19,6 +19,9 @@ Private mContext As String, mToken As String
 Private mOwner As frmActionPaths
 Private mLoading As Boolean, mResizeReady As Boolean
 Private mRenderedSelected As Object
+Private mSelectedIds As Object
+Private mLoadedRows As String, mLoadedSource As String, mLoadedNotice As String
+Private mSnapshotReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private mSource As MSForms.Label, mStatus As MSForms.Label
 Private WithEvents mSearch As MSForms.TextBox
@@ -62,28 +65,59 @@ Public Function BindContext(ByVal context As String, ByVal owner As frmActionPat
 End Function
 
 Public Function RefreshChoices() As Boolean
-    Dim rows As String, source As String, notice As String, count As Long, row As Variant, fields As Variant, column As Long
-    Dim rendered As Object, id As String, selected As Boolean
+    Dim rows As String, source As String, notice As String, count As Long, row As Variant, fields As Variant
+    Dim selectedIds As Object, id As String
     On Error GoTo Failed
     If mLoading Or mToken = "" Then Exit Function
-    If Not modGuideActionPicker.ReadRows(mContext, mToken, CStr(mSearch.Value), rows, source, count, notice) Then Invalidate notice: Exit Function
-    Set rendered = CreateObject("Scripting.Dictionary")
-    mLoading = True: mActions.Clear
+    If Not modGuideActionPicker.ReadRows(mContext, mToken, "", rows, source, count, notice) Then Invalidate notice: Exit Function
+    Set selectedIds = CreateObject("Scripting.Dictionary")
     For Each row In Split(rows, vbCrLf)
         If CStr(row) <> "" Then
             fields = Split(CStr(row), vbTab)
-            If UBound(fields) <> 4 Then GoTo Failed
-            id = CStr(fields(0)): selected = (fields(4) = "1")
-            If rendered.Exists(id) Then GoTo Failed
-            rendered.Add id, selected
-            mActions.AddItem id
-            For column = 1 To 3: mActions.List(mActions.ListCount - 1, column) = CStr(fields(column)): Next column
-            mActions.Selected(mActions.ListCount - 1) = selected
+            If UBound(fields) <> 5 Then GoTo Failed
+            id = CStr(fields(0))
+            If fields(4) = "1" Then selectedIds.Add id, True
+        End If
+    Next row
+    If selectedIds.Count <> count Then GoTo Failed
+    mLoadedRows = rows: mLoadedSource = source: mLoadedNotice = notice
+    Set mSelectedIds = selectedIds: mSnapshotReady = True
+    RefreshChoices = FilterLoadedChoices()
+    Exit Function
+Failed:
+    Invalidate "Unavailable: the selected published actions could not be displayed."
+End Function
+
+Private Function FilterLoadedChoices() As Boolean
+    Dim row As Variant, fields As Variant, id As String, query As String, column As Long
+    Dim rendered As Object
+    On Error GoTo Failed
+    If Not mSnapshotReady Or mToken = "" Or mContext = "" Or mContext <> modActivity.CaptureContext() Then
+        Invalidate "Unavailable: the invSys session or warehouse changed. Reopen Choose tracked actions."
+        Exit Function
+    End If
+    Set rendered = CreateObject("Scripting.Dictionary")
+    query = CStr(mSearch.Value)
+    mLoading = True: mActions.Clear
+    For Each row In Split(mLoadedRows, vbCrLf)
+        If CStr(row) <> "" Then
+            fields = Split(CStr(row), vbTab)
+            If UBound(fields) <> 5 Then GoTo Failed
+            id = CStr(fields(0))
+            If query = "" Or InStr(1, CStr(fields(1)) & " " & CStr(fields(5)), query, vbTextCompare) > 0 Then
+                If rendered.Exists(id) Then GoTo Failed
+                rendered.Add id, mSelectedIds.Exists(id)
+                mActions.AddItem id
+                For column = 1 To 3: mActions.List(mActions.ListCount - 1, column) = CStr(fields(column)): Next column
+                mActions.Selected(mActions.ListCount - 1) = mSelectedIds.Exists(id)
+            End If
         End If
     Next row
     Set mRenderedSelected = rendered
-    mSource.Caption = source: mStatus.Caption = notice: mCreate.Enabled = (count > 0)
-    mLoading = False: RefreshChoices = True
+    mActions.Enabled = True
+    mSource.Caption = mLoadedSource: mStatus.Caption = mLoadedNotice
+    mCreate.Enabled = (mSelectedIds.Count > 0)
+    mLoading = False: FilterLoadedChoices = True
     Exit Function
 Failed:
     Invalidate "Unavailable: the selected published actions could not be displayed."
@@ -108,7 +142,7 @@ Private Sub mActions_Change()
 End Sub
 
 Private Sub mSearch_Change()
-    If Not mLoading Then RefreshChoices
+    If Not mLoading Then FilterLoadedChoices
 End Sub
 
 Private Sub mCreate_Click()
@@ -129,6 +163,8 @@ Public Sub ReleaseSelection()
     modGuideEditor.CloseActionPicker Me
     modGuideActionPicker.CloseSelection mContext, mToken
     Set mRenderedSelected = Nothing
+    Set mSelectedIds = Nothing
+    mLoadedRows = "": mLoadedSource = "": mLoadedNotice = "": mSnapshotReady = False
     mToken = "": mContext = ""
 End Sub
 

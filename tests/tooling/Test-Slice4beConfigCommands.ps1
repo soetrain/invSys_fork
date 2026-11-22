@@ -271,6 +271,7 @@ param(
     [switch]$GuideCaptureVisibleExcelForTest,
     [switch]$GuideCaptureSavedWorkbookForTest,
     [switch]$VisibleExcelForTest,
+    [switch]$CheckGuideSearchNative,
     [switch]$TraceViewerStartupForTest,
     [switch]$ViewerStartupSavedWorkbookForTest,
     [ValidateSet('None','Caption','Status','Config','ShownConfig','ConfigSteps','ConfigCloseVisible')]
@@ -455,6 +456,10 @@ if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
 if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
+if($CheckGuideSearchNative -and (-not $VisibleExcelForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies' -or
+    (-not $GuideActionCurationOnly -and -not $CheckGuideLibrary))){
+    throw 'Native guide Search requires one visible saved-copy picker or published-guide fixture.'
+}
 if($CheckGuideSave){$CheckGuideDraft=$true}
 if($CheckOperationsGuidePresentation){
     if(-not $CompileEvaluationProbesForTest -or $GuideDraftOnly -or $CheckGuideDraft -or $CaptureGuideEvidence){throw 'Operations guide comparison requires the separate compiled evaluation gate.'}
@@ -1859,6 +1864,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
                 if($CheckGuideLibrary){Install-GuideReaderCloseProbe}
+                if($CheckGuideLibrary -or $GuideActionCurationOnly){Install-GuideSearchReadProbe}
                 if($GuidePickerStoppedRunOnly){Install-GuideInputWriteProbe}
             }
             if($CheckGuideTransfer){

@@ -99,11 +99,40 @@ public static class CurationNativeLayout {
         $permittedIds=@($model.Groups|Where-Object Source -CEQ 'Activity'|ForEach-Object SourceId)
         Check 'GuideCuration.CandidatesArePublishedActionIdentities' ($opened -and $ids.Count -gt 1 -and @($ids|Where-Object {$_ -cnotin $permittedIds}).Count -eq 0 -and $first.Attempt.ActivityId -cin $ids -and $second.Attempt.ActivityId -cin $ids)
         Check 'GuideCuration.SelectFirstActualAction' (ToggleAction $first.Attempt.ActivityId)
+        if($CheckGuideSearchNative){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideSearchNative.ps1')
+            Test-GuideSearchNative 'frmGuideActionPicker' 'Choose tracked actions' 'txtGuideActionSearch' 'lstGuideActions' 'GuideCuration' 'A' 'D' 'M' $false
+            Check 'GuideCuration.NativeSearchRetainsExactSelectedAction' ((Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
+        }
         [void](Pick 'txtGuideActionSearch' 'Write' 'no-match-curation-filter')
         Check 'GuideCuration.SearchFiltersWithoutLosingSelection' ($opened -and (Pick 'lstGuideActions' 'Rows') -ceq '0' -and (Pick 'lblGuideActionStatus' 'Label') -match '(?i)1 selected' -and (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|True')
         [void](Pick 'txtGuideActionSearch' 'Write' 'ADMIN_SETTINGS_SAVE_VALUE')
         Check 'GuideCuration.SearchByControlRestoresSelectedIdentity' ($opened -and (Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
         Check 'GuideCuration.SelectSecondActualAction' (ToggleAction $second.Attempt.ActivityId)
+        [void](Pick 'txtGuideActionSearch' 'Write' '')
+        $retainedIds=@((Pick 'lstGuideActions' 'SelectedValues') -split "`n" | Where-Object {$_ -cne ''})
+        Check 'GuideCuration.HiddenAndNewSelectionsKeepExactActivityIds' (
+            $retainedIds.Count -eq 2 -and $first.Attempt.ActivityId -cin $retainedIds -and
+            $second.Attempt.ActivityId -cin $retainedIds)
+        # D18-SEARCH-INPUT-02: a loaded header is presentation data until the
+        # operator explicitly reloads. A changed publication cannot authorize
+        # Create, but it cannot make each Search key perform a guarded read.
+        [void](Run 'invSys.Operations.xlam' 'modInventoryViewer.PublishedReadActionForTest' @('Refresh',''))
+        $searchReadsBefore=[string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')
+        [void](Pick 'txtGuideActionSearch' 'Write' 'no-match-after-refresh')
+        Check 'GuideCuration.SearchUsesNoCoreLibraryOrPolicyReads' (
+            ([string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')) -ceq $searchReadsBefore)
+        Check 'GuideCuration.SearchUsesLoadedSnapshotAfterPublicationChange' (
+            (Pick 'lstGuideActions' 'Rows') -ceq '0' -and
+            (Pick 'lblGuideActionStatus' 'Label') -match '(?i)2 selected' -and
+            (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|True')
+        [void](Pick 'btnCreateSelectedGuide' 'Click')
+        Check 'GuideCuration.StaleHiddenSelectionCannotCreate' ((Draft '' 'Count') -ceq '0')
+        Check 'GuideCuration.CreateRevalidatesCoreAfterSearch' (
+            ([string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')) -cne $searchReadsBefore)
+        [void](Pick 'btnCancelGuideActions' 'Click')
+        OpenPicker
+        [void](ToggleAction $first.Attempt.ActivityId);[void](ToggleAction $second.Attempt.ActivityId)
         OpenPicker
         Check 'GuideCuration.RepeatedEntryReusesSelection' ($opened -and (Pick '' 'Count') -ceq '1' -and (Pick 'lblGuideActionStatus' 'Label') -match '(?i)2 selected')
         foreach($size in @('Minimum','Default','Larger','Restored')){

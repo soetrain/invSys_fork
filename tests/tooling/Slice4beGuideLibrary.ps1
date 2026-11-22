@@ -106,7 +106,33 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
         $provenance.Contains([string]$First.ContentSha256) -and $provenance -match '(?i)version\s*:?\s*1\b' -and
         $provenance.Contains([string]$First.SourceRun.SequenceId))
     Check 'GuideLibrary.BothPanesAreReadOnly' ($opened -and (GuideReader 'txtPublishedInstructions' 'Locked') -ceq 'True' -and (GuideReader 'txtPublishedObservations' 'Locked') -ceq 'True')
+    if($CheckGuideSearchNative){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideSearchNative.ps1')
+        Test-GuideSearchNative 'frmActionPathLibrary' 'Published guides' 'txtGuideSearch' 'lstPublishedGuides' 'GuideLibrary' 'S' 'e' 't' $true
+        [void](SelectGuideVersion $First)
+    }
+    # D18-SEARCH-INPUT-02: typing a still-matching query is presentation only.
+    # It must discard the exact selected version and its retained evidence.
+    $searchReadsBefore=[string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')
+    [void](GuideReader 'txtGuideSearch' 'Write' 'Settings')
+    Check 'GuideLibrary.SearchInvalidatesMatchingExactSelection' ($opened -and
+        (GuideReader 'lstPublishedGuides' 'Rows') -ceq '2' -and
+        (GuideReader 'lstPublishedGuides' 'Selected') -cin @('','MISSING') -and
+        (GuideReader 'txtPublishedInstructions' 'Text') -cin @('','MISSING') -and
+        (GuideReader 'txtPublishedObservations' 'Text') -cin @('','MISSING') -and
+        (GuideReader 'btnRunHowTo' 'State') -cne 'True|True' -and
+        (GuideReader 'btnEditPublishedGuide' 'State') -cne 'True|True')
+    Check 'GuideLibrary.SearchClearRestoresSnapshotWithoutAutoSelect' (
+        (GuideReader 'txtGuideSearch' 'Write' '') -ceq 'DELIVERED' -and
+        (GuideReader 'lstPublishedGuides' 'Values') -ceq $expected -and
+        (GuideReader 'lstPublishedGuides' 'Selected') -cin @('','MISSING'))
+    Check 'GuideLibrary.SearchUsesNoCoreLibraryOrPolicyReads' (
+        ([string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')) -ceq $searchReadsBefore)
+    [void](SelectGuideVersion $First)
+    $beforeRefresh=[string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')
     [void](GuideReader 'btnRefreshGuides' 'Click')
+    Check 'GuideLibrary.ExplicitRefreshRevalidatesCore' (
+        ([string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')) -cne $beforeRefresh)
     Check 'GuideLibrary.RefreshRetainsExactVersionAndText' ($selected -and (GuideReader 'lstPublishedGuides' 'Selected') -ceq (GuideVersionKey $First) -and
         (GuideReader 'txtPublishedInstructions' 'Text') -ceq $instructions -and (GuideReader 'txtPublishedObservations' 'Text') -ceq $observations)
     $secondSelected=SelectGuideVersion $Second
