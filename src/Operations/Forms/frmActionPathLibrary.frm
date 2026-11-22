@@ -359,7 +359,12 @@ End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
         Cancel = True
-        If Not mOwner Is Nothing Then mOwner.ClosePublishedGuides
+        If mOwner Is Nothing Then Exit Sub
+        If modGuideReaderClose.Schedule(mOwner, Me) Then
+            Me.Hide
+        Else
+            mStatus.Caption = "Unable to close Published guides. Use Close or try again."
+        End If
     End If
 End Sub
 

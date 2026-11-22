@@ -41,7 +41,20 @@ public static class GuideReaderNativeClose {
     if(-not [GuideReaderNativeClose]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Native Published guides close was not delivered.'}
     $deadline=[DateTime]::UtcNow.AddSeconds(5)
     while([GuideReaderNativeClose]::IsWindow($window) -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
-    return -not [GuideReaderNativeClose]::IsWindow($window)
+    $windowGone=-not [GuideReaderNativeClose]::IsWindow($window)
+    $readerCount=GuideReader '' 'Count'
+    $deadline=[DateTime]::UtcNow.AddSeconds(10)
+    while($windowGone -and $readerCount -cne '0' -and [DateTime]::UtcNow -lt $deadline){
+        Start-Sleep -Milliseconds 100
+        $readerCount=GuideReader '' 'Count'
+    }
+    $queryFacts=[string](Run 'invSys.Operations.xlam' 'TestGuideReaderCloseProbe.Facts')
+    Write-Host ('GuideLibrary.NativeCloseFacts windowGone='+$windowGone+' readerCount='+$readerCount+' query='+$queryFacts)
+    $parts=$queryFacts -split '\|'
+    if($parts.Count -ne 5 -or @($parts | Where-Object {$_ -notmatch '^[0-9]+$'}).Count -ne 0){return $false}
+    return ($windowGone -and $readerCount -ceq '0' -and
+        [int]$parts[0] -eq [int]$parts[1] -and [int]$parts[2] -gt 0 -and
+        [int]$parts[2] -eq [int]$parts[3])
 }
 function Test-GuideOrdinaryReader($Record) {
     $opened=(OpenGuideReader) -ceq 'DELIVERED'

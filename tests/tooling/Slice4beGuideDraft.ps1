@@ -156,6 +156,53 @@ End Function
 '@)
 }
 
+# Test-copy only: distinguish an unprocessed native close message from a
+# QueryClose handler that enters but cannot finish. No published source changes.
+function Install-GuideReaderCloseProbe {
+    $project=$packages['invSys.Operations.xlam'].VBProject
+    $probe=$project.VBComponents.Add(1)
+    $probe.Name='TestGuideReaderCloseProbe'
+    $probe.CodeModule.AddFromString(@'
+Option Explicit
+Public Entered As Long
+Public Returned As Long
+Public LastMode As Long
+Public NativeEntered As Long
+Public NativeReturned As Long
+Public Sub NoteEnter(ByVal mode As Integer)
+    Entered = Entered + 1: LastMode = mode
+    If mode = 0 Then NativeEntered = NativeEntered + 1
+End Sub
+Public Sub NoteReturn(ByVal mode As Integer)
+    Returned = Returned + 1
+    If mode = 0 Then NativeReturned = NativeReturned + 1
+End Sub
+Public Function Facts() As String
+    Facts = CStr(Entered) & "|" & CStr(Returned) & "|" & CStr(NativeEntered) & "|" & CStr(NativeReturned) & "|" & CStr(LastMode)
+End Function
+'@)
+    $form=$project.VBComponents.Item('frmActionPathLibrary').CodeModule
+    $start=$form.ProcBodyLine('UserForm_QueryClose',0)
+    $end=$start+$form.ProcCountLines('UserForm_QueryClose',0)-1
+    $inserted=$false
+    for($line=$start+1;$line -le $end;$line++){
+        if($form.Lines($line,1).Trim() -ceq 'If CloseMode = 0 Then'){
+            $form.InsertLines($line,'    TestGuideReaderCloseProbe.NoteEnter CloseMode')
+            $inserted=$true
+            break
+        }
+    }
+    if(-not $inserted){throw 'Published guides QueryClose handler not found for test-copy probe.'}
+    $end=$form.ProcBodyLine('UserForm_QueryClose',0)+$form.ProcCountLines('UserForm_QueryClose',0)-1
+    for($line=$end;$line -gt $start;$line--){
+        if($form.Lines($line,1).Trim() -ceq 'End Sub'){
+            $form.InsertLines($line,'    TestGuideReaderCloseProbe.NoteReturn CloseMode')
+            return
+        }
+    }
+    throw 'Published guides QueryClose return not found for test-copy probe.'
+}
+
 # Count attempts at the actual Core boundary in the disposable compiled copy.
 # The counter changes no result or source file and is restricted to this gate.
 function Install-GuideInputWriteProbe {

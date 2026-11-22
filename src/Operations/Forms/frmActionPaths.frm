@@ -334,6 +334,9 @@ End Sub
 
 Private Sub mPublishedGuides_Click()
     If Not ContextValid() Then Exit Sub
+    If Not mGuideLibrary Is Nothing Then
+        If Not mGuideLibrary.Visible Then ClosePublishedGuides
+    End If
     If mGuideLibrary Is Nothing Then
         Set mGuideLibrary = New frmActionPathLibrary
         mGuideLibrary.BindContext mContext, Me
@@ -368,6 +371,11 @@ Public Sub ClosePublishedGuides()
         Unload mGuideLibrary
     End If
     Set mGuideLibrary = Nothing
+End Sub
+
+Public Sub ClosePublishedGuidesIfCurrent(ByVal reader As frmActionPathLibrary)
+    If mGuideLibrary Is Nothing Then Exit Sub
+    If mGuideLibrary Is reader Then ClosePublishedGuides
 End Sub
 
 Private Sub mViewActionPath_Click()
