@@ -21,6 +21,28 @@ function GuideReaderUnavailable {
         (GuideReader 'txtPublishedObservations' 'Text') -cin @('','MISSING') -and
         (GuideReader 'lblPublishedGuideStatus' 'Label') -match '(?i)unavailable|incomplete|changed'
 }
+function Close-GuideReaderNativeWindow {
+    Initialize-SettingsCapture
+    if (-not ('GuideReaderNativeClose' -as [type])) {
+        Add-Type @'
+using System; using System.Runtime.InteropServices;
+public static class GuideReaderNativeClose {
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+}
+'@
+    }
+    $window=[InvSysSettingsCapture]::OwnedVisibleForm('Published guides',[IntPtr]$excel.Hwnd)
+    [uint32]$excelPid=0; [uint32]$windowPid=0
+    [void][GuideReaderNativeClose]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$excelPid)
+    [void][GuideReaderNativeClose]::GetWindowThreadProcessId($window,[ref]$windowPid)
+    if($window -eq [IntPtr]::Zero -or $excelPid -eq 0 -or $windowPid -ne $excelPid){throw 'Exact test-owned Published guides window unavailable.'}
+    if(-not [GuideReaderNativeClose]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Native Published guides close was not delivered.'}
+    $deadline=[DateTime]::UtcNow.AddSeconds(5)
+    while([GuideReaderNativeClose]::IsWindow($window) -and [DateTime]::UtcNow -lt $deadline){Start-Sleep -Milliseconds 100}
+    return -not [GuideReaderNativeClose]::IsWindow($window)
+}
 function Test-GuideOrdinaryReader($Record) {
     $opened=(OpenGuideReader) -ceq 'DELIVERED'
     $selected=SelectGuideVersion $Record
@@ -142,6 +164,10 @@ function Test-GuideLibrary($Fixture,$Other,$First,$Second) {
     Check 'GuideLibrary.RestoredExactBytesReadAgain' ($restored -and (GuideReader 'txtPublishedInstructions' 'Text') -ceq $instructions)
     [void](GuideReader 'btnCloseGuides' 'Click')
     Check 'GuideLibrary.CloseDisposesReader' ($opened -and (GuideReader '' 'Count') -ceq '0')
+    [void](OpenGuideReader)
+    [void](SelectGuideVersion $First)
+    $nativeClosed=Close-GuideReaderNativeWindow
+    Check 'GuideLibrary.NativeWindowCloseDisposesReader' ($nativeClosed -and (GuideReader '' 'Count') -ceq '0')
     [void](OpenGuideReader)
     [void](SelectGuideVersion $First)
     $otherGuideRoot=Join-Path $Other.Root ('Training/ActionPaths/'+$Other.Warehouse+'/Guides')
