@@ -8,13 +8,29 @@ curation checks passed 77/77. All five packages explicitly compiled. The static
 scan found one additional typed owner callback, unchanged source line count
 and unchanged dead-code candidates, warnings and dynamic-call counts.
 
+On the rebuilt candidate, the ordered Release 1 chain passed 33/33 and its
+packaged live-role workflow passed 48/48. Restart reconciliation, header
+persistence, the five-package runtime check and local settings restoration
+passed. All five input hashes matched after the run. There were zero Excel
+application errors or hangs in the event-log check. Release control-surface
+checks passed 6/6 and chain-wiring checks passed 13/13. The ignored
+`reports/runtime/4bea-picker-finish-20261123/chain-summary.json` in the code
+worker retains assertion names and results.
+
+An ordinary Excel launch of the read-only NAS review host stopped before
+sign-in with the Excel notice “This workbook is currently referenced by
+another workbook and cannot be closed.” The five startup entries pointed to
+the candidate. The first entry loaded Admin, and the second named Core, which
+Admin already references. The ordering is a suspected cause. The running
+projects and NAS form behavior still need verification.
+
 **Preceding candidate.** The November 22 packages passed repeated button
 open/close and picker Search (92/92), recorded-run guide entry and populated
 reader Search/Close/X (195/195), the schema 1/2/3 transfer regression (85/85)
 and technical Receiving replay without captures (103/103). Static metrics
 match the November 22 baseline.
 The current candidate also needs final launcher, Inventory, reusable
-Production, restart/binding and ordered full-chain qualification, larger NAS
+Production, saved review-workbook binding, larger NAS
 list review and the complete/incomplete Operations and Admin operator
 comparisons. See the [operator review](plan022_slice4be_operator_review.md).
 

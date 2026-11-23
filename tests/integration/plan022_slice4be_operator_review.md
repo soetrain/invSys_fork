@@ -3,7 +3,9 @@
 **November 23 picker rebuild.** The reopened picker's native X left both
 the window and the VBA form loaded on the preceding packages. The repaired
 picker passed the same close test and the retained curation suite (77/77).
-The live NAS comparison below remains open.
+The ordinary read-only review launch stopped before sign-in at an Excel
+workbook-reference notice. Its five live project paths and the NAS comparison
+below remain open.
 
 **Preceding packaged verification.** In disposable fixtures on the November
 22 candidate, Published guides and Choose tracked actions each opened and closed
