@@ -324,12 +324,14 @@ Private Sub mChooseGuideActions_Click()
 End Sub
 
 Public Sub CloseGuideActionPicker()
-    If mGuideActionPicker Is Nothing Then Exit Sub
-    If modOperationsFormLifetime.IsLoaded(mGuideActionPicker) Then
-        mGuideActionPicker.ReleaseSelection
-        Unload mGuideActionPicker
-    End If
+    Dim closing As frmGuideActionPicker
+    Set closing = mGuideActionPicker
     Set mGuideActionPicker = Nothing
+    If modOperationsFormLifetime.IsLoaded(closing) Then Unload closing
+End Sub
+
+Public Sub ForgetClosedGuideActionPicker(ByVal picker As frmGuideActionPicker)
+    If mGuideActionPicker Is picker Then Set mGuideActionPicker = Nothing
 End Sub
 
 Private Sub mPublishedGuides_Click()

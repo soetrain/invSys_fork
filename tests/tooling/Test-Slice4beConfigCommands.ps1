@@ -272,6 +272,7 @@ param(
     [switch]$GuideCaptureSavedWorkbookForTest,
     [switch]$VisibleExcelForTest,
     [switch]$CheckGuideSearchNative,
+    [switch]$GuidePickerScaleOnly,
     [switch]$TraceViewerStartupForTest,
     [switch]$ViewerStartupSavedWorkbookForTest,
     [ValidateSet('None','Caption','Status','Config','ShownConfig','ConfigSteps','ConfigCloseVisible')]
@@ -456,6 +457,9 @@ if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
 if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
+if($GuidePickerScaleOnly -and (-not $GuideActionCurationOnly -or -not $VisibleExcelForTest)){
+    throw 'Picker scale requires the visible direct-curation fixture.'
+}
 if($CheckGuideSearchNative -and (-not $VisibleExcelForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies' -or
     (-not $GuideActionCurationOnly -and -not $CheckGuideLibrary))){
     throw 'Native guide Search requires one visible saved-copy picker or published-guide fixture.'

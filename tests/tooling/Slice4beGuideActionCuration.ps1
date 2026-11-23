@@ -50,6 +50,9 @@ public static class CurationNativeLayout {
     }
     CloseRecordingViewer;SelectTarget $Fixture 'config-admin';SetRecordingPolicy $false
     $first=SaveRecordedSetting '801';$second=SaveRecordedSetting '802'
+    if($GuidePickerScaleOnly){
+        foreach($value in 803..830){[void](SaveRecordedSetting ([string]$value))}
+    }
     if($first.Attempt.SequenceId -cne '' -or $second.Attempt.SequenceId -cne '' -or $first.Attempt.Ordinal -ne 0 -or $second.Attempt.Ordinal -ne 0){throw 'Actual unrecorded activity fixture failed; not curation RED.'}
     $published=Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest'
     $publication=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Snapshot.Events.json')
@@ -107,7 +110,12 @@ public static class CurationNativeLayout {
                     if(-not $closed){throw 'Guide window survived the delivered Close click.'}
                 }
             }
-            Click-GuideControlNative 'frmActionPaths' 'Action Paths' 'btnChooseGuideActions'
+        }
+        if($VisibleExcelForTest){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+            OpenPicker
+            [void](Pick 'btnCancelGuideActions' 'Click')
+            OpenPicker
             $pickerWindow=Get-OwnedGuideInputWindow 'Choose tracked actions'
             if(-not [GuideInputNative]::PostMessage($pickerWindow,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
                 throw 'Native Close message could not be delivered to the reopened picker.'
@@ -120,7 +128,9 @@ public static class CurationNativeLayout {
             Check 'GuideCuration.ReopenedPickerNativeXDisposesWindowAndForm' $pickerGone
             if(-not $pickerGone){throw 'The reopened picker survived its native close request.'}
         }
+        $openTime=[Diagnostics.Stopwatch]::StartNew()
         OpenPicker
+        $openTime.Stop()
         $opened=(Pick '' 'Count') -ceq '1'
         Check 'GuideCuration.ActualEntryOpensOnePicker' $opened
         Check 'GuideCuration.EmptySelectionDisablesCreate' ($opened -and (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|False')
@@ -129,10 +139,16 @@ public static class CurationNativeLayout {
         $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
         $permittedIds=@($model.Groups|Where-Object Source -CEQ 'Activity'|ForEach-Object SourceId)
         Check 'GuideCuration.CandidatesArePublishedActionIdentities' ($opened -and $ids.Count -gt 1 -and @($ids|Where-Object {$_ -cnotin $permittedIds}).Count -eq 0 -and $first.Attempt.ActivityId -cin $ids -and $second.Attempt.ActivityId -cin $ids)
+        if($GuidePickerScaleOnly){
+            Write-Host ('Picker scale: '+$ids.Count+' authorized rows; open '+$openTime.ElapsedMilliseconds+' ms')
+            if($ids.Count -lt 30){throw 'The required thirty published actions are unavailable; scale timing cannot be qualified.'}
+        }
         Check 'GuideCuration.SelectFirstActualAction' (ToggleAction $first.Attempt.ActivityId)
-        if($CheckGuideSearchNative){
+        if($CheckGuideSearchNative -or $GuidePickerScaleOnly){
             . (Join-Path $PSScriptRoot 'Slice4beGuideSearchNative.ps1')
+            $beforeKeys=[string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')
             Test-GuideSearchNative 'frmGuideActionPicker' 'Choose tracked actions' 'txtGuideActionSearch' 'lstGuideActions' 'GuideCuration' 'A' 'D' 'M' $false
+            Check 'GuideCuration.NativeKeysUseNoCoreLibraryOrPolicyReads' (([string](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.Facts')) -ceq $beforeKeys)
             Check 'GuideCuration.NativeSearchRetainsExactSelectedAction' ((Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
         }
         # A caption copied from the visible list must find exactly its published actions.
@@ -149,6 +165,11 @@ public static class CurationNativeLayout {
         Check 'GuideCuration.SearchFiltersWithoutLosingSelection' ($opened -and (Pick 'lstGuideActions' 'Rows') -ceq '0' -and (Pick 'lblGuideActionStatus' 'Label') -match '(?i)1 selected' -and (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|True')
         [void](Pick 'txtGuideActionSearch' 'Write' 'ADMIN_SETTINGS_SAVE_VALUE')
         Check 'GuideCuration.SearchByControlRestoresSelectedIdentity' ($opened -and (Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
+        if($GuidePickerScaleOnly){
+            [void](Pick 'btnCancelGuideActions' 'Click')
+            Check 'GuideCuration.ScaleCloseDisposesPickerWithSourcesPreserved' ((Pick '' 'Count') -ceq '0' -and (BoundSame $sourcePins (BoundPins $Fixture.Root)))
+            return
+        }
         Check 'GuideCuration.SelectSecondActualAction' (ToggleAction $second.Attempt.ActivityId)
         [void](Pick 'txtGuideActionSearch' 'Write' '')
         $retainedIds=@((Pick 'lstGuideActions' 'SelectedValues') -split "`n" | Where-Object {$_ -cne ''})

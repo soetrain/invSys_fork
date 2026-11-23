@@ -150,7 +150,7 @@ Private Sub mCreate_Click()
 End Sub
 
 Private Sub mCancel_Click()
-    If Not mOwner Is Nothing Then mOwner.CloseGuideActionPicker
+    Unload Me
 End Sub
 
 Private Sub Invalidate(ByVal notice As String)
@@ -159,7 +159,7 @@ Private Sub Invalidate(ByVal notice As String)
     mSource.Caption = "": mStatus.Caption = notice: mCreate.Enabled = False: mLoading = False
 End Sub
 
-Public Sub ReleaseSelection()
+Private Sub ReleaseSelection()
     modGuideEditor.CloseActionPicker Me
     modGuideActionPicker.CloseSelection mContext, mToken
     Set mRenderedSelected = Nothing
@@ -169,11 +169,9 @@ Public Sub ReleaseSelection()
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
-    If CloseMode = 0 Then
-        Cancel = True: mCancel_Click
-    Else
-        ReleaseSelection: Set mOwner = Nothing
-    End If
+    ReleaseSelection
+    If modOperationsFormLifetime.IsLoaded(mOwner) Then mOwner.ForgetClosedGuideActionPicker Me
+    Set mOwner = Nothing
 End Sub
 
 Private Sub UserForm_Activate()
