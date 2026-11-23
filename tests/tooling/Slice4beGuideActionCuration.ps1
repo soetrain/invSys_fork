@@ -89,6 +89,25 @@ public static class CurationNativeLayout {
             CurateCapture ('library-'+$size.ToLowerInvariant()) 'Action Paths'
         }
         CurateNativeLayout 'frmActionPaths' 'Action Paths' 'Library'
+        if($CheckGuideSearchNative){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+            foreach($child in @(
+                @{Form='frmActionPathLibrary';Caption='Published guides';Open='btnPublishedGuides';Close='btnCloseGuides'},
+                @{Form='frmGuideActionPicker';Caption='Choose tracked actions';Open='btnChooseGuideActions';Close='btnCancelGuideActions'}
+            )){
+                foreach($cycle in 1..2){
+                    Click-GuideControlNative 'frmActionPaths' 'Action Paths' $child.Open
+                    $handle=[InvSysSettingsCapture]::OwnedVisibleForm($child.Caption,[IntPtr]$excel.Hwnd)
+                    $visible=(BoundControl '' 'Count' '' $child.Form) -ceq '1' -and $handle -ne [IntPtr]::Zero
+                    Check ("GuideCuration.$($child.Form).Cycle$cycle.SingleClickOpens") $visible
+                    if(-not $visible){throw 'Guide window did not open after one delivered click.'}
+                    Click-GuideControlNative $child.Form $child.Caption $child.Close
+                    $closed=(BoundControl '' 'Count' '' $child.Form) -ceq '0' -and -not [GuideInputNative]::IsWindow($handle)
+                    Check ("GuideCuration.$($child.Form).Cycle$cycle.SingleClickCloses") $closed
+                    if(-not $closed){throw 'Guide window survived the delivered Close click.'}
+                }
+            }
+        }
         OpenPicker
         $opened=(Pick '' 'Count') -ceq '1'
         Check 'GuideCuration.ActualEntryOpensOnePicker' $opened
@@ -140,7 +159,10 @@ public static class CurationNativeLayout {
             if($opened){CurateCapture ('picker-'+$size.ToLowerInvariant())}
         }
         if($opened){CurateNativeLayout 'frmGuideActionPicker' 'Choose tracked actions' 'Picker'}
-        [void](Pick 'btnCreateSelectedGuide' 'Click')
+        if($CheckGuideSearchNative){
+            Click-GuideControlNative 'frmGuideActionPicker' 'Choose tracked actions' 'btnCreateSelectedGuide'
+            Check 'GuideCuration.OneClickShowsGuideEditor' ([InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
+        }else{[void](Pick 'btnCreateSelectedGuide' 'Click')}
         $drafted=(Draft '' 'Count') -ceq '1'
         Check 'GuideCuration.CreateUsesExistingGuideEditor' ($opened -and $drafted)
         Check 'GuideCuration.NoRecordedSequenceClaim' ($drafted -and (Draft 'lblGuideSource' 'Label') -match 'No recorded sequence; authored order is not execution evidence')

@@ -20,9 +20,9 @@ public static class GuideInputNative {
     Initialize-SettingsCapture
 }
 
-function Get-OwnedGuideInputWindow {
+function Get-OwnedGuideInputWindow([string]$caption='Action Path guide') {
     Initialize-GuideInputNative
-    $window=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd)
+    $window=[InvSysSettingsCapture]::OwnedVisibleForm($caption,[IntPtr]$excel.Hwnd)
     [uint32]$excelProcess=0;[uint32]$formProcess=0
     [void][GuideInputNative]::GetWindowThreadProcessId([IntPtr]$excel.Hwnd,[ref]$excelProcess)
     [void][GuideInputNative]::GetWindowThreadProcessId($window,[ref]$formProcess)
@@ -59,12 +59,12 @@ function Move-GuideFocusByTabNative {
     }
 }
 
-function Focus-GuideControlNative([string]$name) {
-    $window=Get-OwnedGuideInputWindow
+function Click-GuideControlNative([string]$form,[string]$caption,[string]$name) {
+    $window=Get-OwnedGuideInputWindow $caption
     if(-not ('WorksheetInput' -as [type])){. (Join-Path $PSScriptRoot 'Slice4beWorksheetInput.ps1')}
-    $state=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @('frmActionPathGuide',$name,'State',''))
+    $state=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($form,$name,'State',''))
     if($state -cne 'True|True'){throw ("Exact enabled guide control unavailable: $name; not behavioral RED.")}
-    $parts=([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @('frmActionPathGuide',$name,'Bounds',''))).Split('|')
+    $parts=([string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($form,$name,'Bounds',''))).Split('|')
     if($parts.Count -ne 6){throw ("Exact guide control geometry unavailable: $name; not behavioral RED.")}
     $numbers=@($parts | ForEach-Object {[double]::Parse($_,[Globalization.CultureInfo]::CurrentCulture)})
     if($numbers[4] -le 0 -or $numbers[5] -le 0){throw 'Guide client geometry unavailable; not behavioral RED.'}
@@ -107,6 +107,10 @@ function Focus-GuideControlNative([string]$name) {
         throw ("Cursor restoration failed after guide focus; control=$name; SetCursorPos=$restored; Win32 error=$restoreError; original=$($original.X),$($original.Y); actual=$($actual.X),$($actual.Y); prior input error=$inputError")
     }
     if($inputError){throw ("Guide control input failed for ${name}: $inputError")}
+}
+
+function Focus-GuideControlNative([string]$name) {
+    Click-GuideControlNative 'frmActionPathGuide' 'Action Path guide' $name
     $active=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @('frmActionPathGuide','','Active',''))
     if($active -cne $name){throw ("Native guide focus missed ${name}; active=$active; not behavioral RED.")}
     return 'FOCUSED'

@@ -2,7 +2,7 @@
 # The evidence contains only stage names, elapsed time and row counts.
 function Test-GuideSearchNative([string]$Form,[string]$Caption,[string]$Search,[string]$List,[string]$Prefix,[string]$First,[string]$Second,[string]$Third,[bool]$ExpectUnselected) {
     . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
-    . (Join-Path $PSScriptRoot 'Slice4beWorksheetInput.ps1')
+    if(-not ('WorksheetInput' -as [type])){. (Join-Path $PSScriptRoot 'Slice4beWorksheetInput.ps1')}
     Initialize-GuideInputNative
     $window=[InvSysSettingsCapture]::OwnedVisibleForm($Caption,[IntPtr]$excel.Hwnd)
     [uint32]$excelPid=0;[uint32]$formPid=0

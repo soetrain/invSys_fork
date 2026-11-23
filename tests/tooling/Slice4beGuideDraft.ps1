@@ -341,7 +341,12 @@ function Test-GuideDraftEntry($Fixture,$Other) {
     $publishBefore=[long](Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest')
     try {
         Check 'GuideDraft.EntryEnabledForPermittedSelectedRun' ((GuideControl 'btnCreateGuide' 'State' '' 'frmActionPaths') -ceq 'True|True')
-        $delivered=CreateGuide
+        if($CheckGuideSearchNative){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+            Click-GuideControlNative 'frmActionPaths' 'Action Paths' 'btnCreateGuide'
+            $delivered='DELIVERED'
+            Check 'GuideDraft.OneClickShowsGuideEditor' ([InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
+        }else{$delivered=CreateGuide}
         $opened=(GuideControl '' 'Count') -ceq '1'
         Check 'GuideDraft.ActualCreateControlOpensEditor' ($delivered -ceq 'DELIVERED' -and $opened)
         Check 'GuideDraft.ApprovedEditorCaption' ($opened -and (GuideControl '' 'Caption') -ceq 'Action Path guide')
