@@ -1,10 +1,21 @@
 # Slice 4be-A operator comparison review
 
+**November 23 packaged verification.** In disposable fixtures on the November
+22 candidate, Published guides and Choose tracked actions each opened and closed
+twice with one mouse click per action. The picker found the exact published
+actions for a displayed caption, cleared the list on no match and restored it
+on clear. Create guide displayed the editor with one click from each entry
+route. Published guides Search also cleared and restored a populated two-version
+list, and its native X disposed the reader. The picker and reader suites passed
+92/92 and 195/195 respectively. A later test of the picker's native X stopped
+in mouse setup before sending the close message. The visible NAS comparison
+below still needs an operator result.
+
 **Status:** Justin published one guide version 1 in disposable warehouse WHT7025AE; read-only storage inspection confirmed its file with no pending save. He reported slow list selection and guide title/instruction typing; the complete/incomplete How-To and Diagnostic comparison is untried. A focused packaged RED reproduced slow typing (24 PASS / 3 FAIL) on the unchanged final five-XLAM candidate. This is early usability evidence under Architecture v4.11 D18-REPLAY-01 and Plan 022, not 4be-A acceptance.
 
 ## Candidate and safe setup
 
-- Use the five add-ins together from the final local review copy at `reports/runtime/4be-a-human-review-20261116b/addins/` in a dedicated Excel session. The matching inventory template is at `addins/templates/invSys.Data.Inventory.template.xlsb`. On 2026-11-16, all five XLAMs and the template matched PR17 commit `45d84ca8` byte for byte; the ignored local `candidate.json` records their hashes. The review host is a fresh copy of the prior saved host. Excel was closed during the copy and startup registration change. Recheck the candidate hashes and Excel ownership before any further build or test.
+- For the November 23 review use the five XLAMs together from `deploy/validation-search-extension-20261122/` in the code worker and the existing `reports/runtime/4be-a-human-review-20261120/ActionPath-Review-Host.xlsm`. Before testing forms, check all five running VBE project paths against that package directory. The Published guides search label on this candidate is **Search Subject, Title, Tags or ID**.
 - Use the existing disposable NAS Training warehouse WHT7025AE and a disposable operator workbook. Do not use an operational warehouse or existing business workbook. The reviewer needs `RECEIVE_POST`, `ADMIN_MAINT` and `ACTION_PATH_MAINT` in that warehouse, either through one authorized account or separate authorized users. The current sign-in and warehouse must remain the same while a guide/run pair is open.
 - Current bootstrap grants the initial user `ADMIN_MAINT` and `RECEIVE_POST`, but leaves that user's PIN hash empty and does not grant `ACTION_PATH_MAINT`. Normal sign-in rejects an empty hash; the current Users & Roles form cannot assign the guide right. Justin authorized private credential setup and a test-only guide-right grant in this disposable Training fixture. That enabled the first preview but does not qualify ordinary user-side onboarding. Credentials do not belong in project documents or reports.
 - In Admin **Settings > Event Tracking**, verify that the reviewer's optional recording is enabled and the selected controls are eligible. Keep required audit enabled. Note the original personal **Preferred Action Path view** so it can be restored after review. Capture only redacted screenshots or comments; exclude credentials, paths, entered values and inventory details from shared evidence.

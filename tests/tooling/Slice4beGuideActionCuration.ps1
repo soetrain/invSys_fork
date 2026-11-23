@@ -107,6 +107,18 @@ public static class CurationNativeLayout {
                     if(-not $closed){throw 'Guide window survived the delivered Close click.'}
                 }
             }
+            Click-GuideControlNative 'frmActionPaths' 'Action Paths' 'btnChooseGuideActions'
+            $pickerWindow=Get-OwnedGuideInputWindow 'Choose tracked actions'
+            if(-not [GuideInputNative]::PostMessage($pickerWindow,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
+                throw 'Native Close message could not be delivered to the reopened picker.'
+            }
+            $deadline=[DateTime]::UtcNow.AddSeconds(10)
+            do{
+                Start-Sleep -Milliseconds 100
+                $pickerGone=-not [GuideInputNative]::IsWindow($pickerWindow) -and (Pick '' 'Count') -ceq '0'
+            }until($pickerGone -or [DateTime]::UtcNow -ge $deadline)
+            Check 'GuideCuration.ReopenedPickerNativeXDisposesWindowAndForm' $pickerGone
+            if(-not $pickerGone){throw 'The reopened picker survived its native close request.'}
         }
         OpenPicker
         $opened=(Pick '' 'Count') -ceq '1'
@@ -123,6 +135,16 @@ public static class CurationNativeLayout {
             Test-GuideSearchNative 'frmGuideActionPicker' 'Choose tracked actions' 'txtGuideActionSearch' 'lstGuideActions' 'GuideCuration' 'A' 'D' 'M' $false
             Check 'GuideCuration.NativeSearchRetainsExactSelectedAction' ((Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
         }
+        # A caption copied from the visible list must find exactly its published actions.
+        $caption=[string]$first.Attempt.Caption
+        $expectedIds=@(foreach($group in $model.Groups){
+            if($group.Source -ceq 'Activity' -and $group.SourceId -cin $ids -and
+                @($group.Lines | Where-Object {$_.OutcomeCode -ceq 'REQUESTED' -and $_.Caption -ceq $caption}).Count){$group.SourceId}
+        })
+        [void](Pick 'txtGuideActionSearch' 'Write' $caption.ToLowerInvariant())
+        $actualIds=@((Pick 'lstGuideActions' 'Values') -split "`n" | Where-Object {$_})
+        Check 'GuideCuration.SearchDisplayedCaptionReturnsExactActions' ($caption -cne '' -and $first.Attempt.ActivityId -cin $expectedIds -and
+            (($actualIds | Sort-Object) -join '|') -ceq (($expectedIds | Sort-Object) -join '|'))
         [void](Pick 'txtGuideActionSearch' 'Write' 'no-match-curation-filter')
         Check 'GuideCuration.SearchFiltersWithoutLosingSelection' ($opened -and (Pick 'lstGuideActions' 'Rows') -ceq '0' -and (Pick 'lblGuideActionStatus' 'Label') -match '(?i)1 selected' -and (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|True')
         [void](Pick 'txtGuideActionSearch' 'Write' 'ADMIN_SETTINGS_SAVE_VALUE')

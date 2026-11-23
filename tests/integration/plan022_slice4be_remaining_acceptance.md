@@ -1,5 +1,15 @@
 # Slice 4be remaining acceptance checklist
 
+**2026-11-23 candidate.** The November 22 packages passed repeated button
+open/close and picker Search (92/92), recorded-run guide entry and populated
+reader Search/Close/X (195/195), the schema 1/2/3 transfer regression (85/85)
+and technical Receiving replay without captures (103/103). Static metrics
+match the November 22 baseline. The picker title-bar X still needs a result.
+The current candidate also needs final launcher, Inventory, reusable
+Production, restart/binding and ordered full-chain qualification, larger NAS
+list review and the complete/incomplete Operations and Admin operator
+comparisons. See the [operator review](plan022_slice4be_operator_review.md).
+
 **2026-11-15 operator-review preparation:** [Human How-To/Diagnostic comparison sheet](plan022_slice4be_operator_review.md) identifies the current five-add-in validation candidate and two disposable Training-warehouse tasks, with complete and incomplete observed runs. New-warehouse sign-in and guide authoring remain blocked: bootstrap leaves the initial PIN hash empty and does not grant `ACTION_PATH_MAINT`; normal sign-in rejects an empty hash, and Users & Roles cannot assign the guide right. It records no human result or 4be-A acceptance.
 
 **2026-10-21 Receiving replay121/121 qualified:** unchanged current candidate,
