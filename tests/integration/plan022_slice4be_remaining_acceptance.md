@@ -1,10 +1,18 @@
 # Slice 4be remaining acceptance checklist
 
-**2026-11-23 candidate.** The November 22 packages passed repeated button
+**November 23 picker rebuild.** On the November 22 packages, sending a native
+title-bar close to the reopened picker left its window and form loaded (14
+passes, two failures including the subsequent fixture stop). On
+`deploy/validation-guide-picker-close-20261123`, the same test and retained
+curation checks passed 77/77. All five packages explicitly compiled. The static
+scan found one additional typed owner callback, unchanged source line count
+and unchanged dead-code candidates, warnings and dynamic-call counts.
+
+**Preceding candidate.** The November 22 packages passed repeated button
 open/close and picker Search (92/92), recorded-run guide entry and populated
 reader Search/Close/X (195/195), the schema 1/2/3 transfer regression (85/85)
 and technical Receiving replay without captures (103/103). Static metrics
-match the November 22 baseline. The picker title-bar X still needs a result.
+match the November 22 baseline.
 The current candidate also needs final launcher, Inventory, reusable
 Production, restart/binding and ordered full-chain qualification, larger NAS
 list review and the complete/incomplete Operations and Admin operator
