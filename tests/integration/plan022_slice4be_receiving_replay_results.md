@@ -1,5 +1,14 @@
 # Slice 4be-A / early B0: Receiving replay
 
+**2026-11-23 guide Search candidate.** The technical Receiving replay regression
+passed 103/103 on the five November 22 packages, including the independent
+applied receipt, interrupted run, ordinary-user permission checks, and deferred
+close during dispatch. The controller restored settings, verified all five
+package hashes and observed Excel exit. The Application log contained zero
+Excel crash or hang events through 45 seconds after controller completion.
+This run omitted screenshot capture. Human B0 and 4be-A acceptance remain open.
+Local controller record: `reports/runtime/receiving-replay-controller/4a9195dbc3f049c38af98f776bf4683a/closure.json`.
+
 **Current Inventory candidate qualified,2026-10-21 01:53Z:** unchanged product
 `a9faab9c` / `validation-inventory-receipts-01` passes121/121 distinct checks through
 the existing saved-copy packaged replay suite. All15 published profile/runner

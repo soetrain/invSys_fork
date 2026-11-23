@@ -93,6 +93,11 @@ function Test-GuideTransferRoundTrip($Fixture,$Other,$Guide) {
         Check 'GuideTransfer.Export.ContextLossAfterSelectionRefused' ($lostClick -and -not (Test-Path (Join-Path $files 'lost-context.json')) -and (BoundControl 'lblPublishedGuideStatus' 'Label') -match '(?i)(changed|unavailable|signed|requires)')
         TransferSetFile '';TransferOpen $Other
         TransferImportAttempt 'ContextLostAfterSelection' $inputPath $Fixture $Other $true
+        if($importOK){
+            . (Join-Path $PSScriptRoot 'Slice4beGuideLegacyVersions.ps1')
+            Test-GuideLegacyVersion 1 $source $Fixture $Other $files $fields
+            Test-GuideLegacyVersion 2 $imported $Other $Fixture $files $fields
+        }
         Check 'GuideTransfer.NoBusinessPublication' ((Run 'invSys.Core.xlam' 'modWarehouseSync.PublishedReadPublishCallsForTest') -eq $publicationBefore)
     } finally {TransferSetFile '';CloseRecordingViewer;SelectTarget $Fixture 'config-admin'}
 }

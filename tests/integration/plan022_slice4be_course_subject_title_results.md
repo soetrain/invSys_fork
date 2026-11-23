@@ -88,7 +88,14 @@ fresh scan comparison and does not claim a passing Slice 12 contract gate.
 
 ## Open gates
 
-Prove legacy schema 1/2 read/edit without rewriting historical guide bytes,
-run broader Release 1 regressions, and obtain visible NAS course usability
-evidence. This is not guide-course acceptance, Inventory GREEN or 4be-A
-completion.
+The November 23 round-trip run passed 85/85 packaged assertions. Its 16
+legacy checks used a native guide and an imported guide from the disposable
+fixture, encoded with the corresponding schema 1 and 2 fields. The reader
+listed each exact version with its original Title and an Unassigned Subject.
+Export preserved the embedded guide bytes. Edit appended a linked schema 3
+revision and preserved the original file. Import produced a separate local
+schema 3 version, retained the origin, and required a Subject on its next
+authored Save. Local evidence is under
+`reports/runtime/guide-transfer-controller/2a717e07b6c94523ae4ca2244febe380/`.
+
+Visible NAS course usability and broader Release 1 qualification remain open.

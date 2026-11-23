@@ -1654,7 +1654,11 @@ try {
     $step='load packages'
     $packages=@{}
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')) {
-        $packages[$name]=$excel.Workbooks.Open((Join-Path $deploy $name),0,($ViewerStartupPackageStateForTest -eq 'OriginalReadOnly'))
+        $packagePath=Join-Path $deploy $name
+        $packages[$name]=$excel.Workbooks.Open($packagePath,0,($ViewerStartupPackageStateForTest -eq 'OriginalReadOnly'))
+        if($GuideDraftOnly -and $packages[$name].VBProject.FileName -ine $packagePath){
+            throw "Unexpected live VBA project for $name. Guide fixture setup stopped before instrumentation."
+        }
     }
     if($SettingsSavedWorkbookHostForTest){
         # Architecture v4.11: exercise Settings with a saved operator workbook
