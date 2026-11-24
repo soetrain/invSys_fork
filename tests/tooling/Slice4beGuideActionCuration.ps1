@@ -279,8 +279,10 @@ public static class CurationNativeLayout {
             (($actualIds | Sort-Object) -join '|') -ceq (($expectedIds | Sort-Object) -join '|'))
         [void](Pick 'txtGuideActionSearch' 'Write' 'no-match-curation-filter')
         Check 'GuideCuration.SearchFiltersWithoutLosingSelection' ($opened -and (Pick 'lstGuideActions' 'Rows') -ceq '0' -and (Pick 'lblGuideActionStatus' 'Label') -match '(?i)1 selected' -and (Pick 'btnCreateSelectedGuide' 'State') -ceq 'True|True')
+        Check 'GuideCuration.ExplainsEmptySearch' ((Pick 'lblGuideActionStatus' 'Label') -match '(?i)no matching published actions')
         [void](Pick 'txtGuideActionSearch' 'Write' 'ADMIN_SETTINGS_SAVE_VALUE')
         Check 'GuideCuration.SearchByControlRestoresSelectedIdentity' ($opened -and (Pick 'lstGuideActions' 'SelectedValues') -ceq ($first.Attempt.ActivityId+"`n"))
+        Check 'GuideCuration.MatchingSearchClearsEmptyMessage' ((Pick 'lblGuideActionStatus' 'Label') -notmatch '(?i)no matching published actions')
         if($GuidePickerScaleOnly){
             [void](Pick 'btnCancelGuideActions' 'Click')
             Check 'GuideCuration.ScaleCloseDisposesPickerWithSourcesPreserved' ((Pick '' 'Count') -ceq '0' -and (BoundSame $sourcePins (BoundPins $Fixture.Root)))
