@@ -24,6 +24,7 @@ Private mLoadedRows As String, mLoadedSource As String, mLoadedNotice As String
 Private mSnapshotReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private mSource As MSForms.Label, mStatus As MSForms.Label
+Private mNativeClosePending As Boolean
 Private WithEvents mSearch As MSForms.TextBox
 Private WithEvents mActions As MSForms.ListBox
 Private WithEvents mCreate As MSForms.CommandButton
@@ -183,7 +184,8 @@ End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = vbFormControlMenu Then
         Cancel = True
-        If modGuideReaderClose.SchedulePicker(Me) Then
+        If modGuideReaderClose.RequestFlush() Then
+            mNativeClosePending = True
             Me.Hide
         Else
             mStatus.Caption = "Unable to close Choose tracked actions. Use Cancel or try again."
@@ -193,6 +195,12 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     ReleaseSelection
     If modOperationsFormLifetime.IsLoaded(mOwner) Then mOwner.ForgetClosedGuideActionPicker Me
     Set mOwner = Nothing
+End Sub
+
+Public Sub FinishNativeClose()
+    If Not mNativeClosePending Then Exit Sub
+    mNativeClosePending = False
+    Unload Me
 End Sub
 
 Private Sub UserForm_Activate()

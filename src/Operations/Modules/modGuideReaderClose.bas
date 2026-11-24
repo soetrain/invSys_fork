@@ -4,7 +4,6 @@ Option Explicit
 ' Native QueryClose must finish before the owner unloads the same MSForms window.
 Private mOwner As frmActionPaths
 Private mReader As frmActionPathLibrary
-Private mPickers As Collection
 Private mPending As Boolean
 
 Public Function Schedule(ByVal owner As frmActionPaths, ByVal reader As frmActionPathLibrary) As Boolean
@@ -18,14 +17,7 @@ Public Function Schedule(ByVal owner As frmActionPaths, ByVal reader As frmActio
     Schedule = True
 End Function
 
-Public Function SchedulePicker(ByVal picker As frmGuideActionPicker) As Boolean
-    If Not RequestFlush() Then Exit Function
-    If mPickers Is Nothing Then Set mPickers = New Collection
-    mPickers.Add picker
-    SchedulePicker = True
-End Function
-
-Private Function RequestFlush() As Boolean
+Public Function RequestFlush() As Boolean
     On Error GoTo Failed
     If Not mPending Then
         Application.OnTime EarliestTime:=DateAdd("s", 1, Now), _
@@ -38,16 +30,21 @@ End Function
 
 Public Sub Flush()
     Dim owner As frmActionPaths, reader As frmActionPathLibrary
-    Dim pickers As Collection, picker As frmGuideActionPicker
+    Dim index As Long, instance As Object, picker As frmGuideActionPicker
     If Not mPending Then Exit Sub
     Set owner = mOwner: Set reader = mReader
-    Set pickers = mPickers: Set mPickers = Nothing
     Set mOwner = Nothing: Set mReader = Nothing
     mPending = False
     If modOperationsFormLifetime.IsLoaded(owner) Then owner.ClosePublishedGuidesIfCurrent reader
-    If Not pickers Is Nothing Then
-        For Each picker In pickers
-            If modOperationsFormLifetime.IsLoaded(picker) Then Unload picker
-        Next picker
-    End If
+    ' Reopening can already have unloaded the old picker. Only its live instance
+    ' can carry the native-close flag. Unloading can also remove its child forms.
+    For index = VBA.UserForms.Count - 1 To 0 Step -1
+        If index < VBA.UserForms.Count Then
+            Set instance = VBA.UserForms(index)
+            If TypeOf instance Is frmGuideActionPicker Then
+                Set picker = instance
+                picker.FinishNativeClose
+            End If
+        End If
+    Next index
 End Sub

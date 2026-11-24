@@ -259,6 +259,7 @@ param(
     [switch]$GuideActionCurationOnly,
     [switch]$GuidePickerStoppedRunOnly,
     [switch]$GuideRecordedEntryOnly,
+    [switch]$GuideDeferredReentryOnly,
     [switch]$CheckGuideTransfer,
     [switch]$CheckGuideTransferRoundTrip,
     [switch]$CheckGuideTransferActivity,
@@ -457,6 +458,7 @@ if($CheckOwnerCommandCompletion -and (-not $CheckBoxingActivity -or -not $Captur
 }
 if($OwnerCommandCompletionOnly -and -not $CheckOwnerCommandCompletion){throw 'Focused owner completion requires its protecting gate.'}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
+if($GuideDeferredReentryOnly -and (-not $GuideActionCurationOnly -or -not $VisibleExcelForTest)){throw 'Deferred picker reentry requires the visible direct-curation fixture.'}
 if($GuideRecordedEntryOnly -and (-not $GuideDraftOnly -or -not $CheckGuideSearchNative -or -not $VisibleExcelForTest)){
     throw 'The isolated recorded-run entry test requires the visible native guide fixture.'
 }
@@ -1905,6 +1907,10 @@ End Function
                 if($CheckGuideLibrary){Install-GuideReaderCloseProbe}
                 if($CheckGuideLibrary -or $GuideActionCurationOnly -or $GuideRecordedEntryOnly){Install-GuideSearchReadProbe}
                 if($GuidePickerStoppedRunOnly){Install-GuideInputWriteProbe}
+                if($GuideDeferredReentryOnly){
+                    . (Join-Path $PSScriptRoot 'Slice4beGuideActionCuration.ps1')
+                    Install-GuideDeferredCloseProbe
+                }
             }
             if($CheckGuideTransfer){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')

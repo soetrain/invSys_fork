@@ -1,5 +1,43 @@
 # D18 direct curation: original unrecorded Admin actions, real publication,
 # actual selection/Create/Save handlers. No synthetic guide or recording source.
+function Install-GuideDeferredCloseProbe {
+    $project=$packages['invSys.Operations.xlam'].VBProject
+    $probe=$project.VBComponents.Add(1)
+    $probe.Name='TestGuideDeferredTiming'
+    $probe.CodeModule.AddFromString(@'
+Option Explicit
+Private mHolding As Boolean, mRequests As Long
+Public Stage As String
+Public Sub Arm()
+    mRequests = 0: Stage = "entry": mHolding = True
+End Sub
+Public Function HoldCallback() As Boolean
+    If mHolding Then mRequests = mRequests + 1
+    HoldCallback = mHolding
+End Function
+Public Function Deliver() As String
+    On Error GoTo Failed
+    mHolding = False
+    modGuideReaderClose.Flush
+    Deliver = "OK|" & CStr(mRequests)
+    Exit Function
+Failed:
+    Deliver = CStr(Err.Number) & "|" & Stage & "|" & CStr(mRequests)
+End Function
+'@)
+    $module=$project.VBComponents.Item('modGuideReaderClose').CodeModule
+    $body=$module.Lines(1,$module.CountOfLines)
+    $onTime='        Application.OnTime EarliestTime:='
+    if([regex]::Matches($body,[regex]::Escape($onTime)).Count -ne 1){throw 'Native close timer fixture unavailable.'}
+    $body=$body.Replace($onTime,'        If Not TestGuideDeferredTiming.HoldCallback() Then Application.OnTime EarliestTime:=')
+    # Attribute a former implementation's failure without requiring its loop in a repaired build.
+    foreach($point in @(@('        For Each picker In pickers','enumerating queued pickers'),@('            If modOperationsFormLifetime.IsLoaded(picker) Then Unload picker','checking or unloading queued picker'))){
+        $body=$body.Replace($point[0],('        TestGuideDeferredTiming.Stage = "'+$point[1]+'"'+[Environment]::NewLine+$point[0]))
+    }
+    $module.DeleteLines(1,$module.CountOfLines)
+    $module.AddFromString($body)
+}
+
 function Test-GuideActionCuration($Fixture,$Other) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
@@ -28,10 +66,11 @@ function Test-GuideActionCuration($Fixture,$Other) {
             throw ("Native picker close failed after {0} ms. Original window exists={1}, exact caption visible={2}, loaded form count={3}." -f $elapsed.ElapsedMilliseconds,$windowAlive,($visible -ne [IntPtr]::Zero),$loaded)
         }
     }
-    function Test-PickerReentryAfterNativeClose {
+    function Test-PickerReentryAfterNativeClose([switch]$HoldCallback) {
         . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
         OpenPicker
         $previous=Get-OwnedGuideInputWindow 'Choose tracked actions'
+        if($HoldCallback){[void](Run 'invSys.Operations.xlam' 'TestGuideDeferredTiming.Arm')}
         if(-not [GuideInputNative]::PostMessage($previous,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
             throw 'Unable to deliver the native picker close before reentry.'
         }
@@ -43,7 +82,12 @@ function Test-GuideActionCuration($Fixture,$Other) {
         if($visible -ne [IntPtr]::Zero){throw 'The picker remained visible after native close.'}
         OpenPicker
         $replacement=Get-OwnedGuideInputWindow 'Choose tracked actions'
-        Start-Sleep -Seconds 2
+        if($HoldCallback){
+            Check 'GuideCuration.OldPickerWindowGoneBeforeDeferredDelivery' ($previous -ne $replacement -and -not [GuideInputNative]::IsWindow($previous))
+            $delivery=[string](Run 'invSys.Operations.xlam' 'TestGuideDeferredTiming.Deliver')
+            Write-Host ('Deferred picker delivery: '+$delivery)
+            Check 'GuideCuration.DeferredCallbackCompletesAfterReplacement' ($delivery -ceq 'OK|1')
+        }else{Start-Sleep -Seconds 2}
         $current=[InvSysSettingsCapture]::OwnedVisibleForm('Choose tracked actions',[IntPtr]$excel.Hwnd)
         Check 'GuideCuration.PendingClosePreservesReopenedPicker' ($replacement -eq $current -and (Pick '' 'Count') -ceq '1')
         [void](Pick 'btnCancelGuideActions' 'Click')
@@ -130,6 +174,7 @@ public static class CurationNativeLayout {
         if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Accepted Action Paths entry unavailable.'}
         Check 'GuideCuration.EntryIndependentOfRecording' ((BoundControl 'btnChooseGuideActions' 'State' '' 'frmActionPaths') -ceq 'True|True' -and (BoundControl 'lstActionPaths' 'Rows' '' 'frmActionPaths') -ceq '0')
         Check 'GuideCuration.EntryCaption' ((BoundControl 'btnChooseGuideActions' 'Label' '' 'frmActionPaths') -ceq 'Choose tracked actions')
+        if($GuideDeferredReentryOnly){Test-PickerReentryAfterNativeClose -HoldCallback;return}
         foreach($size in @('Minimum','Default','Larger','Restored')){
             Check ('GuideCuration.LibraryLayout.'+$size) ((BoundControl '' 'Fit' $size 'frmActionPaths') -ceq 'True')
             CurateCapture ('library-'+$size.ToLowerInvariant()) 'Action Paths'

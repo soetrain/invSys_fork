@@ -1,5 +1,19 @@
 # Slice 4be-A operator comparison review
 
+**November 24 single-click review.** On the guide-open build, one physical
+click on the recorded-run Create Guide button on the NAS showed progress
+after 196 ms, the editor after 3.11 seconds and the loaded form after
+5.52 seconds. The focused suite passed 40/40. On the local fixture, one
+click on Create Guide from two selected actions showed progress after
+166 ms and the editor after 1.12 seconds. Both forms recovered their
+ordinary titles. The local curation suite passed 99/99.
+
+In two consecutive native mouse cycles per form, Published Guides closed
+in 538 and 528 ms and Choose tracked actions closed in 649 and 493 ms.
+Each click removed the original window and its VBA form. On the three-row
+local picker, typing and Backspace took 26–40 ms, a no-match query took
+79 ms, and clearing restored all rows in 28 ms.
+
 **November 24 NAS picker.** A freshly generated Training warehouse on the
 UAT share held 31 authorized action rows after 30 actual Admin saves. On the
 deferred-close build, Open took 4.97 seconds. The first character appeared

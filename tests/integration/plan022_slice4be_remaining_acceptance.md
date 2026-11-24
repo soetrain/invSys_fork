@@ -15,12 +15,37 @@ still independently checks the bound source. One NAS click showed feedback
 at 196 ms, the editor at 3,110 ms and a loaded form at 5,523 ms. The two
 source reads and restoration of the parent caption passed. Worker
 `slice4be-viewer-published-read/f773837e94f04e16b8f40c240974c3b9`.
+The focused NAS suite finished 40/40. The local selected-actions, Search,
+repeated native Close/Cancel, X and source-integrity suite passed 99/99.
+Worker `slice4be-viewer-published-read/c1f7314397ae49d89447a7c72d907272`.
 All five explicit package compiles and cold Operations initialization passed.
 The two private display helpers account for two additional procedures and
 39 net source lines including the parent feedback. The scan found 392
 components, 6,777 procedures, 146,665 lines, 1,265 candidates, 193 duplicate
 groups, 30 warnings, 1,060 dynamic roots, nine literal and 45 unresolved
 dynamic calls. Raw reports are under `reports/runtime/static-guide-open-20261124`.
+
+The ordinary read-only Excel launch loaded all five guide-open projects from
+the expected paths and preserved the review host and package hashes. In a
+separate signed-in NAS curation trial, both Published Guides and Choose
+tracked actions opened and closed with a single click on two successive
+cycles. Closing took 1.25–1.75 seconds through the class-count observation.
+The reopened picker's X also disposed its original window and form.
+Immediate X/reopen then failed the replacement's Cancel check. A VBA dialog
+reported run-time error 13, “Type mismatch.” The blocked picker could not
+receive search focus. The run ended with 29 passes and three failures
+including cleanup. The dialog was captured and dismissed with End. Excel
+exited, and both exact disposable fixture directories were removed.
+This attended incident is not a passing NAS curation run. Worker
+`slice4be-viewer-published-read/c2f30f75e0db4a19a1316ae7dc3045cc`.
+
+A focused scheduling test held the timer until the old window had been
+destroyed and the replacement was visible. The original callback returned
+VBA error 13 while enumerating its collection of typed picker references
+(13 passes and one failure). The live-close build records the pending X on
+the picker itself and finds only loaded forms when the timer runs. The same
+timing test passed 14/14, including preservation and Cancel of the
+replacement. All five explicit compiles and cold initialization passed.
 
 **November 24 NAS picker repair.** The November 23 build twice failed
 native title-bar close after reopening. In the second trial the exact window
