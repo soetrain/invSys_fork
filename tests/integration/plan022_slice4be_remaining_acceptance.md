@@ -1,5 +1,19 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 NAS reopen retest.** On the live-close build, both Published
+Guides and Choose tracked actions opened and closed on one native click for
+two consecutive cycles. X disposed the reopened picker in 2.76 s. The delayed
+callback preserved its replacement, which Cancel unloaded. Typing, Backspace,
+no match, clearing, exact selection and zero per-key Core reads passed. One
+click on Create Guide from selected actions showed feedback in 184 ms, the
+editor in 3.21 s and a loaded editor in 4.52 s. The complete curation run
+stopped later with 81 passes and one failure. Excel rejected an automation
+call between the signed-out Save refusal and the permission-revocation check.
+Excel exited normally. Worker `252e7685880445138feb1b51211f73cc` under
+`reports/runtime/slice4be-viewer-published-read`. The ordinary read-only
+Excel launch subsequently verified all five live-close project paths and
+hashes and preserved the host workbook.
+
 **November 24 Create Guide response.** A native click on a selected NAS
 recording produced no visible acknowledgement for 5,433 ms. The editor was
 first visible at that point. Excel answered the loaded-form observation at

@@ -349,6 +349,7 @@ public static class CurationNativeLayout {
         $authPath=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Auth.xlsb')
         $authBytes=[IO.File]::ReadAllBytes($authPath)
         try {
+            if($WaitForExcelReadyForTest){Wait-ExcelReadyForTest 'CurationFixture.OpenPermissionWorkbook'}
             $auth=$excel.Workbooks.Open($authPath,0,$false)
             try {
                 $caps=Table $auth 'tblCapabilities';$revoked=0
