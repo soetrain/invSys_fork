@@ -169,6 +169,15 @@ Private Sub ReleaseSelection()
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    If CloseMode = vbFormControlMenu Then
+        Cancel = True
+        If modGuideReaderClose.SchedulePicker(Me) Then
+            Me.Hide
+        Else
+            mStatus.Caption = "Unable to close Choose tracked actions. Use Cancel or try again."
+        End If
+        Exit Sub
+    End If
     ReleaseSelection
     If modOperationsFormLifetime.IsLoaded(mOwner) Then mOwner.ForgetClosedGuideActionPicker Me
     Set mOwner = Nothing

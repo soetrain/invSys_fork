@@ -9,7 +9,7 @@
       "componentPattern": "modGuideReaderClose",
       "procedurePattern": "Flush",
       "sourcePathPattern": "src/Operations/Modules/modGuideReaderClose.bas",
-      "reason": "Excel OnTime invokes the Operations callback after native Published guides QueryClose returns, so owner cleanup cannot recursively unload that window."
+      "reason": "Excel OnTime unloads the exact Published guides reader or Choose tracked actions picker after its native QueryClose returns."
     },
     {
       "id": "inventory.worksheet-edit-catalog-receipt",

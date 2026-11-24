@@ -313,9 +313,8 @@ Private Sub mChooseGuideActions_Click()
     If Not ContextValid() Then Exit Sub
     If Not modGuideActionPicker.CanOpen(mContext, notice) Then mStatus.Caption = notice: Exit Sub
     If Not mGuideActionPicker Is Nothing Then
-        If mGuideActionPicker.RefreshChoices() Then
-            If Not mGuideActionPicker.Visible Then mGuideActionPicker.Show vbModeless
-            Exit Sub
+        If mGuideActionPicker.Visible Then
+            If mGuideActionPicker.RefreshChoices() Then Exit Sub
         End If
         CloseGuideActionPicker
     End If

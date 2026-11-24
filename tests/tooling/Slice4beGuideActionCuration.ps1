@@ -28,6 +28,27 @@ function Test-GuideActionCuration($Fixture,$Other) {
             throw ("Native picker close failed after {0} ms. Original window exists={1}, exact caption visible={2}, loaded form count={3}." -f $elapsed.ElapsedMilliseconds,$windowAlive,($visible -ne [IntPtr]::Zero),$loaded)
         }
     }
+    function Test-PickerReentryAfterNativeClose {
+        . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+        OpenPicker
+        $previous=Get-OwnedGuideInputWindow 'Choose tracked actions'
+        if(-not [GuideInputNative]::PostMessage($previous,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
+            throw 'Unable to deliver the native picker close before reentry.'
+        }
+        $deadline=[datetime]::UtcNow.AddSeconds(10)
+        do{
+            Start-Sleep -Milliseconds 30
+            $visible=[InvSysSettingsCapture]::OwnedVisibleForm('Choose tracked actions',[IntPtr]$excel.Hwnd)
+        }until($visible -eq [IntPtr]::Zero -or [datetime]::UtcNow -ge $deadline)
+        if($visible -ne [IntPtr]::Zero){throw 'The picker remained visible after native close.'}
+        OpenPicker
+        $replacement=Get-OwnedGuideInputWindow 'Choose tracked actions'
+        Start-Sleep -Seconds 2
+        $current=[InvSysSettingsCapture]::OwnedVisibleForm('Choose tracked actions',[IntPtr]$excel.Hwnd)
+        Check 'GuideCuration.PendingClosePreservesReopenedPicker' ($replacement -eq $current -and (Pick '' 'Count') -ceq '1')
+        [void](Pick 'btnCancelGuideActions' 'Click')
+        Check 'GuideCuration.ReenteredPickerCancelDisposesForm' ((Pick '' 'Count') -ceq '0')
+    }
     function ToggleAction([string]$Id) {
         $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
         $index=[Array]::IndexOf($ids,$Id)
@@ -137,6 +158,7 @@ public static class CurationNativeLayout {
             OpenPicker
             [void](Pick 'btnCancelGuideActions' 'Click')
             Test-ReopenedPickerNativeClose
+            Test-PickerReentryAfterNativeClose
         }
         $openTime=[Diagnostics.Stopwatch]::StartNew()
         OpenPicker
@@ -179,6 +201,7 @@ public static class CurationNativeLayout {
             [void](Pick 'btnCancelGuideActions' 'Click')
             Check 'GuideCuration.ScaleCloseDisposesPickerWithSourcesPreserved' ((Pick '' 'Count') -ceq '0' -and (BoundSame $sourcePins (BoundPins $Fixture.Root)))
             Test-ReopenedPickerNativeClose
+            Test-PickerReentryAfterNativeClose
             return
         }
         Check 'GuideCuration.SelectSecondActualAction' (ToggleAction $second.Attempt.ActivityId)
