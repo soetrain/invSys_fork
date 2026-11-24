@@ -6,6 +6,28 @@ function Test-GuideActionCuration($Fixture,$Other) {
     function Pick([string]$Name,[string]$Action,[string]$Value='') {BoundControl $Name $Action $Value 'frmGuideActionPicker'}
     function Draft([string]$Name,[string]$Action,[string]$Value='') {BoundControl $Name $Action $Value 'frmActionPathGuide'}
     function OpenPicker {[void](BoundControl 'btnChooseGuideActions' 'Click' '' 'frmActionPaths')}
+    function Test-ReopenedPickerNativeClose {
+        . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+        OpenPicker
+        $pickerWindow=Get-OwnedGuideInputWindow 'Choose tracked actions'
+        $elapsed=[Diagnostics.Stopwatch]::StartNew()
+        if(-not [GuideInputNative]::PostMessage($pickerWindow,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
+            throw 'Native Close message could not be delivered to the reopened picker.'
+        }
+        do{
+            Start-Sleep -Milliseconds 100
+            $windowAlive=[GuideInputNative]::IsWindow($pickerWindow)
+            $pickerGone=-not $windowAlive -and (Pick '' 'Count') -ceq '0'
+        }until($pickerGone -or $elapsed.Elapsed.TotalSeconds -ge 10)
+        $elapsed.Stop()
+        Check 'GuideCuration.ReopenedPickerNativeXDisposesWindowAndForm' $pickerGone
+        Write-Host ('Native picker close observation: '+$elapsed.ElapsedMilliseconds+' ms')
+        if(-not $pickerGone){
+            $visible=[InvSysSettingsCapture]::OwnedVisibleForm('Choose tracked actions',[IntPtr]$excel.Hwnd)
+            $loaded=Pick '' 'Count'
+            throw ("Native picker close failed after {0} ms. Original window exists={1}, exact caption visible={2}, loaded form count={3}." -f $elapsed.ElapsedMilliseconds,$windowAlive,($visible -ne [IntPtr]::Zero),$loaded)
+        }
+    }
     function ToggleAction([string]$Id) {
         $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
         $index=[Array]::IndexOf($ids,$Id)
@@ -111,22 +133,10 @@ public static class CurationNativeLayout {
                 }
             }
         }
-        if($VisibleExcelForTest){
-            . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+        if($VisibleExcelForTest -and -not $GuidePickerScaleOnly){
             OpenPicker
             [void](Pick 'btnCancelGuideActions' 'Click')
-            OpenPicker
-            $pickerWindow=Get-OwnedGuideInputWindow 'Choose tracked actions'
-            if(-not [GuideInputNative]::PostMessage($pickerWindow,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){
-                throw 'Native Close message could not be delivered to the reopened picker.'
-            }
-            $deadline=[DateTime]::UtcNow.AddSeconds(10)
-            do{
-                Start-Sleep -Milliseconds 100
-                $pickerGone=-not [GuideInputNative]::IsWindow($pickerWindow) -and (Pick '' 'Count') -ceq '0'
-            }until($pickerGone -or [DateTime]::UtcNow -ge $deadline)
-            Check 'GuideCuration.ReopenedPickerNativeXDisposesWindowAndForm' $pickerGone
-            if(-not $pickerGone){throw 'The reopened picker survived its native close request.'}
+            Test-ReopenedPickerNativeClose
         }
         $openTime=[Diagnostics.Stopwatch]::StartNew()
         OpenPicker
@@ -168,6 +178,7 @@ public static class CurationNativeLayout {
         if($GuidePickerScaleOnly){
             [void](Pick 'btnCancelGuideActions' 'Click')
             Check 'GuideCuration.ScaleCloseDisposesPickerWithSourcesPreserved' ((Pick '' 'Count') -ceq '0' -and (BoundSame $sourcePins (BoundPins $Fixture.Root)))
+            Test-ReopenedPickerNativeClose
             return
         }
         Check 'GuideCuration.SelectSecondActualAction' (ToggleAction $second.Attempt.ActivityId)
