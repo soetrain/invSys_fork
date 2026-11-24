@@ -110,7 +110,10 @@ steps and Failed. Both recordings retained their own identifiers across the
 three views. The minimum-size comparison also kept both panes and Close
 visible. Local captures are in
 `reports/runtime/slice4be-viewer-published-read/0a2d2957637346899bc60d79bde2c9e7`.
-The literal Save My Preference walkthrough and Justin's review remain open.
+The full packaged presentation suite passed 322/322, produced 44 captures
+and exited Excel normally without a crash or hang event. The five registered
+startup paths and package hashes matched after closure. The literal Save My
+Preference walkthrough and Justin's review remain open.
 
 **Codex-operated Receiving review, November 24.** One immutable guide was
 paired with two fresh recordings from a generated Training warehouse. I
