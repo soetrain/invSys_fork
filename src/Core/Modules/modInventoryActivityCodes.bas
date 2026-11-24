@@ -9,7 +9,7 @@ Public Function SelectionIds() As Variant
         "ADMIN_INVENTORY_CUSTOM_FIELD_ADD", "ADMIN_INVENTORY_CUSTOM_FIELD_REMOVE")
 End Function
 
-Public Function Control(ByVal id As String, Optional ByVal version As Long = 47) As Object
+Public Function Control(ByVal id As String, Optional ByVal version As Long = modActivityCatalog.CATALOG_VERSION) As Object
     Dim caption As String, record As Object, kind As String
     kind = "Navigation"
     Select Case id
@@ -35,6 +35,9 @@ Public Function Control(ByVal id As String, Optional ByVal version As Long = 47)
                     If version < 47 Then Exit Function
                     kind = "Command"
                     If id = "ADMIN_INVENTORY_CREATE_TABLE" Then caption = "Create Inventory Table" Else caption = "Upload Selected Inventory Table"
+                Case "ADMIN_INVENTORY_ADD"
+                    If version < 48 Then Exit Function
+                    caption = "Add Item": kind = "Command"
                 Case Else: Exit Function
             End Select
     End Select
@@ -48,6 +51,7 @@ End Function
 
 Public Function PositiveOutcome(ByVal id As String, ByVal code As String) As Boolean
     Select Case id
+        Case "ADMIN_INVENTORY_ADD": PositiveOutcome = (code = "APPLIED")
         Case "ADMIN_INVENTORY_CREATE_TABLE": PositiveOutcome = (code = "SAVED")
         Case "ADMIN_INVENTORY_UPLOAD_TABLE": PositiveOutcome = (code = "CONFIRMED")
         Case "ADMIN_INVENTORY_OPEN": PositiveOutcome = (code = "OPENED")
@@ -73,11 +77,23 @@ Public Function Outcome(ByVal id As String, ByVal code As String) As Object
     severity = "Info": effect = "Unknown"
     Select Case code
         Case "REQUESTED": message = definition("Caption") & " requested."
-        Case "FAILED": severity = "Error": message = "Inventory navigation did not finish. Inspect the owning form; no rollback is asserted."
+        Case "FAILED"
+            severity = "Error": message = "Inventory navigation did not finish. Inspect the owning form; no rollback is asserted."
+            If id = "ADMIN_INVENTORY_ADD" Then message = "Add Item could not confirm its result. Check the inventory status."
+        Case "APPLIED", "PENDING", "PARTIAL"
+            If id <> "ADMIN_INVENTORY_ADD" Then Exit Function
+            Select Case code
+                Case "APPLIED": effect = "Changed": message = "The new inventory item's event was applied and saved."
+                Case "PENDING": message = "The inventory event was submitted. Its saved application is unconfirmed."
+                Case "PARTIAL": severity = "Warning": effect = "Changed": message = "The inventory event was applied and saved. Command confirmation did not finish."
+            End Select
         Case "CANCELLED", "REFUSED"
-            If id <> "ADMIN_INVENTORY_UOM_ADD" Then Exit Function
             effect = "Unchanged"
-            If code = "CANCELLED" Then
+            If id = "ADMIN_INVENTORY_ADD" And code = "REFUSED" Then
+                severity = "Blocked": message = "Add Item was refused before submission."
+            ElseIf id <> "ADMIN_INVENTORY_UOM_ADD" Then
+                Exit Function
+            ElseIf code = "CANCELLED" Then
                 message = "UOM entry was cancelled. No catalog or inventory save is asserted."
             Else
                 severity = "Blocked"

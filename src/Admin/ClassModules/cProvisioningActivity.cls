@@ -12,6 +12,8 @@ Option Explicit
 Private mContext As String, mNotice As String, mOpening As String
 Private mTarget As Workbook, mPresented As Boolean
 Private mPrefix As String, mLabel As String
+Private mInventorySubmission As String
+Private mInventorySubmissionStarted As Boolean
 
 Public Sub Initialize(ByVal target As Workbook, Optional ByVal prefix As String = "ADMIN_CREATE_", Optional ByVal label As String = "Create Warehouse")
     On Error GoTo Unavailable
@@ -57,6 +59,24 @@ Finished:
 Unavailable:
     UnavailableNotice
     Resume Finished
+End Sub
+
+' The modal starts the observation. Its caller owns the inventory result.
+Public Sub BeginInventorySubmission(ByVal suffix As String)
+    mInventorySubmissionStarted = True
+    mInventorySubmission = BeginAction(suffix)
+End Sub
+
+Public Sub FinishInventorySubmission(ByVal outcome As String, Optional ByVal observedEvents As String = "")
+    Dim action As String
+    If Not mInventorySubmissionStarted Then Exit Sub
+    mInventorySubmissionStarted = False
+    action = mInventorySubmission: mInventorySubmission = ""
+    If action = "" Then
+        ShowNotice
+    Else
+        Finish action, outcome, modInventoryWorksheetActivity.References(action, observedEvents)
+    End If
 End Sub
 
 Public Sub Presented(ByVal visible As Boolean)

@@ -1,5 +1,29 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## November 24 Add Item recording
+
+Catalog 47 saved a new entity and its exact Inventory event but omitted the
+Add Item request and outcome. The tracking-off control saved normally. The
+actual modal Add handler test produced 27 passes and six failures, worker
+`eee8629f16fb4415a5f50cd85fc615fc`. The first catalog 48 build recorded
+the owner facts but lost the operator notice when the request write failed
+(73 passes, one failure, `10f873f8a6c844fe99bbc816c5c33a71`).
+
+`deploy/validation-guide-add-notice-20261124` passed 96/96, including
+pre-write refusal with no inventory change, exact saved application, submitted
+but unapplied, saved with incomplete command confirmation, sign-out between
+application and confirmation, tracking disabled and failures of either
+optional recording write. All six outcomes passed the source-reference
+matrix. Only APPLIED satisfied CommandCompleted. The test read the saved
+Inventory rows independently. Excel exited without a click. Worker
+`reports/runtime/slice4be-admin-inventory-entry/b6bf5e39099748b29f5426cb848618aa`.
+
+Cold Operations initialization and all five package compiles passed. Static
+control surface passed 6/6 and full-chain wiring passed 13/13. The source
+scan found 392 components, 6,779 procedures, 146,736 lines, 1,265 candidates,
+193 duplicate groups and 9 literal / 45 unresolved dynamic calls. Two methods
+hold and finish the modal submission across the handoff to its creation owner.
+
 ## 2026-11-08 PR4-BASE-02 edit-creation and Config gate
 
 v14 ran the two catalog-save failure cases separately on unchanged PR 4

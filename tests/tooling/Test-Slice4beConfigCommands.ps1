@@ -164,6 +164,7 @@ param(
     [string]$AdminInventoryOverlaySourceRootForTest='',
     [switch]$AdminInventoryOwnResultsOnly,
     [switch]$AdminInventoryAddResultsOnly,
+    [switch]$CheckInventoryAddActivity,
     [switch]$AdminInventoryDeleteResultsOnly,
     [switch]$AdminInventoryWorksheetResultsOnly,
     [switch]$AdminInventoryImportedRowsOnly,
@@ -459,6 +460,7 @@ if($CheckOwnerCommandCompletion -and (-not $CheckBoxingActivity -or -not $Captur
 if($OwnerCommandCompletionOnly -and -not $CheckOwnerCommandCompletion){throw 'Focused owner completion requires its protecting gate.'}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($GuideDeferredReentryOnly -and (-not $GuideActionCurationOnly -or -not $VisibleExcelForTest)){throw 'Deferred picker reentry requires the visible direct-curation fixture.'}
+if($CheckInventoryAddActivity -and -not $AdminInventoryAddResultsOnly){throw 'Add Item activity requires its packaged Add result fixture.'}
 if($GuideRecordedEntryOnly -and (-not $GuideDraftOnly -or -not $CheckGuideSearchNative -or -not $VisibleExcelForTest)){
     throw 'The isolated recorded-run entry test requires the visible native guide fixture.'
 }
@@ -2494,6 +2496,10 @@ End Function
             Install-InventoryDeleteResultProbe
         }
         if($AdminInventoryAddResultsOnly){
+            if($CheckInventoryAddActivity){
+                . (Join-Path $PSScriptRoot 'Slice4beInventoryRecording.ps1')
+                Install-InventoryRecordingPolicyProbe
+            }
             . (Join-Path $PSScriptRoot 'Slice4beInventoryAddResults.ps1')
             Install-InventoryAddResultProbe
         }
@@ -3149,6 +3155,13 @@ catch {
     Check ('Harness.Exception.'+$step) $false
     $message=$_.Exception.Message -replace '(?i)[A-Z]:\\[^\r\n"'']+', '<path>'
     Write-Output $message
+    if($GuideActionCurationOnly){
+        foreach($frame in ($_.ScriptStackTrace -split '\r?\n')){
+            if($frame -match '[/\\]([a-zA-Z0-9_.-]+\.ps1):\s*line\s+(\d+)'){
+                Write-Output ('Curation failure at '+$Matches[1]+' line '+$Matches[2])
+            }
+        }
+    }
 }
 finally {
     $inventoryQuitReturned=$false

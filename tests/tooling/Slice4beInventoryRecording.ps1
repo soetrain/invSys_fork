@@ -2,7 +2,7 @@
 # adapter supplies gestures and suppresses only fixed tracking notices.
 . (Join-Path $PSScriptRoot 'Slice4beActivityAssertions.ps1')
 . (Join-Path $PSScriptRoot 'Slice4beInventoryRecordingBoundaries.ps1')
-function Install-InventoryRecordingProbe {
+function Install-InventoryRecordingPolicyProbe {
     $core=$packages['invSys.Core.xlam'].VBProject
     $probe=$core.VBComponents.Add(1);$probe.Name='TestInventoryRecordingPolicy'
     $probe.CodeModule.AddFromString(@'
@@ -30,17 +30,31 @@ Public Function Definition(ByVal id As String, ByVal version As Long) As String
     Set model = modActivityCatalog.Control(id, version)
     If Not model Is Nothing Then Definition = modTrainingJson.EncodeObject(model)
 End Function
-Public Function PriorDefinitionsPreserved() As Boolean
+Public Function PriorDefinitionsPreserved(Optional ByVal version As Long = 43) As Boolean
     Dim id As Variant, before As Object, after As Object
-    For Each id In modActivityCatalog.ControlIds(43)
-        Set before = modActivityCatalog.Control(CStr(id), 43)
+    For Each id In modActivityCatalog.ControlIds(version)
+        Set before = modActivityCatalog.Control(CStr(id), version)
         Set after = modActivityCatalog.Control(CStr(id))
         If before Is Nothing Or after Is Nothing Then Exit Function
         If modTrainingJson.EncodeObject(before) <> modTrainingJson.EncodeObject(after) Then Exit Function
     Next id
     PriorDefinitionsPreserved = True
 End Function
+Public Function InventoryOutcome(ByVal id As String, ByVal version As Long, ByVal code As String, ByVal effect As String, ByVal completed As Boolean) As Boolean
+    Dim outcome As Object, record As Object
+    Set outcome = modActivityCatalog.Outcome(id, code)
+    If outcome Is Nothing Then Exit Function
+    If outcome("DataEffect") <> effect Then Exit Function
+    Set record = CreateObject("Scripting.Dictionary")
+    record.Add "ControlId", id: record.Add "CatalogVersion", version
+    record.Add "OwnerId", "ADMIN_INVENTORY": record.Add "OutcomeCode", code
+    InventoryOutcome = (modEvaluationMatches.CommandCompleted(record) = completed)
+End Function
 '@)
+}
+
+function Install-InventoryRecordingProbe {
+    Install-InventoryRecordingPolicyProbe
     $admin=$packages['invSys.Admin.xlam'].VBProject
     $probe=$admin.VBComponents.Add(1);$probe.Name='TestInventoryRecording'
     $probe.CodeModule.AddFromString(@'
@@ -89,13 +103,17 @@ Public Sub RecordingNavigationForTest(ByVal mode As String)
     End If
 End Sub
 '@)
+    Install-InventoryTrackingNoticeProbe $admin 'TestInventoryRecording'
+    Install-InventoryRecordingBoundaries $probe $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestInventoryRecordingPolicy')
+}
+
+function Install-InventoryTrackingNoticeProbe($admin,[string]$probeName) {
     $activity=$admin.VBComponents.Item('cProvisioningActivity').CodeModule
     $text=$activity.Lines(1,$activity.CountOfLines)
     $noticePattern='(?i)MsgBox\s+notice,\s+vbExclamation,\s+"invSys Admin"'
     if([regex]::Matches($text,$noticePattern).Count -ne 1){throw 'Fixed tracking notice boundary unavailable; not product RED.'}
-    $text=[regex]::Replace($text,$noticePattern,'TestInventoryRecording.TrackingNotice notice, vbExclamation, "invSys Admin"')
+    $text=[regex]::Replace($text,$noticePattern,($probeName+'.TrackingNotice notice, vbExclamation, "invSys Admin"'))
     $activity.DeleteLines(1,$activity.CountOfLines);$activity.AddFromString($text)
-    Install-InventoryRecordingBoundaries $probe $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestInventoryRecordingPolicy')
 }
 
 function Test-InventoryRecording($Fixture,$Other) {

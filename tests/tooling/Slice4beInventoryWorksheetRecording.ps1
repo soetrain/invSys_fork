@@ -26,16 +26,6 @@ Public Function Prior199Preserved() As Boolean
     Next id
     Prior199Preserved = True
 End Function
-Public Function WorksheetOutcome(ByVal id As String, ByVal code As String, ByVal effect As String, ByVal completed As Boolean) As Boolean
-    Dim outcome As Object, record As Object
-    Set outcome = modActivityCatalog.Outcome(id, code)
-    If outcome Is Nothing Then Exit Function
-    If outcome("DataEffect") <> effect Then Exit Function
-    Set record = CreateObject("Scripting.Dictionary")
-    record.Add "ControlId", id: record.Add "CatalogVersion", 47
-    record.Add "OwnerId", "ADMIN_INVENTORY": record.Add "OutcomeCode", code
-    WorksheetOutcome = (modEvaluationMatches.CommandCompleted(record) = completed)
-End Function
 '@)
     $queueProbe=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1);$queueProbe.Name='TestWorksheetQueue'
     $queueProbe.CodeModule.AddFromString(@'
@@ -104,7 +94,7 @@ function Test-InventoryWorksheetRecording($Fixture,$Other,[string]$Group='All') 
         foreach($code in $codes){
             $effect=if($code -cin @('SAVED','REFUSED','EMPTY','REJECTED')){'Unchanged'}else{'Unknown'}
             $positive=$code -cin @('SAVED','CONFIRMED')
-            Check ('WorksheetRecording.Conclusion.'+$suffix+'.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.WorksheetOutcome' @($id,$code,$effect,$positive)))
+            Check ('WorksheetRecording.Conclusion.'+$suffix+'.'+$code) ([bool](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.InventoryOutcome' @($id,47,$code,$effect,$positive)))
         }
     }
     $cases=@('CreateEnabled','CreateDisabled','CreateControlOff','CreateUserOff','CreateExpired','CreateSignedOut','CreateSaveThrows',

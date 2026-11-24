@@ -503,6 +503,7 @@ Sub Add_InventoryItem()
     Dim actionSucceeded As Boolean
     Dim interactiveContext As String, sourceValues As Variant
     Dim activity As cProvisioningActivity
+    Dim addOutcome As String, addEvent As String
 
     Set targetWb = ResolveInteractiveAdminWorkbook(False)
     If targetWb Is Nothing Then
@@ -543,7 +544,10 @@ Sub Add_InventoryItem()
         accepted = addForm.Accepted
         On Error GoTo 0
         If Not accepted Then Exit Do
-        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then Exit Do
+        If Not modInventoryCommands.CheckForm(interactiveContext, report) Then
+            activity.FinishInventorySubmission "REFUSED"
+            Exit Do
+        End If
 
         On Error GoTo FormUnavailable
         isEdit = addForm.EditMode
@@ -598,7 +602,9 @@ Sub Add_InventoryItem()
                                                            formQty, formDescription, _
                                                            formVendorName, formVendorCode, _
                                                            formCategory, formExternalCode, _
-                                                           formImagePath, formCustomFields, report, interactiveContext)
+                                                           formImagePath, formCustomFields, report, interactiveContext, _
+                                                           observedEvent:=addEvent, observedOutcome:=addOutcome)
+            activity.FinishInventorySubmission addOutcome, addEvent
         End If
 
         If actionSucceeded Then
@@ -620,6 +626,7 @@ Sub Add_InventoryItem()
 
 CleanExit:
     On Error Resume Next
+    If Not activity Is Nothing Then activity.FinishInventorySubmission "FAILED"
     If Not activity Is Nothing Then activity.OpeningFailed
     Unload addForm
     modInventoryCommands.Release interactiveContext
@@ -657,7 +664,8 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
                                              Optional ByVal interactiveContext As String = "", _
                                              Optional ByVal creationEventId As String = "", _
                                              Optional ByVal stagingRow As Long = 0, _
-                                             Optional ByRef observedEvent As String = "") As Boolean
+                                             Optional ByRef observedEvent As String = "", _
+                                             Optional ByRef observedOutcome As String = "") As Boolean
     Dim payloadJson As String
     Dim eventIdOut As String
     Dim queueError As String
@@ -670,7 +678,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     Dim receiptFound As Boolean, receiptApplied As Boolean, receiptPayload As String, receiptKey As String
 
     On Error GoTo FailAdd
-    observedEvent = ""
+    observedEvent = "": observedOutcome = "REFUSED"
 
     warehouseId = Trim$(warehouseId)
     stationId = Trim$(stationId)
@@ -713,6 +721,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         If Not modInventoryCreateReceipts.Resolve(interactiveContext, warehouseId, stationId, userId, _
                 eventIdOut, receiptFound, receiptKey, receiptPayload, receiptApplied, report) Then Exit Function
     End If
+    observedOutcome = "FAILED"
     If Not receiptApplied Then
         If interactiveContext <> "" Then
             If Not modInventoryCommands.PrepareCreationInboxes(interactiveContext, report) Then Exit Function
@@ -757,6 +766,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         Exit Function
     End If
     End If
+    If observedEvent <> "" Then observedOutcome = "PENDING"
     If stagingRow > 0 Then
         If Not modAdminInventoryWorksheet.StoreQueuedCreateReceipt(interactiveContext, stagingRow, sku, _
                 eventIdOut, systemKey, report) Then GoTo Unconfirmed
@@ -770,6 +780,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
         report = "Inventory item event queued; exact saved application is unconfirmed." & vbCrLf & batchReport
         GoTo Unconfirmed
     End If
+    observedOutcome = "PARTIAL"
     If interactiveContext <> "" Then
         If Not modInventoryCommands.ConfirmCreate(interactiveContext, eventIdOut, report) Then
             report = "Partial result: exact event application was saved, but command confirmation failed." & _
@@ -779,6 +790,7 @@ Public Function AddInventoryItemForWarehouse(ByVal warehouseId As String, _
     End If
 
 CreateSaved:
+    observedOutcome = "APPLIED"
     report = "Inventory item added. Exact event application was saved." & vbCrLf & _
              "Event: " & eventIdOut & vbCrLf & _
              "Warehouse: " & warehouseId & vbCrLf & _
@@ -796,6 +808,7 @@ Unconfirmed:
     If eventIdOut <> "" Then report = report & vbCrLf & "Event: " & eventIdOut & ". Application is unconfirmed."
     Exit Function
 FailAdd:
+    If observedOutcome = "REFUSED" Then observedOutcome = "FAILED"
     report = "AddInventoryItem failed: " & Err.Description
     GoTo Unconfirmed
 End Function

@@ -979,16 +979,20 @@ Failed:
 End Sub
 
 Private Sub mBtnOK_Click()
-    If Not CurrentContextAllowed() Then Exit Sub
-    If Not ValidateForm Then Exit Sub
+    If Not mEditMode And Not mActivity Is Nothing Then mActivity.BeginInventorySubmission "ADD"
+    If Not CurrentContextAllowed() Then GoTo Refused
+    If Not ValidateForm Then GoTo Refused
     If mEditMode Then
         If Not PromptForEditReason Then Exit Sub
     End If
-    If Not CurrentContextAllowed() Then Exit Sub
+    If Not CurrentContextAllowed() Then GoTo Refused
     mDeleteRequested = False
     mDeleteReason = ""
     mAccepted = True
     Me.Hide
+    Exit Sub
+Refused:
+    If Not mActivity Is Nothing Then mActivity.FinishInventorySubmission "REFUSED"
 End Sub
 
 Private Function PromptForEditReason() As Boolean
