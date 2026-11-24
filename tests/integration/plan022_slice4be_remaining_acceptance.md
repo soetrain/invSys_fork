@@ -1,5 +1,17 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 installed reader build.** `validation-guide-reader-reopen-20261124`
+passed the ordered Release 1 chain (33/33) and packaged live roles (48/48).
+The chain reopened the saved canonical and operator workbooks in a fresh Excel
+process, found the five expected packages, restored local settings and recorded
+zero Excel crash or hang events. Its validator handled its expected palette
+save notice. Excel exited normally without operator intervention. The signed-in
+NAS curation test on the same five files passed 99/99. One-click and search
+measurements are in the [operator review](plan022_slice4be_operator_review.md).
+Generated chain evidence is in the detached `invSys_4bea_20261124_reader`
+checkout at `tests/integration/slice14_results.md` and
+`tests/unit/phase6_live_role_workflow_results.md`.
+
 **November 24 rapid Published Guides X.** In the packaged timing test, a
 second reader opened while the original reader's X callback was pending.
 The replacement refused its own X and remained loaded after the callback
