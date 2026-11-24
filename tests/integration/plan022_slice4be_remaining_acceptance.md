@@ -19,6 +19,31 @@ explicit compiles. Ordinary Excel startup opened the read-only review host,
 loaded all five actual VBA projects from the new build and exited with
 unchanged package and host hashes. Header compatibility passed 8/8.
 
+Early B0 passed 121/121 on this build, with the five package hashes
+preserved, settings restored and Excel closed normally. The 23 screenshots
+include eight native transition samples. The final default, minimum,
+enlarged, maximized and restored views kept the controls visible. The
+finished Receiving run displayed a fresh applied source, while the stopped
+run identified the missing Confirm Writes step. Worker
+`slice4be-receiving-replay/ff0e47112d7b404693ffe6332a7f8df8`, controller
+`receiving-replay-controller/58fbd38ec0a445698bbf577024a4f2bc` under
+`reports/runtime`.
+
+The populated NAS guide library showed two published versions. Native keys
+updated rows in 23–26 ms, no match in 76 ms and clear in 26 ms. Core policy
+and library read counters did not advance during filtering. Both Close and
+the native X disposed the reader. One actual click on the recorded run's
+Create Guide button showed the editor in 5,398 ms. Excel answered the loaded
+form count at 7,877 ms. The earlier immediate window assertion failed and
+the following read encountered busy HRESULT 0x800AC472. Worker
+`slice4be-viewer-published-read/ba11a86a26ab4ebea6082a4f2f506ec0`.
+
+The deferred-close implementation adds two procedures and 25 source lines,
+sharing the existing Excel OnTime entry. Maintenance evidence shows 392
+components, 6,775 procedures, 146,626 lines, 1,265 candidates, 193 duplicate
+groups, 30 warnings, 1,060 dynamic roots, nine literal and 45 unresolved
+dynamic calls. Release 1 control-surface and chain wiring passed 6/6 and 13/13.
+
 **November 23 picker rebuild.** On the November 22 packages, sending a native
 title-bar close to the reopened picker left its window and form loaded (14
 passes, two failures including the subsequent fixture stop). On
