@@ -17,12 +17,18 @@ checks passed 6/6 and chain-wiring checks passed 13/13. The ignored
 `reports/runtime/4bea-picker-finish-20261123/chain-summary.json` in the code
 worker retains assertion names and results.
 
-An ordinary Excel launch of the read-only NAS review host stopped before
+On November 23 an ordinary Excel launch of the read-only NAS review host stopped before
 sign-in with the Excel notice “This workbook is currently referenced by
 another workbook and cannot be closed.” The five startup entries pointed to
 the candidate. The first entry loaded Admin, and the second named Core, which
-Admin already references. The ordering is a suspected cause. The running
-projects and NAS form behavior still need verification.
+Admin already references. On November 24 the operator allowed the captured
+notice to be dismissed. Excel then reported that the review host had caused
+a serious error on its previous open. After closing that instance, the five
+existing invSys startup entries were ordered Core, Inventory Domain, Designs
+Domain, Operations and Admin. One attended launch cleared the previous-open
+notice. A separate ordinary read-only launch proceeded without a dialog and
+verified all five running VBA project paths. The host and five package hashes
+matched after normal Excel exit. Signed-in NAS form behavior remains open.
 
 **Preceding candidate.** The November 22 packages passed repeated button
 open/close and picker Search (92/92), recorded-run guide entry and populated

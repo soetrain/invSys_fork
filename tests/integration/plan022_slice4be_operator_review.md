@@ -3,9 +3,10 @@
 **November 23 picker rebuild.** The reopened picker's native X left both
 the window and the VBA form loaded on the preceding packages. The repaired
 picker passed the same close test and the retained curation suite (77/77).
-The ordinary read-only review launch stopped before sign-in at an Excel
-workbook-reference notice. Its five live project paths and the NAS comparison
-below remain open.
+After ordering the workstation's five startup entries with Core first, an
+ordinary read-only launch on November 24 verified the five live VBA project
+paths and preserved the host and package hashes after closing. The signed-in
+NAS comparison below remains open.
 
 **Preceding packaged verification.** In disposable fixtures on the November
 22 candidate, Published guides and Choose tracked actions each opened and closed
