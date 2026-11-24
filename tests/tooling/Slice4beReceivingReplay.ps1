@@ -169,6 +169,11 @@ function Test-Slice4beReceivingReplay($Fixture,$Other) {
         }
         if(@($results|Where-Object {$_.Check -like 'ReplayPrerequisite.*' -and -not $_.Passed}).Count){throw 'Receiving replay prerequisites failed; no product RED established.'}
         Deliver 'frmActionPathGuide' 'btnCancelGuide' 'Click'
+        if($ReceivingGuideComparisonOnly){
+            . (Join-Path $PSScriptRoot 'Slice4beReceivingGuideComparison.ps1')
+            Test-ReceivingGuideComparison $guide $source $staging
+            return
+        }
         BoundOpen;BoundSelect $guide
         $original=BoundPins $journalRoot;$activity=ActivityPins
         Check 'ReceivingReplay.ConfigureExecutionAvailable' ((BoundControl 'btnConfigureExecution' 'State') -ceq 'True|True')

@@ -1,5 +1,15 @@
 # Slice 4be-A operator comparison review
 
+**November 24 larger picker.** In a disposable local warehouse, 30 actual
+Admin settings saves produced a publication with 31 permitted action rows.
+Opening the picker took 1.80 seconds. With one action selected, the first
+character appeared with 31 rows in 43 ms, subsequent characters in 28 ms,
+Backspace in 30 ms, a four-character no-match query in 84 ms and clear in
+30 ms. Filtering by displayed caption returned the expected action IDs.
+The selection survived filtering and no Core library or policy reads occurred
+during the native keys. The focused suite passed 32/32. NAS latency is still
+unmeasured.
+
 **November 23 picker rebuild.** The reopened picker's native X left both
 the window and the VBA form loaded on the preceding packages. The repaired
 picker passed the same close test and the retained curation suite (77/77).
@@ -46,6 +56,17 @@ On 2026-11-16, the review Excel closed naturally with both open workbooks marked
 3. Record an incomplete Admin run that stages a different preferred view but stops **before Save My Preference**. Bind the same guide and Evaluate. The missing save must remain visible and must not conclude. Restore the original preference through Settings after the comparison.
 
 ## Review record
+
+**Codex-operated Receiving review, November 24.** One immutable guide was
+paired with two fresh recordings from a generated Training warehouse. I
+reviewed eight screenshots covering How-To, Diagnostic, Compare both and
+the scrolled result for each recording. The authored list remained readable
+and unchanged. The completed receipt showed the operator's four actions in
+order and the applied source event in the saved conclusion. The run stopped
+after Add Selected showed the three observed actions and identified Confirm
+Writes as the missing step. It offered no successful conclusion. Switching
+views retained the observed recording and guide version. The suite passed
+30/30. This review used the applied-event terminal and default window size.
 
 For each row, record **Pass**, **Issue**, or **Not tried**, with a short redacted note. Record a screenshot only when it helps explain a finding. This record is human feedback; the automated gates remain separate.
 

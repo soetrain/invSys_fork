@@ -17,6 +17,24 @@ checks passed 6/6 and chain-wiring checks passed 13/13. The ignored
 `reports/runtime/4bea-picker-finish-20261123/chain-summary.json` in the code
 worker retains assertion names and results.
 
+On November 24, the unchanged candidate passed the packaged smoke suite
+(86/86), covering Inventory and role restart. Production layout passed all
+18 page/size checks and its native minimize, maximize and restore checks.
+The saved-workbook guide restart suite passed 33/33. A different Excel process
+reopened the exact workbook, restored the saved personal view, preserved the
+guide and runtime bytes, and required an explicit guide/run pairing.
+
+Receiving guide comparison passed 30/30 against two independent recordings,
+including a stopped run missing Confirm Writes. The three packaged launcher
+callbacks also passed with no eligible workbook. The full reusable Production
+validator encountered an Excel native fault at the process edit/export
+callback (`0x800706BE` returned to the caller). Windows reported
+`ntdll.dll`, exception `0xc00000ff`. Its recovery instance contained four
+saved disposable workbooks and was closed after inspection. This matches a
+previously investigated failure in the [Production assignment
+record](plan022_slice4be_production_assignment_results.md). Full reusable
+Production remains open.
+
 On November 23 an ordinary Excel launch of the read-only NAS review host stopped before
 sign-in with the Excel notice “This workbook is currently referenced by
 another workbook and cannot be closed.” The five startup entries pointed to

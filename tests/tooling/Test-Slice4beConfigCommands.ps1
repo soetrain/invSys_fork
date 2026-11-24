@@ -273,6 +273,8 @@ param(
     [switch]$VisibleExcelForTest,
     [switch]$CheckGuideSearchNative,
     [switch]$GuidePickerScaleOnly,
+    [switch]$ReceivingGuideComparisonOnly,
+    [string]$GuideNasTestLeaf,
     [switch]$TraceViewerStartupForTest,
     [switch]$ViewerStartupSavedWorkbookForTest,
     [ValidateSet('None','Caption','Status','Config','ShownConfig','ConfigSteps','ConfigCloseVisible')]
@@ -459,6 +461,18 @@ if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
 if($GuidePickerScaleOnly -and (-not $GuideActionCurationOnly -or -not $VisibleExcelForTest)){
     throw 'Picker scale requires the visible direct-curation fixture.'
+}
+if($GuideNasTestLeaf){
+    if(-not $VisibleExcelForTest -or -not ($GuidePickerScaleOnly -or $CheckGuideSearchNative -or $CheckGuidePresentationAvailability -or $CheckOperationsGuidePresentation)){
+        throw 'The disposable NAS fixture requires a visible guide review.'
+    }
+    $GuideNasTestLeaf=(Get-Item -LiteralPath $GuideNasTestLeaf -ErrorAction Stop).FullName
+    if($GuideNasTestLeaf -notmatch '^\\\\[^\\]+\\[^\\]+\\(?:[^\\]+\\)*Plan022-R1-UAT-\d{8}-[A-F0-9]{8}$'){
+        throw 'Select the dedicated Plan 022 UAT folder on the NAS.'
+    }
+}
+if($ReceivingGuideComparisonOnly -and (-not $CheckReceivingReplay -or -not $VisibleExcelForTest -or -not $CaptureEvidence)){
+    throw 'The Receiving guide comparison requires the visible captured Receiving replay source fixture.'
 }
 if($CheckGuideSearchNative -and (-not $VisibleExcelForTest -or $ViewerStartupPackageStateForTest -ne 'SavedCopies' -or
     (-not $GuideActionCurationOnly -and -not $CheckGuideLibrary))){
@@ -669,6 +683,7 @@ if($RecordingContinuationPipeName -ne ''){
     $recordingHandoff.Connect(10000)
 }
 $runRoot = Join-Path ([IO.Path]::GetTempPath()) ('invsys-config-command-' + [guid]::NewGuid().ToString('N'))
+$guideNasFixtureRoot=$null
 $parentOwnedFixtureRootForTest=$AggregationOwnedFixtureRootForTest
 if($ReceivingOwnedFixtureRootForTest){
     if($AggregationOwnedFixtureRootForTest -or -not $CheckReceivingReplay -or $AdminAggregationOnly -or $ViewerStartupPackageStateForTest -ne 'SavedCopies'){
@@ -1575,6 +1590,10 @@ function CredentialHash([string]$Secret) {
 }
 function SelectTarget($Fixture,[string]$User='config-admin') {
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($Fixture.Root))
+    if($GuideNasTestLeaf){
+        $connection=Run 'invSys.Core.xlam' 'modNasConnection.TryRevalidateRememberedRoot' @($GuideNasTestLeaf)
+        if([int]$connection -ne 0){throw 'The dedicated NAS root is unavailable to this Excel session.'}
+    }
     $selected = [string](Run 'invSys.Core.xlam' 'modNasConnection.SelectWarehouseTargetForAutomation' @($Fixture.Root,$Fixture.Root,'S1',$false))
     if(-not $selected.StartsWith('OK|')){
         $code=if($selected -match '^FAIL\|([0-9]+|ERROR)(?:\||$)'){$Matches[1]}else{'UNAVAILABLE'}
@@ -1596,12 +1615,20 @@ function NewFixture([string]$Suffix) {
     }
     if($preparedShippingBoundaries.ContainsKey($Suffix)){throw 'Prepared Shipping fixture was already consumed.'}
     $wh='WHD5'+[guid]::NewGuid().ToString('N').Substring(0,6).ToUpperInvariant()
-    $root=Join-Path $runRoot $Suffix
-    $share=Join-Path $runRoot ($Suffix+'-share')
+    $fixtureParent=$runRoot
+    if($GuideNasTestLeaf){
+        if(-not $guideNasFixtureRoot){
+            $newPath=Join-Path $GuideNasTestLeaf ('guide-review-'+[guid]::NewGuid().ToString('N'))
+            $script:guideNasFixtureRoot=(New-Item -ItemType Directory -Path $newPath -ErrorAction Stop).FullName
+        }
+        $fixtureParent=$guideNasFixtureRoot
+    }
+    $root=Join-Path $fixtureParent $Suffix
+    $share=Join-Path $fixtureParent ($Suffix+'-share')
     New-Item -ItemType Directory -Path $share -Force | Out-Null
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($root))
     $creationArgs=@($wh,'Config command fixture','S1','config-admin',$root,$share)
-    if(($CheckReceivingReplay -or $AdminReconcileIdentityOnly) -and $Suffix -ceq 'a'){$creationArgs+='Training'}
+    if($GuideNasTestLeaf -or (($CheckReceivingReplay -or $AdminReconcileIdentityOnly) -and $Suffix -ceq 'a')){$creationArgs+='Training'}
     $created=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.BootstrapWarehouseLocalAdmin' $creationArgs)
     if(-not $created){throw 'Admin Generate Warehouse fixture failed.'}
     $secret=[guid]::NewGuid().ToString('N')
@@ -3225,6 +3252,13 @@ finally {
         $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
         if(-not $recordingFixtureTransferred -and $resolved.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase) -and (Split-Path $resolved -Leaf) -like 'invsys-config-command-*') {
             Remove-Item -LiteralPath $resolved -Recurse -Force
+        }
+        if($guideNasFixtureRoot){
+            $owned=Get-Item -LiteralPath $guideNasFixtureRoot -ErrorAction Stop
+            if($owned.Parent.FullName -ine $GuideNasTestLeaf -or $owned.Name -cnotmatch '^guide-review-[0-9a-f]{32}$' -or ($owned.Attributes -band [IO.FileAttributes]::ReparsePoint)){
+                throw 'Unexpected disposable NAS cleanup path.'
+            }
+            Remove-Item -LiteralPath $owned.FullName -Recurse -Force -ErrorAction Stop
         }
     }
     if($null -ne $recordingHandoff){$recordingHandoff.Dispose()}
