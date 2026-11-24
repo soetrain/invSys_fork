@@ -19,6 +19,7 @@ Private mContext As String
 Private mLoading As Boolean
 Private mLoadedRows As String, mLoadedNotice As String
 Private mSnapshotReady As Boolean
+Private mNativeClosePending As Boolean
 Private mResizeReady As Boolean
 Private mLayout As cOperationsAnchorManager
 Private mOwner As frmActionPaths
@@ -399,12 +400,19 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = 0 Then
         Cancel = True
         If mOwner Is Nothing Then Exit Sub
-        If modGuideReaderClose.Schedule(mOwner, Me) Then
+        If modGuideReaderClose.RequestFlush() Then
+            mNativeClosePending = True
             Me.Hide
         Else
             mStatus.Caption = "Unable to close Published guides. Use Close or try again."
         End If
     End If
+End Sub
+
+Public Sub FinishNativeClose()
+    If Not mNativeClosePending Then Exit Sub
+    mNativeClosePending = False
+    If Not mOwner Is Nothing Then mOwner.ClosePublishedGuidesIfCurrent Me
 End Sub
 
 Private Sub UserForm_Activate()

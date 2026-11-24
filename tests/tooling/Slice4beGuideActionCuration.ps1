@@ -93,6 +93,33 @@ function Test-GuideActionCuration($Fixture,$Other) {
         [void](Pick 'btnCancelGuideActions' 'Click')
         Check 'GuideCuration.ReenteredPickerCancelDisposesForm' ((Pick '' 'Count') -ceq '0')
     }
+    function Test-PublishedRapidNativeClose {
+        . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
+        $caption='Published guides'
+        $form='frmActionPathLibrary'
+        $owner=[IntPtr]$excel.Hwnd
+        [void](Run 'invSys.Operations.xlam' 'TestGuideDeferredTiming.Arm')
+        foreach($cycle in 1..2){
+            [void](BoundControl 'btnPublishedGuides' 'Click' '' 'frmActionPaths')
+            $window=Get-OwnedGuideInputWindow $caption
+            if($cycle -eq 2){
+                Check 'GuideCuration.PublishedReplacementOpened' ($window -ne $original -and -not [GuideInputNative]::IsWindow($original))
+            }
+            $original=$window
+            if(-not [GuideInputNative]::PostMessage($window,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'Published guides could not receive native close.'}
+            $deadline=[datetime]::UtcNow.AddSeconds(2)
+            do{
+                Start-Sleep -Milliseconds 35
+                $visible=[InvSysSettingsCapture]::OwnedVisibleForm($caption,$owner)
+            }while($visible -ne [IntPtr]::Zero -and [datetime]::UtcNow -lt $deadline)
+            Check ('GuideCuration.PublishedRapidX.Cycle'+$cycle+'.Hidden') ($visible -eq [IntPtr]::Zero)
+            if($cycle -eq 1 -and $visible -ne [IntPtr]::Zero){throw 'First published window stayed visible during controlled close.'}
+        }
+        $delivery=[string](Run 'invSys.Operations.xlam' 'TestGuideDeferredTiming.Deliver')
+        Check 'GuideCuration.PublishedRapidX.CallbackDelivered' ($delivery -ceq 'OK|1')
+        Check 'GuideCuration.PublishedRapidX.BothClosed' ((BoundControl '' 'Count' '' $form) -ceq '0')
+        if((BoundControl '' 'Count' '' $form) -ne '0'){[void](BoundControl 'btnCloseGuides' 'Click' '' $form)}
+    }
     function ToggleAction([string]$Id) {
         $ids=@((Pick 'lstGuideActions' 'Values') -split "`n"|Where-Object {$_ -cne ''})
         $index=[Array]::IndexOf($ids,$Id)
@@ -174,7 +201,11 @@ public static class CurationNativeLayout {
         if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Accepted Action Paths entry unavailable.'}
         Check 'GuideCuration.EntryIndependentOfRecording' ((BoundControl 'btnChooseGuideActions' 'State' '' 'frmActionPaths') -ceq 'True|True' -and (BoundControl 'lstActionPaths' 'Rows' '' 'frmActionPaths') -ceq '0')
         Check 'GuideCuration.EntryCaption' ((BoundControl 'btnChooseGuideActions' 'Label' '' 'frmActionPaths') -ceq 'Choose tracked actions')
-        if($GuideDeferredReentryOnly){Test-PickerReentryAfterNativeClose -HoldCallback;return}
+        if($GuideDeferredReentryOnly){
+            Test-PickerReentryAfterNativeClose -HoldCallback
+            Test-PublishedRapidNativeClose
+            return
+        }
         foreach($size in @('Minimum','Default','Larger','Restored')){
             Check ('GuideCuration.LibraryLayout.'+$size) ((BoundControl '' 'Fit' $size 'frmActionPaths') -ceq 'True')
             CurateCapture ('library-'+$size.ToLowerInvariant()) 'Action Paths'

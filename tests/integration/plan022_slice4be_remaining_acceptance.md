@@ -1,5 +1,26 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 rapid Published Guides X.** In the packaged timing test, a
+second reader opened while the original reader's X callback was pending.
+The replacement refused its own X and remained loaded after the callback
+(17 passes, two failures, worker `0c9b71d5dd99458ab4dc85c57800b38e`).
+The callback now looks up loaded readers and pickers. Each form marks its
+own native close. One callback can finish both requests without keeping a
+reference to an unloaded window. On
+`deploy/validation-guide-reader-reopen-20261124` the same test passed 19/19,
+worker `5a18cdd95ea748e18b9f7ba7dec94041`. Cold Operations startup and
+all five explicit VBA compiles passed. The maintenance scan kept 392
+components, 6,779 procedures, 193 duplicate groups, nine literal and 45
+unresolved dynamic calls. The reader change removed five net source lines.
+
+On the preceding Add Item notice build, the full reusable Production
+workflow and its clean Excel restart passed 2/2 in 29 minutes. The earlier
+isolated edit/export run on live-close passed 1/1. No Excel crash or hang
+event occurred in the full run. Test-owned Excel exited normally. The prior
+native crash remains unexplained. Local evidence in the detached
+`invSys_4bea_20261124_add` checkout is
+`reports/runtime/4bea-nov24/ProductionBuildReusable`.
+
 **November 24 NAS reopen retest.** On the live-close build, both Published
 Guides and Choose tracked actions opened and closed on one native click for
 two consecutive cycles. X disposed the reopened picker in 2.76 s. The delayed
