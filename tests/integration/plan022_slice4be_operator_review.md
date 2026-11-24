@@ -1,5 +1,23 @@
 # Slice 4be-A operator comparison review
 
+**November 24 network-share retest on the installed reader-reopen build.**
+In the signed-in disposable Training warehouse, the complete curation suite
+passed 99/99 without a modal or intervention. Published Guides opened in
+2.38–2.73 s and closed in 1.32–1.36 s across two successive one-click
+cycles. Choose tracked actions opened in 5.27–5.61 s and closed in
+1.33–1.34 s. Its reopened X unloaded the original window and VBA form.
+Cancel closed the immediate replacement. Picker keys and clear updated
+the three-row fixture in 21–26 ms, and no match took 63 ms. The selection
+survived, with zero additional Core reads while typing. A single Create
+Guide click from selected actions showed feedback in 176 ms, the editor
+in 2.58 s and a loaded form in 3.94 s.
+
+Permission revocation, damaged source records, guide revision and source
+preservation passed. A separate ordinary Excel launch verified the five
+registered VBA project paths and hashes, closed normally and preserved the
+read-only review host. Worker `b9cff875f420408faf4ae433259f992b` under
+`reports/runtime/slice4be-viewer-published-read`.
+
 **November 24 single-click review.** On the guide-open build, one physical
 click on the recorded-run Create Guide button on the NAS showed progress
 after 196 ms, the editor after 3.11 seconds and the loaded form after
