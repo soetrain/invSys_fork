@@ -76,7 +76,7 @@ below still needs an operator result.
 
 ## Candidate and safe setup
 
-- For the November 23 review use the five XLAMs together from `deploy/validation-guide-picker-close-20261123/` in the code worker and the existing `reports/runtime/4be-a-human-review-20261120/ActionPath-Review-Host.xlsm`. Before testing forms, check all five running VBE project paths against that package directory. The Published guides search label on this candidate is **Search Subject, Title, Tags or ID**.
+- For the November 24 review use the five XLAMs together from `deploy/validation-guide-reader-reopen-20261124/` in the code worker and the existing `reports/runtime/4be-a-human-review-20261120/ActionPath-Review-Host.xlsm`. Ordinary read-only startup verified all five running VBE project paths and package hashes. The Published guides search label is **Search Subject, Title, Tags or ID**.
 - Use the existing disposable NAS Training warehouse WHT7025AE and a disposable operator workbook. Do not use an operational warehouse or existing business workbook. The reviewer needs `RECEIVE_POST`, `ADMIN_MAINT` and `ACTION_PATH_MAINT` in that warehouse, either through one authorized account or separate authorized users. The current sign-in and warehouse must remain the same while a guide/run pair is open.
 - Current bootstrap grants the initial user `ADMIN_MAINT` and `RECEIVE_POST`, but leaves that user's PIN hash empty and does not grant `ACTION_PATH_MAINT`. Normal sign-in rejects an empty hash; the current Users & Roles form cannot assign the guide right. Justin authorized private credential setup and a test-only guide-right grant in this disposable Training fixture. That enabled the first preview but does not qualify ordinary user-side onboarding. Credentials do not belong in project documents or reports.
 - In Admin **Settings > Event Tracking**, verify that the reviewer's optional recording is enabled and the selected controls are eligible. Keep required audit enabled. Note the original personal **Preferred Action Path view** so it can be restored after review. Capture only redacted screenshots or comments; exclude credentials, paths, entered values and inventory details from shared evidence.
@@ -99,6 +99,18 @@ On 2026-11-16, the review Excel closed naturally with both open workbooks marked
 3. Record an incomplete Admin run that stages a different preferred view but stops **before Save My Preference**. Bind the same guide and Evaluate. The missing save must remain visible and must not conclude. Restore the original preference through Settings after the comparison.
 
 ## Review record
+
+**Codex-operated Admin review, November 24.** I compared eight Excel captures
+of the same Settings guide in How-To, Diagnostic, Compare both and the result
+view. Two successful Save Value actions appeared in the completed recording
+with separate requests and completions. The conclusion correctly stated
+command completion with Domain application unasserted. A separate recording
+stopped before either save kept the same guide and displayed both missing
+steps and Failed. Both recordings retained their own identifiers across the
+three views. The minimum-size comparison also kept both panes and Close
+visible. Local captures are in
+`reports/runtime/slice4be-viewer-published-read/0a2d2957637346899bc60d79bde2c9e7`.
+The literal Save My Preference walkthrough and Justin's review remain open.
 
 **Codex-operated Receiving review, November 24.** One immutable guide was
 paired with two fresh recordings from a generated Training warehouse. I

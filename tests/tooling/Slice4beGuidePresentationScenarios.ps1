@@ -54,6 +54,16 @@ function Test-GuidePresentationScenarios($Fixture,$FirstGuide,$SecondGuide,$Obse
         if($missing.ResultState -cne 'Failed' -or @($missing.MissingSteps).Count -ne 2){throw 'Existing evaluator did not produce the missing-step fixture.'}
         $text=ScenarioControl 'txtActionPathDiagnostic' 'Text'
         Check 'GuidePresentation.ScenarioMissingIdentifiesExpectedSteps' ($text.Contains('Missing expected step') -and $text.Contains([string]$missing.MissingSteps[0]) -and $text.Contains([string]$missing.MissingSteps[1]) -and -not $text.Contains('Conclusion observed'))
+        $pair=ScenarioControl 'lblActionPathPair' 'Label'
+        foreach($method in 'How-To','Diagnostic','Compare both'){
+            [void](ScenarioControl 'cboActionPathView' 'Write' $method)
+            Check ('GuidePresentation.MissingView.'+$method) ((ScenarioControl 'cboActionPathView' 'Selected') -ceq $method -and
+                (ScenarioControl 'lblActionPathPair' 'Label') -ceq $pair -and $pair.Contains($FirstGuide.ContentSha256) -and
+                $pair.Contains($empty[0].ActionPathId) -and (ScenarioControl 'txtActionPathDiagnostic' 'Text') -ceq $text)
+            if($method -cne 'Compare both'){
+                CaptureOwnedFormByCaptionEvidence 'Action Path view' ('paired-scenario-missing-'+$method.ToLowerInvariant()+'.png')
+            }
+        }
         ScenarioDisplayPreserves 'Missing' (BoundPins $journalRoot);CaptureScenario 'Missing'
 
         $extra=ScenarioPair $SecondGuide $Observed
