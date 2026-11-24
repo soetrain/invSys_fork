@@ -3,6 +3,7 @@
 . (Join-Path $PSScriptRoot 'Slice4beInventoryCatalogCompletion.ps1')
 function Install-InventoryOwnResultProbe {
     $admin=$packages['invSys.Admin.xlam'].VBProject
+    if($CheckInventorySubmissionActivity){Install-InventorySubmissionNoticeProbe $admin}
     $admin.VBComponents.Item('TestInventoryCommands').CodeModule.AddFromString(@'
 Public Function OwnResultShowsForTest() As Long
     OwnResultShowsForTest = mShows
@@ -87,15 +88,19 @@ End Function
     $probe.CodeModule.AddFromString(@'
 Option Explicit
 Private mSignOut As Boolean, mReturned As Boolean, mConfirmation As String
+Private mEvent As String
 Public Sub Arm(ByVal signOut As Boolean)
     mSignOut = signOut: mReturned = False
-    mConfirmation = ""
+    mConfirmation = "": mEvent = ""
     TestInventoryValueTrace.Reset
 End Sub
-Public Sub AfterProcessor()
-    mReturned = True
+Public Sub AfterProcessor(ByVal eventId As String)
+    mReturned = True: mEvent = eventId
     If mSignOut Then modAuth.SignOut
 End Sub
+Public Function ExactEvent(ByVal observed As String) As Boolean
+    ExactEvent = (mEvent <> "" And mEvent = observed)
+End Function
 Public Function Returned() As Boolean
     Returned = mReturned
 End Function
@@ -139,7 +144,7 @@ End Function
     $boundary='    processed = modProcessor.RunBatch(warehouse, 0, batchReport, eventId, applied, True)'
     if([regex]::Matches($text,[regex]::Escape($boundary)).Count -ne 1){throw 'Quantity processor-return test boundary unavailable.'}
     $module.DeleteLines(1,$module.CountOfLines)
-    $module.AddFromString($text.Replace($boundary,($boundary+"`r`n"+'    TestInventoryOwnResult.AfterProcessor')))
+    $module.AddFromString($text.Replace($boundary,($boundary+"`r`n"+'    TestInventoryOwnResult.AfterProcessor eventId')))
     Install-InventoryCatalogCompletionProbe
 }
 
@@ -168,6 +173,11 @@ function Test-InventoryOwnResults($Fixture,$Other) {
     foreach($spec in @(@('NoOp',10),@('Applied',7),@('AuthorityLost',4))){
         $case=[string]$spec[0];$target=[double]$spec[1];$id='InventoryOwnResult.'+$case
         SelectTarget $Fixture
+        if($CheckInventorySubmissionActivity){
+            if(-not [bool](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.SetPolicy' @('Enabled'))){throw 'Edit activity policy fixture unavailable.'}
+            [void](Run 'invSys.Admin.xlam' 'TestSubmissionNotice.ClearNotices')
+            $beforeActivity=@(Get-Slice4beActivityFiles $Fixture)
+        }
         $hostBook=$excel.Workbooks.Add();$hostBook.SaveAs((Join-Path $runRoot ('own-result-'+$case+'.xlsx')),51)
         try{
             $before=Get-AdminInventoryEntryFacts $Fixture -Persisted
@@ -196,6 +206,27 @@ function Test-InventoryOwnResults($Fixture,$Other) {
             Check ($id+'.ExactEventCountSaved') ($after.LogRows -eq $before.LogRows+$events -and $after.AppliedRows -eq $before.AppliedRows+$events)
             $returned=[bool](Run 'invSys.Core.xlam' 'TestInventoryOwnResult.Returned')
             Check ($id+'.ExpectedProcessorReturn') ($returned -eq ($case -cne 'NoOp'))
+            if($CheckInventorySubmissionActivity){
+                $rows=@(Get-Slice4beActivityFiles $Fixture | Where-Object {$_ -cnotin $beforeActivity} | ForEach-Object {Get-Content -LiteralPath $_ -Raw | ConvertFrom-Json})
+                $opened=@($rows|Where-Object {$_.ControlId -ceq 'ADMIN_INVENTORY_OPEN' -and $_.OutcomeCode -ceq 'OPENED'})
+                if($opened.Count -ne 1){throw 'Edit fixture did not establish eligible tracking through the ordinary Ribbon.'}
+                $edits=@($rows|Where-Object ControlId -CEQ 'ADMIN_INVENTORY_SAVE')
+                $attempt=@($edits|Where-Object OutcomeCode -CEQ 'REQUESTED')
+                $end=@($edits|Where-Object OutcomeCode -CNE 'REQUESTED')
+                Check ($id+'.RecordedSaveItemClick') ($attempt.Count -eq 1 -and $attempt[0].OwnerId -ceq 'ADMIN_INVENTORY' -and $attempt[0].UserId -ceq 'config-admin' -and $attempt[0].WarehouseId -ceq $Fixture.Warehouse -and @($attempt[0].SourceEventRefs).Count -eq 0)
+                if($case -ceq 'AuthorityLost'){
+                    Check ($id+'.LeavesOriginalAttemptIncomplete') ($attempt.Count -eq 1 -and $end.Count -eq 0)
+                }else{
+                    $outcome=if($case -ceq 'NoOp'){'SAVED'}else{'APPLIED'}
+                    Check ($id+'.RecordedSaveResult') ($attempt.Count -eq 1 -and $end.Count -eq 1 -and $end[0].ActivityId -ceq $attempt[0].ActivityId -and $end[0].OutcomeCode -ceq $outcome -and $end[0].DataEffect -ceq 'Changed')
+                    $refs=@($end|ForEach-Object {$_.SourceEventRefs})
+                    if($case -ceq 'Applied'){
+                        Check ($id+'.ExactAdjustmentEvent') ($refs.Count -eq 1 -and $refs[0].SourceKind -ceq 'Inventory' -and $refs[0].SubmissionState -ceq 'Submitted' -and [bool](Run 'invSys.Core.xlam' 'TestInventoryOwnResult.ExactEvent' @([string]$refs[0].EventId)))
+                    }else{
+                        Check ($id+'.CatalogOnlyHasNoInventoryEvent') ($end.Count -eq 1 -and $refs.Count -eq 0)
+                    }
+                }
+            }
             if($case -ceq 'AuthorityLost'){
                 Check ($id+'.SavedPartialReported') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryCommands.OwnResultPartialForTest'))
             }

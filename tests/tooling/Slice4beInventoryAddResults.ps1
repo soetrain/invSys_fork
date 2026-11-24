@@ -15,18 +15,9 @@ End Function
     $probe.CodeModule.AddFromString(@'
 Option Explicit
 Private mCase As String, mReturned As Boolean, mKey As String, mEvent As String
-Private mTrackingNotices As Long, mUnexpectedNotice As Boolean
 Public Sub Arm(ByVal scenario As String)
     mCase = scenario: mReturned = False: mKey = "": mEvent = ""
-    mTrackingNotices = 0: mUnexpectedNotice = False
 End Sub
-Public Sub TrackingNotice(ByVal text As String, ByVal style As VbMsgBoxStyle, ByVal title As String)
-    If Left$(text, 21) <> "Tracking unavailable:" Or style <> vbExclamation Or title <> "invSys Admin" Then mUnexpectedNotice = True
-    mTrackingNotices = mTrackingNotices + 1
-End Sub
-Public Function ExpectedTrackingNotices(ByVal expected As Long) As Boolean
-    ExpectedTrackingNotices = (Not mUnexpectedNotice And mTrackingNotices = expected)
-End Function
 Public Sub RecordKey(ByVal key As String)
     mKey = key
 End Sub
@@ -61,14 +52,15 @@ End Function
         $mark=$point[1]
         $body=[regex]::Replace($body,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($m) $m.Value.TrimEnd("`r")+"`r`n"+$mark})
     }
-    if($CheckInventoryAddActivity){
+    if($CheckInventorySubmissionActivity){
         $queueGuard='If Not modInventoryCommands.BeginCreateSave(interactiveContext, report) Then GoTo Unconfirmed'
         if([regex]::Matches($body,[regex]::Escape($queueGuard)).Count -ne 1){throw 'Add queued-event owner boundary unavailable.'}
         $body=$body.Replace($queueGuard,('TestInventoryAddResult.AfterQueue interactiveContext, eventIdOut' + "`r`n        " + $queueGuard))
     }
     $owner.DeleteLines($start,$count);$owner.InsertLines($start,$body)
-    if($CheckInventoryAddActivity){
-        Install-InventoryTrackingNoticeProbe $project 'TestInventoryAddResult'
+    if($CheckInventorySubmissionActivity){
+        Install-InventorySubmissionNoticeProbe $project
+        Install-InventoryQueueFailureProbe
         . (Join-Path $PSScriptRoot 'Slice4beAdminDirectoryBoundaries.ps1')
         $policy=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestInventoryRecordingPolicy').CodeModule
         $policy.AddFromString(@'
@@ -84,8 +76,8 @@ End Function
 
 function Test-InventoryAddResults($Fixture,$Other) {
     $cases=@('Authorized','AuthorityLost')
-    if($CheckInventoryAddActivity){
-        $cases+=@('TrackingOff','Refused','AttemptWriteFailure','OutcomeWriteFailure','Partial','Pending')
+    if($CheckInventorySubmissionActivity){
+        $cases+=@('TrackingOff','Refused','AttemptWriteFailure','OutcomeWriteFailure','QueueWriteFailure','Partial','Pending')
         $definition=[string](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.Definition' @('ADMIN_INVENTORY_ADD',48))
         $control=if($definition){$definition|ConvertFrom-Json}
         Check 'InventoryAddResult.Catalog.AddItem' ($null -ne $control -and $control.Caption -ceq 'Add Item' -and $control.Class -ceq 'Command' -and $control.OwnerId -ceq 'ADMIN_INVENTORY' -and $control.Capability -ceq 'ADMIN_MAINT')
@@ -117,10 +109,12 @@ function Test-InventoryAddResults($Fixture,$Other) {
     }
     foreach($case in $cases){
         SelectTarget $Fixture
-        if($CheckInventoryAddActivity){
+        if($CheckInventorySubmissionActivity){
             $policy=if($case -ceq 'TrackingOff'){'Disabled'}else{'Enabled'}
             if(-not [bool](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.SetPolicy' @($policy))){throw 'Inventory tracking policy fixture failed.'}
             [void](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.ArmBoundary' @($case,'','',''))
+            [void](Run 'invSys.Core.xlam' 'TestWorksheetQueue.Arm' @(($case -ceq 'QueueWriteFailure')))
+            [void](Run 'invSys.Admin.xlam' 'TestSubmissionNotice.ClearNotices')
             $beforeActivity=@(Get-Slice4beActivityFiles $Fixture)
         }
         $hostBook=$excel.Workbooks.Add();$hostBook.SaveAs((Join-Path $runRoot ('add-result-'+$case+'.xlsx')),51)
@@ -141,7 +135,7 @@ function Test-InventoryAddResults($Fixture,$Other) {
             if(-not $ready){throw 'Actual Add action unavailable; not product RED.'}
             Check ($id+'.OriginalOperatorCaptured') ($facts[3] -ceq 'True')
             $after=Get-AdminInventoryEntryFacts $Fixture -Persisted
-            if($CheckInventoryAddActivity){
+            if($CheckInventorySubmissionActivity){
                 $newActivity=@(Get-Slice4beActivityFiles $Fixture | Where-Object {$_ -cnotin $beforeActivity} | ForEach-Object {Get-Content -LiteralPath $_ -Raw | ConvertFrom-Json})
                 $add=@($newActivity | Where-Object ControlId -CEQ 'ADMIN_INVENTORY_ADD')
                 $wrongSource=@($add | Where-Object {$_.WarehouseId -cne $Fixture.Warehouse -or $_.UserId -cne 'config-admin' -or $_.OwnerId -cne 'ADMIN_INVENTORY'})
@@ -168,6 +162,17 @@ function Test-InventoryAddResults($Fixture,$Other) {
                 Check ($id+'.ExactSubmittedEvent') ($refs.Count -eq 1 -and $refs[0].SubmissionState -ceq 'Submitted' -and $refs[0].SourceKind -ceq 'Inventory' -and $refs[0].WarehouseId -ceq $Fixture.Warehouse -and [bool](Run 'invSys.Admin.xlam' 'TestInventoryAddResult.EventMatches' @([string]$refs[0].EventId)))
                 continue
             }
+            if($case -ceq 'QueueWriteFailure'){
+                $attempt=@($add | Where-Object OutcomeCode -CEQ 'REQUESTED')
+                $failed=@($add | Where-Object OutcomeCode -CEQ 'FAILED')
+                $eventId=[string](Run 'invSys.Core.xlam' 'TestWorksheetQueue.EventIdentity')
+                if(!$eventId){throw 'The owner queue fault was not reached.'}
+                Check ($id+'.NoSavedEntityOrAppliedEvent') ($after.AppliedRows -eq $before.AppliedRows -and $after.LogRows -eq $before.LogRows -and $after.EntityQuantities.Count -eq $before.EntityQuantities.Count)
+                Check ($id+'.OwnerDerivedFailure') ($add.Count -eq 2 -and $attempt.Count -eq 1 -and $failed.Count -eq 1 -and $attempt[0].ActivityId -ceq $failed[0].ActivityId -and $failed[0].DataEffect -ceq 'Unknown')
+                $refs=@($failed|ForEach-Object {$_.SourceEventRefs})
+                Check ($id+'.ExactUncertainQueueEvent') ($refs.Count -eq 1 -and $refs[0].EventId -ceq $eventId -and $refs[0].SubmissionState -ceq 'Unknown' -and $refs[0].SourceKind -ceq 'Inventory' -and $refs[0].WarehouseId -ceq $Fixture.Warehouse)
+                continue
+            }
             Check ($id+'.ProcessorReturned') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryAddResult.Returned'))
             $shows=[long](Run 'invSys.Admin.xlam' 'TestInventoryCommands.AddResultShowsForTest')
             Check ($id+'.ExpectedContinuation') ($shows -eq $(if($case -ceq 'AuthorityLost'){1}else{2}))
@@ -176,11 +181,11 @@ function Test-InventoryAddResults($Fixture,$Other) {
             Check ($id+'.ExactNewZeroEntitySaved') $exact
             if($newKeys.Count -ne 1){throw 'Expected owning creation output unavailable.'}
             Check ($id+'.OwningGeneratedKeyPreserved') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryAddResult.KeyMatches' @($newKeys[0])))
-            if($CheckInventoryAddActivity){
+            if($CheckInventorySubmissionActivity){
                 $writeFailure=$case -in 'AttemptWriteFailure','OutcomeWriteFailure'
                 if($writeFailure -and [int](Run 'invSys.Core.xlam' 'TestInventoryRecordingPolicy.WriteFailures') -ne 1){throw 'Expected Add store failure did not reach its actual write.'}
                 $expectedNotices=[int]($writeFailure -or $case -ceq 'AuthorityLost')
-                Check ($id+'.ExpectedTrackingNotices') ([bool](Run 'invSys.Admin.xlam' 'TestInventoryAddResult.ExpectedTrackingNotices' @($expectedNotices)))
+                Check ($id+'.ExpectedTrackingNotices') ([bool](Run 'invSys.Admin.xlam' 'TestSubmissionNotice.Expected' @($expectedNotices)))
                 if($case -ceq 'TrackingOff'){
                     Check ($id+'.SavedWithoutOptionalRecording') ($exact -and $newActivity.Count -eq 0)
                     continue

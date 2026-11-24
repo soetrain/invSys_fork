@@ -30,6 +30,9 @@ Public Function Definition(ByVal id As String, ByVal version As Long) As String
     Set model = modActivityCatalog.Control(id, version)
     If Not model Is Nothing Then Definition = modTrainingJson.EncodeObject(model)
 End Function
+Public Function CurrentCatalogVersion() As Long
+    CurrentCatalogVersion = modActivityCatalog.CATALOG_VERSION
+End Function
 Public Function PriorDefinitionsPreserved(Optional ByVal version As Long = 43) As Boolean
     Dim id As Variant, before As Object, after As Object
     For Each id In modActivityCatalog.ControlIds(version)
@@ -116,6 +119,25 @@ function Install-InventoryTrackingNoticeProbe($admin,[string]$probeName) {
     $activity.DeleteLines(1,$activity.CountOfLines);$activity.AddFromString($text)
 }
 
+function Install-InventorySubmissionNoticeProbe($project) {
+    $probe=$project.VBComponents.Add(1);$probe.Name='TestSubmissionNotice'
+    $probe.CodeModule.AddFromString(@'
+Option Explicit
+Private mCount As Long, mUnexpected As Boolean
+Public Sub ClearNotices()
+    mCount = 0: mUnexpected = False
+End Sub
+Public Sub TrackingNotice(ByVal text As String, ByVal style As VbMsgBoxStyle, ByVal title As String)
+    If Left$(text, 21) <> "Tracking unavailable:" Or style <> vbExclamation Or title <> "invSys Admin" Then mUnexpected = True
+    mCount = mCount + 1
+End Sub
+Public Function Expected(ByVal count As Long) As Boolean
+    Expected = (Not mUnexpected And mCount = count)
+End Function
+'@)
+    Install-InventoryTrackingNoticeProbe $project $probe.Name
+}
+
 function Test-InventoryRecording($Fixture,$Other) {
     SelectTarget $Fixture
     $hostBook=$excel.Workbooks.Add()
@@ -182,5 +204,34 @@ function Test-InventoryRecording($Fixture,$Other) {
         foreach($book in @($excel.Workbooks)){
             if($book.FullName -ceq (Join-Path $runRoot 'inventory-recording-host.xlsx')){$book.Close($false)}
         }
+    }
+}
+
+function Install-InventoryQueueFailureProbe {
+    $queueProbe=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1);$queueProbe.Name='TestWorksheetQueue'
+    $queueProbe.CodeModule.AddFromString(@'
+Option Explicit
+Private mThrow As Boolean, mEvent As String
+Public Sub Arm(ByVal shouldThrow As Boolean)
+    mThrow = shouldThrow: mEvent = ""
+End Sub
+Public Sub BeforeWrite(ByVal eventId As String)
+    If Not mThrow Then Exit Sub
+    mEvent = eventId: mThrow = False
+    Err.Raise vbObjectError + 2186, , "Owned queue write refusal."
+End Sub
+Public Function EventIdentity() As String
+    EventIdentity = mEvent
+End Function
+'@)
+    $writer=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
+    $pattern='(?im)^[\t ]*writeAttemptedOut = True[\t ]*\r?$'
+    foreach($procedure in @('QueueEventCore','AppendInboxRowToLocalStagingRole')){
+        $start=$writer.ProcStartLine($procedure,0);$count=$writer.ProcCountLines($procedure,0)
+        $body=$writer.Lines($start,$count)
+        if([regex]::Matches($body,$pattern).Count -ne 1){throw 'Exact queue write boundary unavailable; not product RED.'}
+        $injection=if($procedure -ceq 'QueueEventCore'){'    TestWorksheetQueue.BeforeWrite eventIdOut'}else{'    TestWorksheetQueue.BeforeWrite CStr(rowValues("EventID"))'}
+        $body=[regex]::Replace($body,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($m) $m.Value.TrimEnd("`r")+"`r`n"+$injection})
+        $writer.DeleteLines($start,$count);$writer.InsertLines($start,$body)
     }
 }

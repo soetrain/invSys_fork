@@ -556,7 +556,7 @@ Public Sub YieldAt(ByVal phase As String)
     If Not mDriving Or mYield Or phase <> mPhase Then Exit Sub
     Dim signed As String, selected As String, fields As Object, report As String
     Select Case mCase
-        Case "Authorized", "Zero", "Utility", "SetQuantity"
+        Case "Authorized", "Zero", "Utility", "SetQuantity", "DeclineDelete", "EmptyDeleteReason"
             mYield = True
         Case "SignedOut"
             modAuth.SignOut
@@ -597,6 +597,7 @@ Public Function DialogAnswer(ByVal prompt As String) As String
         YieldAt "EditReason"
     ElseIf InStr(1, prompt, "deleted from managed", vbTextCompare) > 0 Then
         YieldAt "DeleteReason"
+        If mCase = "EmptyDeleteReason" Then Exit Function
     End If
     DialogAnswer = "Disposable fixture reason"
 End Function
@@ -665,7 +666,7 @@ End Function
 Public Function DialogChoice(ByVal prompt As String, ByVal buttons As VbMsgBoxStyle) As VbMsgBoxResult
     If (buttons And vbYesNo) = vbYesNo Then
         YieldAt "DeleteConfirmation"
-        DialogChoice = vbYes
+        If mCase = "DeclineDelete" Then DialogChoice = vbNo Else DialogChoice = vbYes
     Else
         DialogChoice = vbOK
     End If

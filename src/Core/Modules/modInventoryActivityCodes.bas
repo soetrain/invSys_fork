@@ -38,6 +38,9 @@ Public Function Control(ByVal id As String, Optional ByVal version As Long = mod
                 Case "ADMIN_INVENTORY_ADD"
                     If version < 48 Then Exit Function
                     caption = "Add Item": kind = "Command"
+                Case "ADMIN_INVENTORY_DELETE"
+                    If version < 49 Then Exit Function
+                    caption = "Delete Item": kind = "Command"
                 Case Else: Exit Function
             End Select
     End Select
@@ -52,6 +55,7 @@ End Function
 Public Function PositiveOutcome(ByVal id As String, ByVal code As String) As Boolean
     Select Case id
         Case "ADMIN_INVENTORY_ADD": PositiveOutcome = (code = "APPLIED")
+        Case "ADMIN_INVENTORY_DELETE": PositiveOutcome = (code = "APPLIED" Or code = "SAVED")
         Case "ADMIN_INVENTORY_CREATE_TABLE": PositiveOutcome = (code = "SAVED")
         Case "ADMIN_INVENTORY_UPLOAD_TABLE": PositiveOutcome = (code = "CONFIRMED")
         Case "ADMIN_INVENTORY_OPEN": PositiveOutcome = (code = "OPENED")
@@ -80,16 +84,28 @@ Public Function Outcome(ByVal id As String, ByVal code As String) As Object
         Case "FAILED"
             severity = "Error": message = "Inventory navigation did not finish. Inspect the owning form; no rollback is asserted."
             If id = "ADMIN_INVENTORY_ADD" Then message = "Add Item could not confirm its result. Check the inventory status."
+            If id = "ADMIN_INVENTORY_DELETE" Then message = "Delete Item could not confirm its result. Check the inventory and catalog status."
         Case "APPLIED", "PENDING", "PARTIAL"
-            If id <> "ADMIN_INVENTORY_ADD" Then Exit Function
+            If id <> "ADMIN_INVENTORY_ADD" And id <> "ADMIN_INVENTORY_DELETE" Then Exit Function
             Select Case code
-                Case "APPLIED": effect = "Changed": message = "The new inventory item's event was applied and saved."
+                Case "APPLIED"
+                    effect = "Changed": message = "The new inventory item's event was applied and saved."
+                    If id = "ADMIN_INVENTORY_DELETE" Then message = "The retirement event was applied and the catalog retirement was saved."
                 Case "PENDING": message = "The inventory event was submitted. Its saved application is unconfirmed."
                 Case "PARTIAL": severity = "Warning": effect = "Changed": message = "The inventory event was applied and saved. Command confirmation did not finish."
             End Select
+        Case "SAVED"
+            If id <> "ADMIN_INVENTORY_DELETE" Then Exit Function
+            effect = "Changed": message = "Catalog retirement was saved. This click did not submit a new inventory event."
         Case "CANCELLED", "REFUSED"
             effect = "Unchanged"
-            If id = "ADMIN_INVENTORY_ADD" And code = "REFUSED" Then
+            If id = "ADMIN_INVENTORY_DELETE" Then
+                If code = "CANCELLED" Then
+                    message = "Delete Item was cancelled before submission."
+                Else
+                    severity = "Blocked": message = "Delete Item was refused before submission."
+                End If
+            ElseIf id = "ADMIN_INVENTORY_ADD" And code = "REFUSED" Then
                 severity = "Blocked": message = "Add Item was refused before submission."
             ElseIf id <> "ADMIN_INVENTORY_UOM_ADD" Then
                 Exit Function

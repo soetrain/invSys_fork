@@ -503,7 +503,7 @@ Sub Add_InventoryItem()
     Dim actionSucceeded As Boolean
     Dim interactiveContext As String, sourceValues As Variant
     Dim activity As cProvisioningActivity
-    Dim addOutcome As String, addEvent As String
+    Dim submissionOutcome As String, submissionEvent As String
 
     Set targetWb = ResolveInteractiveAdminWorkbook(False)
     If targetWb Is Nothing Then
@@ -572,7 +572,8 @@ Sub Add_InventoryItem()
         actionSucceeded = False
         If deleteRequested Then
             actionSucceeded = RetireInventoryItemForWarehouse(warehouseId, stationId, userId, _
-                formSku, formItemName, deleteReason, report, interactiveContext)
+                formSku, formItemName, deleteReason, report, interactiveContext, submissionEvent, submissionOutcome)
+            activity.FinishInventorySubmission submissionOutcome, submissionEvent
         ElseIf isEdit Then
             editStamp = Format$(Now, "yyyy-mm-dd hh:nn:ss")
             formCustomFields("LAST_EDIT_REASON") = formEditReason
@@ -603,8 +604,8 @@ Sub Add_InventoryItem()
                                                            formVendorName, formVendorCode, _
                                                            formCategory, formExternalCode, _
                                                            formImagePath, formCustomFields, report, interactiveContext, _
-                                                           observedEvent:=addEvent, observedOutcome:=addOutcome)
-            activity.FinishInventorySubmission addOutcome, addEvent
+                                                           observedEvent:=submissionEvent, observedOutcome:=submissionOutcome)
+            activity.FinishInventorySubmission submissionOutcome, submissionEvent
         End If
 
         If actionSucceeded Then
@@ -877,10 +878,12 @@ End Function
 Public Function RetireInventoryItemForWarehouse(ByVal warehouseId As String, _
         ByVal stationId As String, ByVal userId As String, ByVal sku As String, _
         ByVal itemName As String, ByVal reason As String, Optional ByRef report As String = "", _
-        Optional ByVal interactiveContext As String = "") As Boolean
+        Optional ByVal interactiveContext As String = "", Optional ByRef observedEvent As String = "", _
+        Optional ByRef observedOutcome As String = "") As Boolean
     Dim path As String, wb As Workbook, openedHere As Boolean, retiredCount As Long
     Dim eventId As String, retirementReport As String, catalogReport As String
     On Error GoTo Failed
+    observedEvent = "": observedOutcome = "REFUSED"
     warehouseId = Trim$(warehouseId): stationId = Trim$(stationId): userId = Trim$(userId)
     sku = Trim$(sku): reason = Trim$(reason)
     If warehouseId = "" Or userId = "" Or sku = "" Or reason = "" Then
@@ -888,9 +891,10 @@ Public Function RetireInventoryItemForWarehouse(ByVal warehouseId As String, _
     End If
     If stationId = "" Then stationId = modStationIdentity.CurrentComputerStationId()
     If Not modInventoryRetirementCommands.RetireActiveEntities(warehouseId, stationId, userId, _
-            sku, reason, retiredCount, eventId, retirementReport, interactiveContext) Then
+            sku, reason, retiredCount, eventId, retirementReport, interactiveContext, observedEvent, observedOutcome) Then
         report = retirementReport: Exit Function
     End If
+    If observedEvent = "" Then observedOutcome = "FAILED"
     If interactiveContext <> "" Then
         If Not modInventoryCommands.CheckForm(interactiveContext, report) Then GoTo Partial
     Else
@@ -911,6 +915,7 @@ Public Function RetireInventoryItemForWarehouse(ByVal warehouseId As String, _
         "Exact entities retired: " & CStr(retiredCount) & vbCrLf & "Catalog and event history were retained."
     If eventId <> "" Then report = report & vbCrLf & "Event: " & eventId
     RetireInventoryItemForWarehouse = True
+    If observedEvent = "" Then observedOutcome = "SAVED" Else observedOutcome = "APPLIED"
     GoTo CleanExit
 Partial:
     If eventId <> "" Then report = "Partial result: exact retirement event application was saved; catalog confirmation is incomplete." & _
@@ -921,6 +926,7 @@ CleanExit:
     On Error GoTo 0
     Exit Function
 Failed:
+    If observedOutcome = "REFUSED" Then observedOutcome = "FAILED"
     report = "Inventory retirement failed: " & Err.Description
     GoTo Partial
 End Function

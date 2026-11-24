@@ -1033,10 +1033,11 @@ Private Sub mBtnDeleteItem_Click()
     Dim answer As VbMsgBoxResult
     Dim reason As String
 
-    If Not CurrentContextAllowed() Then Exit Sub
+    If Not mActivity Is Nothing Then mActivity.BeginInventorySubmission "DELETE"
+    If Not CurrentContextAllowed() Then GoTo Refused
     If Not mEditMode Or mSelectedEditSku = "" Then
         mLblStatus.Caption = "Choose an inventory item to delete."
-        Exit Sub
+        GoTo Refused
     End If
     If mDeleteAutomation Then
         answer = vbYes
@@ -1047,21 +1048,27 @@ Private Sub mBtnDeleteItem_Click()
             "All active exact inventory entities for this item will be retired. " & _
             "Catalog and event history will be retained.", _
             vbQuestion Or vbYesNo Or vbDefaultButton2, "invSys Admin - Delete Item")
-        If answer <> vbYes Then Exit Sub
-        If Not CurrentContextAllowed() Then Exit Sub
+        If answer <> vbYes Then GoTo Cancelled
+        If Not CurrentContextAllowed() Then GoTo Refused
         reason = Trim$(InputBox("Why is this item being deleted from managed inventory?", _
             "invSys Admin - Delete Item"))
     End If
     If Trim$(reason) = "" Then
         mLblStatus.Caption = "Why the deletion is required."
-        Exit Sub
+        GoTo Cancelled
     End If
-    If Not CurrentContextAllowed() Then Exit Sub
+    If Not CurrentContextAllowed() Then GoTo Refused
 
     mDeleteReason = Trim$(reason)
     mDeleteRequested = True
     mAccepted = True
     Me.Hide
+    Exit Sub
+Cancelled:
+    If Not mActivity Is Nothing Then mActivity.FinishInventorySubmission "CANCELLED"
+    Exit Sub
+Refused:
+    If Not mActivity Is Nothing Then mActivity.FinishInventorySubmission "REFUSED"
 End Sub
 
 Private Sub mCmbEditItem_Change()

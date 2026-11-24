@@ -27,32 +27,7 @@ Public Function Prior199Preserved() As Boolean
     Prior199Preserved = True
 End Function
 '@)
-    $queueProbe=$packages['invSys.Core.xlam'].VBProject.VBComponents.Add(1);$queueProbe.Name='TestWorksheetQueue'
-    $queueProbe.CodeModule.AddFromString(@'
-Option Explicit
-Private mThrow As Boolean, mEvent As String
-Public Sub Arm(ByVal shouldThrow As Boolean)
-    mThrow = shouldThrow: mEvent = ""
-End Sub
-Public Sub BeforeWrite(ByVal eventId As String)
-    If Not mThrow Then Exit Sub
-    mEvent = eventId: mThrow = False
-    Err.Raise vbObjectError + 2186, , "Owned queue write refusal."
-End Sub
-Public Function EventIdentity() As String
-    EventIdentity = mEvent
-End Function
-'@)
-    $writer=$packages['invSys.Core.xlam'].VBProject.VBComponents.Item('modRoleEventWriter').CodeModule
-    $pattern='(?im)^[\t ]*writeAttemptedOut = True[\t ]*\r?$'
-    foreach($procedure in @('QueueEventCore','AppendInboxRowToLocalStagingRole')){
-        $start=$writer.ProcStartLine($procedure,0);$count=$writer.ProcCountLines($procedure,0)
-        $body=$writer.Lines($start,$count)
-        if([regex]::Matches($body,$pattern).Count -ne 1){throw 'Exact queue write boundary unavailable; not product RED.'}
-        $injection=if($procedure -ceq 'QueueEventCore'){'    TestWorksheetQueue.BeforeWrite eventIdOut'}else{'    TestWorksheetQueue.BeforeWrite CStr(rowValues("EventID"))'}
-        $body=[regex]::Replace($body,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($m) $m.Value.TrimEnd("`r")+"`r`n"+$injection})
-        $writer.DeleteLines($start,$count);$writer.InsertLines($start,$body)
-    }
+    Install-InventoryQueueFailureProbe
     $admin=$packages['invSys.Admin.xlam'].VBProject
     $form=$admin.VBComponents.Item('frmAddInventoryItem').CodeModule
     $form.AddFromString(@'

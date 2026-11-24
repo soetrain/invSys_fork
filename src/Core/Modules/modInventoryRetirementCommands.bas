@@ -4,12 +4,13 @@ Option Explicit
 ' Primitive coordinator boundary; headless callers supply a provisioned user.
 Public Function RetireActiveEntities(ByVal warehouse As String, ByVal station As String, _
         ByVal user As String, ByVal sku As String, ByVal reason As String, ByRef retiredCount As Long, _
-        ByRef eventId As String, ByRef report As String, Optional ByVal context As String = "") As Boolean
+        ByRef eventId As String, ByRef report As String, Optional ByVal context As String = "", _
+        Optional ByRef observedEvent As String = "", Optional ByRef observedOutcome As String = "") As Boolean
     Dim inputs As cInventoryCommandInputs, values As Variant, payload As String, role As Variant
     Dim path As String, setupReport As String, queueError As String, batchReport As String
-    Dim applied As Boolean, processed As Long, confirmed As Boolean
+    Dim applied As Boolean, processed As Long, confirmed As Boolean, attempted As Boolean
     On Error GoTo Failed
-    retiredCount = 0: eventId = ""
+    retiredCount = 0: eventId = "": observedEvent = "": observedOutcome = "REFUSED"
     If Trim$(reason) = "" Or Trim$(sku) = "" Then report = "An exact Item Code and deletion reason are required.": Exit Function
     If context <> "" Then
         values = modInventoryCommands.SourceValues(context)
@@ -23,6 +24,7 @@ Public Function RetireActiveEntities(ByVal warehouse As String, ByVal station As
         If Not inputs.BeginRetirement(sku, reason, payload, retiredCount) Then GoTo Refused
     End If
     If retiredCount = 0 Then RetireActiveEntities = True: Exit Function
+    observedOutcome = "FAILED"
     For Each role In Array("RECEIVE", "SHIP", "PRODUCTION")
         If Not CommandCurrent(context, inputs, warehouse, station, user, report) Then Exit Function
         If Not modConfig.EnsureStationInbox(warehouse, station, CStr(role), "", path, setupReport) Then
@@ -34,9 +36,11 @@ Public Function RetireActiveEntities(ByVal warehouse As String, ByVal station As
     If Not CommandCurrent(context, inputs, warehouse, station, user, report) Then Exit Function
     If eventId = "" Then
         If Not modRoleEventWriter.QueueAdminInventoryAdjustEvent(warehouse, station, user, payload, _
-                "Admin delete inventory item " & sku & ". Reason: " & reason, 0, eventId, queueError, "") Then
+                "Admin delete inventory item " & sku & ". Reason: " & reason, 0, eventId, queueError, "", attempted) Then
+            If attempted And eventId <> "" Then observedEvent = eventId & vbTab & "Unknown"
             report = "Inventory retirement could not be queued: " & queueError: GoTo Unconfirmed
         End If
+        observedEvent = eventId & vbTab & "Submitted": observedOutcome = "PENDING"
     End If
     If context <> "" Then
         If Not modInventoryCommands.BeginRetirementSave(context, report) Then GoTo Unconfirmed
@@ -46,6 +50,7 @@ Public Function RetireActiveEntities(ByVal warehouse As String, ByVal station As
     End If
     processed = modProcessor.RunBatch(warehouse, 0, batchReport, eventId, applied, True)
     If Not applied Then report = batchReport: GoTo Unconfirmed
+    If observedEvent <> "" Then observedOutcome = "PARTIAL"
     If context <> "" Then
         confirmed = modInventoryCommands.ConfirmRetirement(context, eventId, report)
     ElseIf HeadlessAuthority(warehouse, station, user, report) Then
@@ -68,6 +73,7 @@ Unconfirmed:
     If eventId <> "" Then report = report & vbCrLf & "Event: " & eventId
     Exit Function
 Failed:
+    If observedOutcome = "REFUSED" Then observedOutcome = "FAILED"
     report = "Inventory retirement command failed."
     GoTo Unconfirmed
 End Function

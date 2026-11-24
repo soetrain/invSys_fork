@@ -164,7 +164,7 @@ param(
     [string]$AdminInventoryOverlaySourceRootForTest='',
     [switch]$AdminInventoryOwnResultsOnly,
     [switch]$AdminInventoryAddResultsOnly,
-    [switch]$CheckInventoryAddActivity,
+    [Alias('CheckInventoryAddActivity')][switch]$CheckInventorySubmissionActivity,
     [switch]$AdminInventoryDeleteResultsOnly,
     [switch]$AdminInventoryWorksheetResultsOnly,
     [switch]$AdminInventoryImportedRowsOnly,
@@ -460,7 +460,7 @@ if($CheckOwnerCommandCompletion -and (-not $CheckBoxingActivity -or -not $Captur
 if($OwnerCommandCompletionOnly -and -not $CheckOwnerCommandCompletion){throw 'Focused owner completion requires its protecting gate.'}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
 if($GuideDeferredReentryOnly -and (-not $GuideActionCurationOnly -or -not $VisibleExcelForTest)){throw 'Deferred picker reentry requires the visible direct-curation fixture.'}
-if($CheckInventoryAddActivity -and -not $AdminInventoryAddResultsOnly){throw 'Add Item activity requires its packaged Add result fixture.'}
+if($CheckInventorySubmissionActivity -and -not ($AdminInventoryAddResultsOnly -or $AdminInventoryDeleteResultsOnly -or $AdminInventoryOwnResultsOnly)){throw 'Inventory submission activity requires a packaged Add, Edit or Delete result fixture.'}
 if($GuideRecordedEntryOnly -and (-not $GuideDraftOnly -or -not $CheckGuideSearchNative -or -not $VisibleExcelForTest)){
     throw 'The isolated recorded-run entry test requires the visible native guide fixture.'
 }
@@ -2491,15 +2491,15 @@ End Function
                 Install-InventoryImportedRowsProbe
             }
         }
+        if($CheckInventorySubmissionActivity){
+            . (Join-Path $PSScriptRoot 'Slice4beInventoryRecording.ps1')
+            Install-InventoryRecordingPolicyProbe
+        }
         if($AdminInventoryDeleteResultsOnly){
             . (Join-Path $PSScriptRoot 'Slice4beInventoryDeleteResults.ps1')
             Install-InventoryDeleteResultProbe
         }
         if($AdminInventoryAddResultsOnly){
-            if($CheckInventoryAddActivity){
-                . (Join-Path $PSScriptRoot 'Slice4beInventoryRecording.ps1')
-                Install-InventoryRecordingPolicyProbe
-            }
             . (Join-Path $PSScriptRoot 'Slice4beInventoryAddResults.ps1')
             Install-InventoryAddResultProbe
         }

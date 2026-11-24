@@ -1,5 +1,24 @@
 # Slice4be-A Add/Edit Inventory entry audit
 
+## November 24 Delete Item recording checkpoint
+
+On the installed catalog 48 packages, the actual Delete Item button retired
+both selected entities. A cold read confirmed their exact keys, catalog state
+and preservation of unknown columns. Under enabled tracking the command had
+no D18 request, outcome or event reference. Losing the original authority
+after application also left no recorded attempt. The focused run reported
+29 passes and five failures. Excel exited normally. Local evidence is in
+`reports/runtime/4bea-picker-finish-20261123/reader-deleteActivityRed`.
+
+The catalog 49 source checkpoint returns the event identity from the actual
+submission and distinguishes a saved catalog retirement from an event owned by
+an earlier click. The extended tests cover declined confirmation, an empty
+reason, tracking disabled, authority loss and retry of a pending event. A
+separate test checks Save Item in Edit mode. These new cases await packaged
+execution. Catalog 49 remains unbuilt and uninstalled at this checkpoint.
+Its source scan counted 392 components, 6,779 procedures, 146,770 lines,
+1,265 candidates, 193 duplicate groups and 9 literal / 45 unresolved calls.
+
 ## November 24 Add Item recording
 
 Catalog 47 saved a new entity and its exact Inventory event but omitted the
