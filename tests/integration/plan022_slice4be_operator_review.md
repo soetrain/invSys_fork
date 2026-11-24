@@ -1,5 +1,16 @@
 # Slice 4be-A operator comparison review
 
+**November 24 NAS picker.** A freshly generated Training warehouse on the
+UAT share held 31 authorized action rows after 30 actual Admin saves. On the
+deferred-close build, Open took 4.97 seconds. The first character appeared
+in 47 ms, the next two in 37 and 33 ms, Backspace in 34 ms, no match in
+83 ms and clear in 31 ms. Searching by the displayed caption returned the
+exact expected actions and a hidden selection survived the filter. The
+native X disposed the reopened picker in 3.18 seconds, measured through
+both window and VBA disposal. Immediate reentry and Cancel also passed.
+These are automated visible measurements on the NAS. Justin's review of
+his existing warehouse remains separate.
+
 **November 24 larger picker.** In a disposable local warehouse, 30 actual
 Admin settings saves produced a publication with 31 permitted action rows.
 Opening the picker took 1.80 seconds. With one action selected, the first

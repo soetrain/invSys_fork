@@ -1,5 +1,24 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 NAS picker repair.** The November 23 build twice failed
+native title-bar close after reopening. In the second trial the exact window
+had disappeared, but VBA still reported one loaded picker after ten seconds
+(31 passes, one disposal failure and a consequent fixture stop). A trial
+releasing layout references alone still failed and Excel crashed in
+`VBE7.DLL` during that attempt. Its empty recovery process was closed.
+
+On `deploy/validation-guide-picker-deferred-20261124`, Excel hides the
+picker on X and unloads that exact instance after the native event returns.
+The same fresh NAS Training fixture passed 34/34, including the ten-second
+disposal check, immediate reentry, Cancel on the replacement, retained
+selection, zero per-key Core policy/library reads, and byte preservation.
+Excel exited normally. Local worker evidence is
+`reports/runtime/slice4be-viewer-published-read/7b866fd5250c48ab94e33efacb87d64f`.
+The package compile suite passed cold Operations initialization and all five
+explicit compiles. Ordinary Excel startup opened the read-only review host,
+loaded all five actual VBA projects from the new build and exited with
+unchanged package and host hashes. Header compatibility passed 8/8.
+
 **November 23 picker rebuild.** On the November 22 packages, sending a native
 title-bar close to the reopened picker left its window and form loaded (14
 passes, two failures including the subsequent fixture stop). On

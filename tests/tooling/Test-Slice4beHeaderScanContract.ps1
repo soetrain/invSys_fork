@@ -56,7 +56,9 @@ Check 'ExcelClosedWithoutAssistance' (@(Get-Process EXCEL -ErrorAction SilentlyC
 $queryErrors=@()
 $events=@(Get-WinEvent -FilterHashtable @{LogName='Application';Id=1000,1001,1002;StartTime=$start.LocalDateTime;EndTime=([DateTimeOffset]::UtcNow.LocalDateTime)} -ErrorAction SilentlyContinue -ErrorVariable queryErrors)
 if(@($queryErrors|Where-Object FullyQualifiedErrorId -NotLike 'NoMatchingEventsFound*').Count){throw 'Event query unavailable.'}
-Check 'NoApplicationFailureEvents' ($events.Count -eq 0)
+# Match the ordered release chain's Excel fault audit. Other applications share this log.
+$excelFaults=@($events | Where-Object { $_.Message -match '(?i)\bEXCEL\.EXE\b' })
+Check 'NoApplicationFailureEvents' ($excelFaults.Count -eq 0)
 ConvertTo-Json -InputObject @($checks.ToArray())|Set-Content (Join-Path $root ($Phase.ToLowerInvariant()+'.json'))
 Write-Output ('Report: '+$root)
 if(@($checks|Where-Object {-not $_.Passed}).Count){exit 1}
