@@ -1,5 +1,27 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 Create Guide response.** A native click on a selected NAS
+recording produced no visible acknowledgement for 5,433 ms. The editor was
+first visible at that point. Excel answered the loaded-form observation at
+7,808 ms. The packaged test counted three reads of the same source, one
+while opening, one while building the initial display, and one on activation.
+The focused run finished with 37 passes and the two expected failures.
+Worker `slice4be-viewer-published-read/4d2fd90ad5cc4a4a8656a559d9ef932f`.
+
+On `deploy/validation-guide-open-20261124`, the initiating window shows
+“Opening guide...” while Core validates the request. Core builds the new
+draft's initial display from that validation before returning. Activation
+still independently checks the bound source. One NAS click showed feedback
+at 196 ms, the editor at 3,110 ms and a loaded form at 5,523 ms. The two
+source reads and restoration of the parent caption passed. Worker
+`slice4be-viewer-published-read/f773837e94f04e16b8f40c240974c3b9`.
+All five explicit package compiles and cold Operations initialization passed.
+The two private display helpers account for two additional procedures and
+39 net source lines including the parent feedback. The scan found 392
+components, 6,777 procedures, 146,665 lines, 1,265 candidates, 193 duplicate
+groups, 30 warnings, 1,060 dynamic roots, nine literal and 45 unresolved
+dynamic calls. Raw reports are under `reports/runtime/static-guide-open-20261124`.
+
 **November 24 NAS picker repair.** The November 23 build twice failed
 native title-bar close after reopening. In the second trial the exact window
 had disappeared, but VBA still reported one loaded picker after ten seconds

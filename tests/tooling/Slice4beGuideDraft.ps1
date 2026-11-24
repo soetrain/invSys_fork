@@ -28,7 +28,10 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
         Select Case value
             Case "Minimum": owner.Width = 760: owner.Height = 600
             Case "Default", "Restored": owner.Width = 900: owner.Height = 650
-            Case "Larger": owner.Width = 1000: owner.Height = 760
+            Case "Larger"
+                ' Give the scripted enlargement room on the capture desktop.
+                owner.Left = 20: owner.Top = 20
+                owner.Width = 1000: owner.Height = 760
             Case "Current"
             Case Else: Err.Raise 5, , "Unknown guide layout fixture."
         End Select
@@ -245,6 +248,13 @@ function Install-GuideSearchReadProbe {
     $probe.CodeModule.AddFromString(@'
 Option Explicit
 Private mPicker As Long, mLibrary As Long, mPolicy As Long
+Private mSourceReads As Long
+Public Sub MarkSource()
+    mSourceReads = mSourceReads + 1
+End Sub
+Public Function SourceReads() As Long
+    SourceReads = mSourceReads
+End Function
 Public Sub MarkPicker()
     mPicker = mPicker + 1
 End Sub
@@ -260,6 +270,8 @@ End Function
 '@)
     foreach($spec in @(
         @('modCuratedGuideSource','ReadRows','On Error GoTo Failed','    TestGuideSearchReadCount.MarkPicker'),
+        @('modCuratedGuideSource','ReadSelected','On Error GoTo Failed','    TestGuideSearchReadCount.MarkSource'),
+        @('modGuideDraftSource','ReadSelected','On Error GoTo Invalid','    TestGuideSearchReadCount.MarkSource'),
         @('modGuideLibraryRead','ListGuides','On Error GoTo Failed','    TestGuideSearchReadCount.MarkLibrary'),
         @('modTrainingReadContext','Read','version = 0','    TestGuideSearchReadCount.MarkPolicy')
     )){
@@ -343,9 +355,8 @@ function Test-GuideDraftEntry($Fixture,$Other) {
         Check 'GuideDraft.EntryEnabledForPermittedSelectedRun' ((GuideControl 'btnCreateGuide' 'State' '' 'frmActionPaths') -ceq 'True|True')
         if($CheckGuideSearchNative){
             . (Join-Path $PSScriptRoot 'Slice4beGuideInputNative.ps1')
-            Click-GuideControlNative 'frmActionPaths' 'Action Paths' 'btnCreateGuide'
+            Open-GuideEditorNative 'frmActionPaths' 'Action Paths' 'btnCreateGuide' 'GuideDraft.OneClickShowsGuideEditor'
             $delivered='DELIVERED'
-            Check 'GuideDraft.OneClickShowsGuideEditor' ([InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
         }else{$delivered=CreateGuide}
         $opened=(GuideControl '' 'Count') -ceq '1'
         Check 'GuideDraft.ActualCreateControlOpensEditor' ($delivered -ceq 'DELIVERED' -and $opened)

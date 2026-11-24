@@ -142,14 +142,22 @@ public static class CurationNativeLayout {
                 @{Form='frmGuideActionPicker';Caption='Choose tracked actions';Open='btnChooseGuideActions';Close='btnCancelGuideActions'}
             )){
                 foreach($cycle in 1..2){
-                    Click-GuideControlNative 'frmActionPaths' 'Action Paths' $child.Open
-                    $handle=[InvSysSettingsCapture]::OwnedVisibleForm($child.Caption,[IntPtr]$excel.Hwnd)
-                    $visible=(BoundControl '' 'Count' '' $child.Form) -ceq '1' -and $handle -ne [IntPtr]::Zero
+                    $owner=[IntPtr]$excel.Hwnd
+                    $elapsed=[Diagnostics.Stopwatch]::new()
+                    Click-GuideControlNative 'frmActionPaths' 'Action Paths' $child.Open $elapsed
+                    do {
+                        $handle=[InvSysSettingsCapture]::OwnedVisibleForm($child.Caption,$owner)
+                        if($handle -ne [IntPtr]::Zero){break}
+                        Start-Sleep -Milliseconds 50
+                    } while($elapsed.Elapsed.TotalSeconds -lt 10)
+                    $visible=$handle -ne [IntPtr]::Zero -and (Wait-GuideFormCountNative $child.Form '1' ([datetime]::UtcNow.AddMilliseconds(10000-$elapsed.ElapsedMilliseconds)))
                     Check ("GuideCuration.$($child.Form).Cycle$cycle.SingleClickOpens") $visible
+                    Write-Host ("Cycle {0}, {1} open: {2} ms." -f $cycle,$child.Caption,$elapsed.ElapsedMilliseconds)
                     if(-not $visible){throw 'Guide window did not open after one delivered click.'}
-                    Click-GuideControlNative $child.Form $child.Caption $child.Close
-                    $closed=(BoundControl '' 'Count' '' $child.Form) -ceq '0' -and -not [GuideInputNative]::IsWindow($handle)
+                    Click-GuideControlNative $child.Form $child.Caption $child.Close $elapsed
+                    $closed=(Wait-GuideFormCountNative $child.Form '0' ([datetime]::UtcNow.AddMilliseconds(10000-$elapsed.ElapsedMilliseconds))) -and -not [GuideInputNative]::IsWindow($handle)
                     Check ("GuideCuration.$($child.Form).Cycle$cycle.SingleClickCloses") $closed
+                    Write-Host ("Cycle {0}, {1} close: {2} ms." -f $cycle,$child.Caption,$elapsed.ElapsedMilliseconds)
                     if(-not $closed){throw 'Guide window survived the delivered Close click.'}
                 }
             }
@@ -237,8 +245,7 @@ public static class CurationNativeLayout {
         }
         if($opened){CurateNativeLayout 'frmGuideActionPicker' 'Choose tracked actions' 'Picker'}
         if($CheckGuideSearchNative){
-            Click-GuideControlNative 'frmGuideActionPicker' 'Choose tracked actions' 'btnCreateSelectedGuide'
-            Check 'GuideCuration.OneClickShowsGuideEditor' ([InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',[IntPtr]$excel.Hwnd) -ne [IntPtr]::Zero)
+            Open-GuideEditorNative 'frmGuideActionPicker' 'Choose tracked actions' 'btnCreateSelectedGuide' 'GuideCuration.OneClickShowsGuideEditor'
         }else{[void](Pick 'btnCreateSelectedGuide' 'Click')}
         $drafted=(Draft '' 'Count') -ceq '1'
         Check 'GuideCuration.CreateUsesExistingGuideEditor' ($opened -and $drafted)

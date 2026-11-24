@@ -146,7 +146,19 @@ Private Sub mSearch_Change()
 End Sub
 
 Private Sub mCreate_Click()
+    Dim originalCaption As String
+    originalCaption = Me.Caption
+    On Error GoTo Failed
+    Me.Caption = originalCaption & " - Opening guide..."
+    Me.Repaint
     If RefreshChoices() And mCreate.Enabled Then modGuideEditor.OpenForSelectedActions mContext, mToken, Me
+Finished:
+    On Error GoTo 0
+    If modOperationsFormLifetime.IsLoaded(Me) Then Me.Caption = originalCaption
+    Exit Sub
+Failed:
+    mStatus.Caption = "Unavailable: the guide could not be opened."
+    Resume Finished
 End Sub
 
 Private Sub mCancel_Click()

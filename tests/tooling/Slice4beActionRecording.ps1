@@ -120,6 +120,7 @@ End Function
     if($GuideDraftOnly){
         . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
         Test-GuideDraftEntry $Fixture $b
+        if($GuideRecordedEntryOnly){return}
         if($CheckGuideSave){
             . (Join-Path $PSScriptRoot 'Slice4beGuideSave.ps1')
             Test-GuideSave $Fixture $b

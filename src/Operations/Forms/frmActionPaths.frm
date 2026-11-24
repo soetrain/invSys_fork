@@ -212,8 +212,19 @@ Public Sub RefreshExpectation()
 End Sub
 
 Private Sub mCreateGuide_Click()
-    If Not ContextValid() Or mSelectedId = "" Then Exit Sub
-    modGuideEditor.OpenForRun mContext, mSelectedId, Me
+    Dim originalCaption As String
+    originalCaption = Me.Caption
+    On Error GoTo Failed
+    Me.Caption = originalCaption & " - Opening guide..."
+    Me.Repaint
+    If ContextValid() And mSelectedId <> "" Then modGuideEditor.OpenForRun mContext, mSelectedId, Me
+Finished:
+    On Error GoTo 0
+    If modOperationsFormLifetime.IsLoaded(Me) Then Me.Caption = originalCaption
+    Exit Sub
+Failed:
+    mStatus.Caption = "Unavailable: the guide could not be opened."
+    Resume Finished
 End Sub
 
 Private Sub mExpected_Click()

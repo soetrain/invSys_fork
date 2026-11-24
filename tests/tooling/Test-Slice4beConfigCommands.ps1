@@ -258,6 +258,7 @@ param(
     [switch]$PublishedGuideEditOnly,
     [switch]$GuideActionCurationOnly,
     [switch]$GuidePickerStoppedRunOnly,
+    [switch]$GuideRecordedEntryOnly,
     [switch]$CheckGuideTransfer,
     [switch]$CheckGuideTransferRoundTrip,
     [switch]$CheckGuideTransferActivity,
@@ -456,6 +457,9 @@ if($CheckOwnerCommandCompletion -and (-not $CheckBoxingActivity -or -not $Captur
 }
 if($OwnerCommandCompletionOnly -and -not $CheckOwnerCommandCompletion){throw 'Focused owner completion requires its protecting gate.'}
 if($GuideDraftOnly){$CheckGuideDraft=$true}
+if($GuideRecordedEntryOnly -and (-not $GuideDraftOnly -or -not $CheckGuideSearchNative -or -not $VisibleExcelForTest)){
+    throw 'The isolated recorded-run entry test requires the visible native guide fixture.'
+}
 if($CaptureGuideEvidence){$CheckGuideLibrary=$true}
 if($CheckGuideExpectation){$CheckGuideLibrary=$true}
 if($CheckGuideLibrary){$CheckGuideSave=$true}
@@ -1899,7 +1903,7 @@ End Function
                 . (Join-Path $PSScriptRoot 'Slice4beGuideDraft.ps1')
                 Install-GuideDraftProbe
                 if($CheckGuideLibrary){Install-GuideReaderCloseProbe}
-                if($CheckGuideLibrary -or $GuideActionCurationOnly){Install-GuideSearchReadProbe}
+                if($CheckGuideLibrary -or $GuideActionCurationOnly -or $GuideRecordedEntryOnly){Install-GuideSearchReadProbe}
                 if($GuidePickerStoppedRunOnly){Install-GuideInputWriteProbe}
             }
             if($CheckGuideTransfer){
@@ -2658,6 +2662,10 @@ End Function
         } elseif($CheckReceivingReplay){
             $step='B0 actual Receiving recording and guide execution entry'
             Test-Slice4beReceivingReplay $a $b
+        } elseif($GuideRecordedEntryOnly){
+            $step='single native Create Guide click on an actual recorded run'
+            . (Join-Path $PSScriptRoot 'Slice4beActionRecording.ps1')
+            Test-Slice4beActionRecording $a
         } elseif($GuidePickerStoppedRunOnly){
             $step='stopped recording picker and both packaged guide Save routes'
             . (Join-Path $PSScriptRoot 'Slice4beGuidePickerStoppedRun.ps1')

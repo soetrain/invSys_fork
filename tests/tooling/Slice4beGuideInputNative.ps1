@@ -59,7 +59,7 @@ function Move-GuideFocusByTabNative {
     }
 }
 
-function Click-GuideControlNative([string]$form,[string]$caption,[string]$name) {
+function Click-GuideControlNative([string]$form,[string]$caption,[string]$name,[Diagnostics.Stopwatch]$clickTimer) {
     $window=Get-OwnedGuideInputWindow $caption
     if(-not ('WorksheetInput' -as [type])){. (Join-Path $PSScriptRoot 'Slice4beWorksheetInput.ps1')}
     $state=[string](Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($form,$name,'State',''))
@@ -92,6 +92,7 @@ function Click-GuideControlNative([string]$form,[string]$caption,[string]$name) 
         if([InvSysSettingsCapture]::GetAncestor([InvSysSettingsCapture]::GetForegroundWindow(),2) -ne $window){
             throw 'Owned guide window could not be foregrounded; not behavioral RED.'
         }
+        if($clickTimer){$clickTimer.Restart()}
         [WorksheetInput]::Click($window,$x,$y)
         # SendInput queues the click; let its mouse-up finish before restoring the pointer.
         Start-Sleep -Milliseconds 150
@@ -107,6 +108,52 @@ function Click-GuideControlNative([string]$form,[string]$caption,[string]$name) 
         throw ("Cursor restoration failed after guide focus; control=$name; SetCursorPos=$restored; Win32 error=$restoreError; original=$($original.X),$($original.Y); actual=$($actual.X),$($actual.Y); prior input error=$inputError")
     }
     if($inputError){throw ("Guide control input failed for ${name}: $inputError")}
+}
+
+function Wait-GuideFormCountNative([string]$form,[string]$expected,[datetime]$deadline) {
+    # A native click can leave Excel busy. Retry only this observational getter.
+    do {
+        try {
+            $count=Run 'invSys.Operations.xlam' 'modInventoryViewer.GuideDraftControlForTest' @($form,'','Count','')
+            if([string]$count -ceq $expected){return $true}
+        } catch {
+            if($_.Exception.GetBaseException().HResult -ne [int]0x800AC472){throw}
+        }
+        Start-Sleep -Milliseconds 50
+    } while([datetime]::UtcNow -lt $deadline)
+    return $false
+}
+
+function Open-GuideEditorNative([string]$form,[string]$caption,[string]$button,[string]$checkName) {
+    Initialize-GuideInputNative
+    $owner=[IntPtr]$excel.Hwnd
+    if([InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',$owner) -ne [IntPtr]::Zero){
+        throw 'A guide editor is already visible before the Create Guide click.'
+    }
+    $timer=[Diagnostics.Stopwatch]::new()
+    $readsBefore=[long](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.SourceReads')
+    Click-GuideControlNative $form $caption $button $timer
+    $feedbackMs=$null
+    do {
+        $visible=[InvSysSettingsCapture]::OwnedVisibleForm('Action Path guide',$owner) -ne [IntPtr]::Zero
+        if($null -eq $feedbackMs -and ($visible -or [InvSysSettingsCapture]::OwnedVisibleForm(($caption+' - Opening guide...'),$owner) -ne [IntPtr]::Zero)){
+            $feedbackMs=$timer.ElapsedMilliseconds
+        }
+        if($visible){break}
+        Start-Sleep -Milliseconds 50
+    } while($timer.Elapsed.TotalSeconds -lt 30)
+    $visibleMs=$timer.ElapsedMilliseconds
+    Check $checkName $visible
+    Check ($checkName+'.FeedbackWithinOneSecond') ($null -ne $feedbackMs -and $feedbackMs -le 1000)
+    if(-not $visible){throw "One click on $button produced no visible guide editor in $visibleMs ms."}
+    $loaded=Wait-GuideFormCountNative 'frmActionPathGuide' '1' ([datetime]::UtcNow.AddMilliseconds(30000-$visibleMs))
+    $loadedMs=$timer.ElapsedMilliseconds
+    $reads=[long](Run 'invSys.Core.xlam' 'TestGuideSearchReadCount.SourceReads')-$readsBefore
+    Write-Host ("Single click on {0}: first feedback {1} ms, editor visible {2} ms, loaded-count observation {3} ms, selected-source reads {4}." -f $button,$feedbackMs,$visibleMs,$loadedMs,$reads)
+    # One read creates and projects a blank draft. Activation independently validates it.
+    Check ($checkName+'.SourceCheckedAtOpenAndActivation') ($reads -eq 2)
+    if(-not $loaded){throw 'The visible guide editor did not finish opening after one click.'}
+    Check ($checkName+'.ParentCaptionRestored') ([InvSysSettingsCapture]::OwnedVisibleForm($caption,$owner) -ne [IntPtr]::Zero)
 }
 
 function Focus-GuideControlNative([string]$name) {

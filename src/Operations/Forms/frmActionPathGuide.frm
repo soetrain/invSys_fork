@@ -101,12 +101,13 @@ Private Sub UserForm_Initialize()
     mSteps.ColumnWidths = "0 pt;300 pt": mSteps.IntegralHeight = False
 End Sub
 
-Public Function BindContext(ByVal context As String, ByVal pathId As String) As Boolean
-    Dim notice As String
+Public Function BindContext(ByVal context As String, ByVal pathId As String, Optional ByVal curationId As String = "") As Boolean
+    Dim rows As String, source As String, evidence As String, summary As String, notice As String
     If Not FlushDirty() Then Exit Function
     mContext = context
-    If Not modActionGuideDraft.OpenDraft(context, pathId, mDraftId, notice) Then Invalidate notice: Exit Function
-    BindContext = LoadDraft()
+    If Not modActionGuideDraft.OpenDraft(context, pathId, mDraftId, notice, curationId, _
+        rows, source, evidence, summary) Then Invalidate notice: Exit Function
+    BindContext = DisplayDraft(rows, source, evidence, notice, summary)
 End Function
 
 Public Function BindPublishedContext(ByVal context As String, ByVal key As String) As Boolean
@@ -118,11 +119,7 @@ Public Function BindPublishedContext(ByVal context As String, ByVal key As Strin
 End Function
 
 Public Function BindSelectedActions(ByVal context As String, ByVal token As String) As Boolean
-    Dim notice As String
-    If Not FlushDirty() Then Exit Function
-    mContext = context
-    If Not modActionGuideDraft.OpenDraft(context, "", mDraftId, notice, token) Then Invalidate notice: Exit Function
-    BindSelectedActions = LoadDraft()
+    BindSelectedActions = BindContext(context, "", token)
 End Function
 
 Public Function ValidateBinding() As Boolean
@@ -133,12 +130,20 @@ Public Function ValidateBinding() As Boolean
 End Function
 
 Private Function LoadDraft() As Boolean
-    Dim rows As String, source As String, evidence As String, notice As String, selected As String, row As Variant, fields As Variant
+    Dim rows As String, source As String, evidence As String, notice As String, selected As String
     Dim subject As String, name As String, tags As String, instructions As String, instruction As String, summary As String
     If Not FlushDirty() Then Exit Function
     selected = SelectedStep()
     If Not modActionGuideDraft.ReadEditor(mContext, mDraftId, selected, rows, source, evidence, _
         subject, name, tags, instructions, instruction, summary, notice) Then Invalidate notice: Exit Function
+    LoadDraft = DisplayDraft(rows, source, evidence, notice, summary, selected, subject, name, tags, instructions, instruction)
+End Function
+
+Private Function DisplayDraft(ByVal rows As String, ByVal source As String, ByVal evidence As String, _
+    ByVal notice As String, ByVal summary As String, Optional ByVal selected As String = "", _
+    Optional ByVal subject As String = "", Optional ByVal name As String = "", Optional ByVal tags As String = "", _
+    Optional ByVal instructions As String = "", Optional ByVal instruction As String = "") As Boolean
+    Dim row As Variant, fields As Variant
     mLoading = True: mSteps.Clear
     mSubject.Value = subject: mName.Value = name: mTags.Value = tags: mInstructions.Value = instructions
     For Each row In Split(rows, vbCrLf)
@@ -157,7 +162,7 @@ Private Function LoadDraft() As Boolean
     mStepInstruction.Enabled = (SelectedStep() <> "" And mDraftId <> "")
     mExpectationSummary.Caption = summary
     mLoading = False
-    LoadDraft = (mDraftId <> "")
+    DisplayDraft = (mDraftId <> "")
 End Function
 
 Public Sub RefreshExpectation()

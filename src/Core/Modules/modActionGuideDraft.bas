@@ -55,11 +55,13 @@ Public Function CanCreate(ByVal context As String, ByVal pathId As String) As Bo
 End Function
 
 Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef draftId As String, ByRef notice As String, _
-                          Optional ByVal curationId As String = "") As Boolean
+                          Optional ByVal curationId As String = "", Optional ByRef rows As String = "", _
+                          Optional ByRef source As String = "", Optional ByRef evidence As String = "", _
+                          Optional ByRef summary As String = "") As Boolean
     Dim header As Object, records As Collection, visible As Object, policyHash As String, record As Object, step As Object, policyVersion As Long
     Dim binding As String
     On Error GoTo Failed
-    draftId = ""
+    draftId = "": rows = "": source = "": evidence = "": summary = ""
     If curationId <> "" Then
         If pathId <> "" Then Exit Function
         If Not modCuratedGuideSource.ReadSelected(context, curationId, header, records, visible, policyHash, policyVersion, binding, notice) Then Exit Function
@@ -82,10 +84,13 @@ Public Function OpenDraft(ByVal context As String, ByVal pathId As String, ByRef
             step.Add "Instruction", "": mSteps.Add step
         End If
     Next record
+    ProjectDraft records, visible, rows, source, evidence
+    summary = ExpectationSummary()
     draftId = mDraftId: notice = "Draft only. Authored instructions do not prove that a task ran."
     OpenDraft = True
     Exit Function
 Failed:
+    rows = "": source = "": evidence = "": summary = ""
     Discard: draftId = "": notice = "Unavailable: the guide draft could not be created."
 End Function
 
@@ -119,10 +124,22 @@ End Function
 
 Public Function ReadDraft(ByVal context As String, ByVal draftId As String, ByRef rows As String, _
                           ByRef source As String, ByRef evidence As String, ByRef notice As String) As Boolean
-    Dim records As Collection, visible As Object, step As Object
+    Dim records As Collection, visible As Object
     On Error GoTo Failed
     rows = "": source = "": evidence = ""
     If Not Guard(context, draftId, records, visible, notice) Then Exit Function
+    ProjectDraft records, visible, rows, source, evidence
+    notice = "Draft only. Changes affect authored instructions; source observations remain unchanged."
+    ReadDraft = True
+    Exit Function
+Failed:
+    rows = "": source = "": evidence = "": notice = "Unavailable: the guide draft could not be read."
+    Discard
+End Function
+
+Private Sub ProjectDraft(ByVal records As Collection, ByVal visible As Object, ByRef rows As String, _
+                         ByRef source As String, ByRef evidence As String)
+    Dim step As Object
     For Each step In mSteps
         rows = rows & CStr(step("StepId")) & vbTab & CStr(step("Caption")) & vbCrLf
     Next step
@@ -134,13 +151,7 @@ Public Function ReadDraft(ByVal context As String, ByVal draftId As String, ByRe
         source = modPublishedGuideDraftSource.SourceCaption(mHeader)
     End If
     evidence = modGuideDraftSource.Evidence(records, visible)
-    notice = "Draft only. Changes affect authored instructions; source observations remain unchanged."
-    ReadDraft = True
-    Exit Function
-Failed:
-    rows = "": source = "": evidence = "": notice = "Unavailable: the guide draft could not be read."
-    Discard
-End Function
+End Sub
 
 Public Function ReadEditor(ByVal context As String, ByVal draftId As String, ByRef selectedStep As String, _
                            ByRef rows As String, ByRef source As String, ByRef evidence As String, _
