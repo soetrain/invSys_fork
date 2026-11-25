@@ -133,6 +133,7 @@ param(
     [switch]$AdminSeedRecording,
     [switch]$AdminSeedRecordingBoundaries,
     [switch]$AdminSeedGuidePaths,
+    [switch]$AdminSeedReplayProfile,
     [switch]$AdminSeedGuideTimingOnly,
     [switch]$AdminConsoleOnly,
     [switch]$AdminDirectoryColumnsOnly,
@@ -445,7 +446,7 @@ if($ViewerStartupCalibrationForTest -ne 'None' -and -not $TraceViewerStartupForT
 if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly' -and -not $TraceViewerStartupForTest){
     $savedGuide=$GuideDraftOnly -and $CheckGuideExpectation -and $CheckViewerPublishedRead
     $savedNativeSearch=$CheckRecordingNativeSearch -and $CheckRecordingReader -and $VisibleExcelForTest -and -not $GuideDraftOnly
-    $savedSeed=$AdminSeedGuideTimingOnly -and $AdminSeedGuidePaths -and $AdminSeedRecordingBoundaries -and $AdminSeedOutcomeOnly
+    $savedSeed=($AdminSeedGuideTimingOnly -or $AdminSeedReplayProfile) -and $AdminSeedGuidePaths -and $AdminSeedRecordingBoundaries -and $AdminSeedOutcomeOnly
     $savedAggregation=$AdminAggregationRestartOnly -and $AdminAggregationOnly -and $AdminAggregationBoundaryMatrix
     $savedPrint=$RunPrintBaselineOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and $PrintSeedBoundaryForTest -cne 'BareSeed'
     $savedCheckIn=$RunCheckInActivityOnly -and $CheckProductionDesignerActivity -and $CheckProductionRunLocal -and -not $CheckTrackingSettings -and -not $CheckSettingsEditorActivity -and -not $CheckViewerPublishedRead -and -not $CheckShippingRecording
@@ -606,7 +607,8 @@ if($AdminReconcileIdentityOnly -and (-not $CompileEvaluationProbesForTest -or $A
 if($AdminSeedOutcomeOnly -and (-not $CompileEvaluationProbesForTest -or $AdminDirectoryColumnsOnly -or $AdminConsoleOnly -or $AdminVerifyAddinsOnly -or $AdminReconcileIdentityOnly -or $CheckAuthReadOnly -or $AdminSettingsCloseOnly -or $CheckTrackingSettings -or $CheckActivityEvidence -or $CheckViewerPublishedRead)){throw 'Seed outcome requires its isolated compiled callback gate.'}
 if($AdminSeedNativeFeedback -and (-not $AdminSeedOutcomeOnly -or $Phase -cne 'GREEN')){throw 'Seed feedback requires the focused GREEN callback gate.'}
 if($AdminSeedWorkflowEdges -and (-not $AdminSeedOutcomeOnly -or $Phase -cne 'GREEN')){throw 'Seed workflow edges require the focused GREEN callback gate.'}
-if($AdminSeedRecording -and (-not $AdminSeedOutcomeOnly -or $Phase -cne 'GREEN')){throw 'Seed recording retains the focused GREEN completion gate.'}
+if($AdminSeedRecording -and (-not $AdminSeedOutcomeOnly -or ($Phase -cne 'GREEN' -and -not $AdminSeedReplayProfile))){throw 'Seed recording retains the focused GREEN completion gate.'}
+if($AdminSeedReplayProfile -and (-not $AdminSeedGuidePaths -or $AdminSeedGuideTimingOnly)){throw 'Seed replay requires the dedicated single-guide fixture.'}
 if($AdminSeedRecordingBoundaries -and -not $AdminSeedRecording){throw 'Seed boundaries require the recording probe.'}
 if($AdminSeedGuidePaths -and -not $AdminSeedRecordingBoundaries){throw 'Seed guides require the boundary probe.'}
 if($AdminSeedGuideTimingOnly -and -not $AdminSeedGuidePaths){throw 'Seed guide timing requires the guide fixture.'}
@@ -1638,7 +1640,7 @@ function NewFixture([string]$Suffix) {
     New-Item -ItemType Directory -Path $share -Force | Out-Null
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($root))
     $creationArgs=@($wh,'Config command fixture','S1','config-admin',$root,$share)
-    if($GuideNasTestLeaf -or (($CheckReceivingReplay -or $AdminReconcileIdentityOnly) -and $Suffix -ceq 'a')){$creationArgs+='Training'}
+    if($GuideNasTestLeaf -or $AdminSeedReplayProfile -or (($CheckReceivingReplay -or $AdminReconcileIdentityOnly) -and $Suffix -ceq 'a')){$creationArgs+='Training'}
     $created=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.BootstrapWarehouseLocalAdmin' $creationArgs)
     if(-not $created){throw 'Admin Generate Warehouse fixture failed.'}
     $secret=[guid]::NewGuid().ToString('N')

@@ -141,9 +141,18 @@ End Function
         Install-AdminSeedBoundariesProbe $probe.CodeModule
     }
     if($AdminSeedGuidePaths){Install-AdminSeedGuideProbe}
+    if($AdminSeedReplayProfile){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
+        Install-GuideTransferDialogProbe
+    }
 }
 
 function Test-AdminSeedOutcome($Fixture,$Other) {
+    if($AdminSeedReplayProfile){
+        . (Join-Path $PSScriptRoot 'Slice4beAdminSeedReplay.ps1')
+        Test-AdminSeedReplayProfile $Fixture $Other
+        return
+    }
     function Probe([string]$Name,[object[]]$Values=@()){Run 'invSys.Admin.xlam' ('TestSeedOutcome.'+$Name) $Values}
     $observations=[Collections.Generic.List[object]]::new()
     $nativeObservations=[Collections.Generic.List[object]]::new()
