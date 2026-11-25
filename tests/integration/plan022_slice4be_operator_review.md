@@ -1,5 +1,65 @@
 # Slice 4be-A operator comparison review
 
+## Initial Admin and guide-author review, November 24
+
+Justin approved private first-Admin entry, exact-scope guide grants and
+attempt-owned cleanup. The isolated catalog 48 candidate is
+`validation-onboarding-v4-20261124`, built from `27cb6d5b`. The equivalent
+onboarding product changes on the shared feature branch are `e90c3bbb` and
+`d2085dfb`.
+
+The packaged Create and Users & Roles checks passed 59/59. Empty and mismatched
+entries reached no destination. An interrupted save preserved a file created
+independently inside the staging directory and blocked publication. In a
+pre-existing hub, the sole unrelated file retained its hash and the ordinary
+Create retry succeeded. Both source identity and source Auth bytes survived.
+Changing the user, warehouse or station after clicking the guide checkbox
+explained the stale choice and preserved the saved authority. A six-choice
+save preserved both the granted and revoked states.
+
+The ordinary onboarding and guide run passed 39/39. The destination Admin
+signed in, received the explicit grant, published a recorded guide, edited
+version 2 and exported and imported it. A revoke saved through Users & Roles
+in an independent Excel process blocked the open editor's guarded Remove
+and Save and both transfer directions. Dirty Cancel and X each discarded
+with zero Core WriteText attempts. A fresh third process verified sign-in
+and persisted revocation. The generated textual evidence contained neither
+private entry nor its stored representation.
+
+With two published guides, native keys, backspace and clear took 22–28 ms.
+No match returned zero rows in 76 ms. Reopening and closing through the native
+X unloaded the reader. With 31 tracked actions locally, the picker opened in
+2.044 s, kept the selection through filtering, used zero additional Core
+reads while typing and disposed the reopened window and form through X in
+657 ms. Its separate empty-search feedback check is still red. The results
+list empties correctly, and the picker supplies no explanatory message.
+
+On the designated network share, the 31-row picker opened in 6.325 s.
+Native keys, backspace and clear updated in 25–35 ms, and a no-match query
+returned zero rows in 76 ms. Reopened X unloaded the window and form in
+3.729 s, and the following Cancel also unloaded its form. This run again
+passed 35/36 with the same missing empty-search explanation.
+
+The full network-share curation suite passed 100/101 with that same
+exception. In two successive single-click cycles, Published Guides opened
+in 2.97–3.41 s and closed in 1.80–1.83 s. Choose Tracked Actions opened in
+7.83–7.99 s and closed in 1.81–1.87 s. From selected actions, a physical
+Create Guide click gave feedback in 173 ms, showed the editor in 3.636 s,
+and finished loading in 5.952 s.
+The separate Create Guide button on a saved recording also opened with one
+physical click. It gave feedback in 188 ms, showed the editor in 3.122 s
+and finished loading in 6.594 s.
+
+**Visible review pending.** In a disposable Training warehouse, enter and
+confirm the initial destination Admin PIN privately. Verify the source
+administrator remains signed in, then sign in normally at the destination.
+In Users & Roles, select the account, clear **Roaming**, enter the exact
+station, check **Maintain Action Paths**, and click **Create / Update**. Review Create Guide, Published
+Guides and Choose Tracked Actions using one click to open, then reopen and
+close each. Revoke from a second signed-in administrative session and try
+Save in the open editor. Record the outcome and perceived search/close
+responsiveness. Keep all private entries out of the review record.
+
 **November 24 network-share retest on the installed reader-reopen build.**
 In the signed-in disposable Training warehouse, the complete curation suite
 passed 99/99 without a modal or intervention. Published Guides opened in

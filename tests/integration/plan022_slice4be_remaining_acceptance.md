@@ -1,5 +1,21 @@
 # Slice 4be remaining acceptance checklist
 
+**November 24 guide-author onboarding candidate.** The isolated catalog 48
+candidate `validation-onboarding-v4-20261124` passed ordinary onboarding
+39/39, private Create and scoped authorization 59/59, Create 110/110, Auth
+and Users & Roles 259/259, and Create recording 175/175. Fresh regression
+results on the same five packages included the Release 1 chain 33/33,
+saved-workbook guide restart 33/33, the populated guide suite 198/198, live
+roles 48/48, reusable Production 2/2, and ordered Receiving B0 replay
+121/121. NAS recorded-guide entry passed 40/40. Local and NAS picker scale
+each passed 35/36, and full NAS curation passed 100/101. Their sole failed
+assertion was `GuideCuration.ExplainsEmptySearch`. All final cohorts closed
+Excel and restored test settings. The five candidate packages, five isolated
+verification copies, and five installed review packages matched their
+respective SHA-256 pins. The Windows application audit found zero Excel
+faults from the final compile through the last test. See the operator
+comparison for search timings and Justin's pending visible review.
+
 **November 24 installed reader build.** `validation-guide-reader-reopen-20261124`
 passed the ordered Release 1 chain (33/33) and packaged live roles (48/48).
 The chain reopened the saved canonical and operator workbooks in a fresh Excel
