@@ -134,6 +134,7 @@ param(
     [switch]$AdminSeedRecordingBoundaries,
     [switch]$AdminSeedGuidePaths,
     [switch]$AdminSeedReplayProfile,
+    [switch]$AdminSeedReplayRun,
     [switch]$AdminSeedGuideTimingOnly,
     [switch]$AdminConsoleOnly,
     [switch]$AdminDirectoryColumnsOnly,
@@ -609,6 +610,7 @@ if($AdminSeedNativeFeedback -and (-not $AdminSeedOutcomeOnly -or $Phase -cne 'GR
 if($AdminSeedWorkflowEdges -and (-not $AdminSeedOutcomeOnly -or $Phase -cne 'GREEN')){throw 'Seed workflow edges require the focused GREEN callback gate.'}
 if($AdminSeedRecording -and (-not $AdminSeedOutcomeOnly -or ($Phase -cne 'GREEN' -and -not $AdminSeedReplayProfile))){throw 'Seed recording retains the focused GREEN completion gate.'}
 if($AdminSeedReplayProfile -and (-not $AdminSeedGuidePaths -or $AdminSeedGuideTimingOnly)){throw 'Seed replay requires the dedicated single-guide fixture.'}
+if($AdminSeedReplayRun -and -not $AdminSeedReplayProfile){throw 'Seed replay requires its saved profile gate.'}
 if($AdminSeedRecordingBoundaries -and -not $AdminSeedRecording){throw 'Seed boundaries require the recording probe.'}
 if($AdminSeedGuidePaths -and -not $AdminSeedRecordingBoundaries){throw 'Seed guides require the boundary probe.'}
 if($AdminSeedGuideTimingOnly -and -not $AdminSeedGuidePaths){throw 'Seed guide timing requires the guide fixture.'}
@@ -1024,6 +1026,7 @@ if($ViewerStartupPackageStateForTest -ne 'OriginalReadOnly'){
     New-Item -ItemType Directory -Path $probeDeploy|Out-Null
     foreach($name in @('invSys.Core.xlam','invSys.Inventory.Domain.xlam','invSys.Designs.Domain.xlam','invSys.Operations.xlam','invSys.Admin.xlam')){
         Copy-Item -LiteralPath (Join-Path $deploy $name) -Destination (Join-Path $probeDeploy $name)
+        if($AdminSeedReplayProfile -and (Get-FileHash (Join-Path $deploy $name)).Hash -cne (Get-FileHash (Join-Path $probeDeploy $name)).Hash){throw 'Seed replay test copy differs from its candidate.'}
     }
     $deploy=$probeDeploy
 }

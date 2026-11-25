@@ -31,6 +31,10 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     if($Fixture.Warehouse -ceq $Destination.Warehouse -or $Fixture.Root -eq $Destination.Root){throw 'Source and destination must be distinct.'}
     $anchor=$excel.Workbooks.Add()
     try{
+        foreach($package in $packages.Keys){
+            $expectedPath=Join-Path $deploy $package
+            if($packages[$package].FullName -ine $expectedPath){throw 'Wrong loaded package path.'}
+        }
         $anchor.SaveAs((Join-Path $runRoot 'b1-host.xlsb'),50)
         $excel.Visible=$true
         OpenTarget $Fixture
@@ -109,6 +113,28 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             Check 'SeedReplay.Profile.ExactGuideAndExplicitBuiltInKitSaved' $exact
         }
         Check 'SeedReplay.Profile.PreservesInventoryAndSourceGuide' ((Get-FileHash -LiteralPath $inventory).Hash -ceq $before -and (BoundSame $pins (BoundPins $sourceRoot)))
+        if($AdminSeedReplayRun){
+            if(-not $opened -or -not $exact){throw 'A saved bound profile is required for the replay RED.'}
+            Deliver $profileEditor 'btnCloseExecution' 'Click'
+            Deliver $library 'btnRunHowTo' 'Click'
+            $runner='frmActionPathRun'
+            if((BoundControl '' 'Count' '' $runner) -cne '1' -or -not (BoundControl 'lblRunGuide' 'Label' '' $runner).Contains($guide.ContentSha256) -or -not (BoundControl 'lblRunProfile' 'Label' '' $runner).Contains($saved.ContentSha256) -or -not (BoundControl 'lblRunTarget' 'Label' '' $runner).Contains($Destination.Warehouse)){throw 'Actual runner did not bind the exact destination, guide and profile.'}
+            $ready=(BoundControl 'btnStartRun' 'State' '' $runner) -ceq 'True|True'
+            Check 'SeedReplay.Run.StartNeedsNoReceivingEntity' $ready
+            if(-not $ready){
+                # Exercise the actual dispatcher even on the Receiving-only baseline.
+                # This UI choice is local and is never used as a Seed profile input.
+                if((BoundControl 'lstRunSourceEntities' 'Select' '0' $runner) -cne 'SELECTED'){throw 'Unable to reach baseline dispatcher.'}
+            }
+            Deliver $runner 'btnStartRun' 'Click'
+            $attempts=@(Get-ChildItem (Join-Path $destRoot 'Runs') -File -Filter '*.json'|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
+            if(-not $attempts.Count){throw 'No durable replay attempt; dispatch RED unavailable.'}
+            $attempt=$attempts[-1]
+            if($attempt.Guide.RecordId -cne $guide.RecordId -or $attempt.Profile.RecordId -cne $saved.RecordId -or $attempt.WarehouseId -cne $Destination.Warehouse -or $attempt.Steps.Count -ne 1 -or $attempt.Steps[0].StepId -cne $guide.Steps[0].StepId -or $attempt.Steps[0].ControlId -cne 'ADMIN_DEMO_SEED'){throw 'Durable run/step identity did not match.'}
+            $applied=$attempt.Steps[0].ReasonCode -ceq 'APPLIED' -and $attempt.Steps[0].ActivityId -cne '' -and $attempt.Steps[0].SourceEventRefs.Count -eq 1
+            Check 'SeedReplay.Run.OrdinaryOwnerAppliedWithFreshEvent' $applied
+            if(-not $applied -and ($attempt.State -cne 'Unknown' -or $attempt.Steps[0].ReasonCode -cne 'CAPTURE_UNAVAILABLE' -or $attempt.Steps[0].SourceEventRefs.Count -ne 0 -or (Get-FileHash $inventory).Hash -cne $before)){throw 'Unexpected replay failure; inspect before classifying RED.'}
+        }
     }finally{
         TransferSetFile ''
         CloseRecordingViewer
