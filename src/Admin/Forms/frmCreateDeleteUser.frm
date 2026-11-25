@@ -62,6 +62,7 @@ Private mWriteContext As String
 Private mActivityContext As String
 
 Private Const COLOR_INFO As Long = 0
+Private Const GUIDE_SCOPE_CHANGED As String = "Select the user and exact station again before changing Maintain Action Paths."
 Private Const COLOR_SUCCESS As Long = 32768
 Private Const COLOR_WARNING As Long = 192
 Private Const COLOR_ERROR As Long = 255
@@ -460,8 +461,17 @@ Private Sub ShowGuideChoice(ByVal selected As Boolean)
     mGuideSelection = 0
 End Sub
 
-Private Sub DisplayScopedGuideChoice()
-    If mChkGuide Is Nothing Or mBusy Or mGuideSelection <> 0 Then Exit Sub
+Private Sub DisplayScopedGuideChoice(Optional ByVal edited As MSForms.TextBox = Nothing, Optional ByVal captured As String = "")
+    If mChkGuide Is Nothing Or mBusy Then Exit Sub
+    If mGuideSelection <> 0 Then
+        If edited Is Nothing Then Exit Sub
+        If CStr(edited.Value) <> captured Then
+            ShowStatusForm GUIDE_SCOPE_CHANGED, COLOR_WARNING
+        ElseIf mLblStatus.Caption = GUIDE_SCOPE_CHANGED Then
+            If PendingGuideMatches(CStr(mTxtUserId.Value), CStr(mTxtWarehouseId.Value), CStr(mTxtStationId.Value)) Then ShowStatusForm "", COLOR_INFO
+        End If
+        Exit Sub
+    End If
     ShowGuideChoice mLoadedGuideGrant And _
         StrComp(mLoadedGuideUser, Trim$(CStr(mTxtUserId.Value)), vbTextCompare) = 0 And _
         StrComp(mBoundGuideWarehouse, Trim$(CStr(mTxtWarehouseId.Value)), vbTextCompare) = 0 And _
@@ -469,16 +479,20 @@ Private Sub DisplayScopedGuideChoice()
 End Sub
 
 Private Sub mTxtStationId_Change()
-    DisplayScopedGuideChoice
+    DisplayScopedGuideChoice mTxtStationId, mGuideStation
 End Sub
 
 Private Sub mTxtWarehouseId_Change()
-    DisplayScopedGuideChoice
+    DisplayScopedGuideChoice mTxtWarehouseId, mGuideWarehouse
 End Sub
 
 Private Sub mTxtUserId_Change()
-    DisplayScopedGuideChoice
+    DisplayScopedGuideChoice mTxtUserId, mGuideUser
 End Sub
+
+Private Function PendingGuideMatches(ByVal userId As String, ByVal warehouse As String, ByVal station As String) As Boolean
+    PendingGuideMatches = mGuideUser = userId And mGuideWarehouse = warehouse And mGuideStation = station
+End Function
 
 Private Sub mTxtUserId_AfterUpdate()
     Dim userId As String, wb As Workbook, opened As Boolean, report As String
@@ -819,8 +833,8 @@ Private Sub RunUserWriteForm(ByVal command As String)
             If CBool(mChkInboxProcess.Value) Then .CapabilityMask = .CapabilityMask Or 32
             .GuideChoice = mGuideSelection
             If .GuideChoice <> 0 Then
-                If mGuideUser <> .UserId Or mGuideWarehouse <> .Warehouse Or mGuideStation <> .Station Then
-                    ShowStatusForm "Select the user and exact station again before changing Maintain Action Paths.", COLOR_ERROR
+                If Not PendingGuideMatches(.UserId, .Warehouse, .Station) Then
+                    ShowStatusForm GUIDE_SCOPE_CHANGED, COLOR_ERROR
                     Exit Sub
                 End If
             End If
