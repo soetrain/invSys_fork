@@ -137,6 +137,7 @@ param(
     [switch]$AdminConsoleOnly,
     [switch]$AdminDirectoryColumnsOnly,
     [switch]$AdminCreateWarehouseOwnerOnly,
+    [switch]$CheckInitialAdminOnboarding,
     [switch]$AdminTesterSetupOwnerOnly,
     [switch]$AdminAggregationOnly,
     [switch]$AdminInventoryEntryOnly,
@@ -947,6 +948,7 @@ if($CheckAdminSettingsNavigation){$reportRoot=Join-Path $repo ('reports/runtime/
 if($AdminReconcileIdentityOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-reconcile/'+[guid]::NewGuid().ToString('N'));Write-Output ('Admin reconcile evidence: '+$reportRoot)}
 if($AdminVerifyAddinsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-verify/'+[guid]::NewGuid().ToString('N'));Write-Output ('Verify Add-ins evidence: '+$reportRoot)}
 if($AdminDirectoryColumnsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-directory-columns/'+[guid]::NewGuid().ToString('N'));Write-Output ('Admin directory columns evidence: '+$reportRoot)}
+if($CheckInitialAdminOnboarding -and -not $AdminCreateWarehouseOwnerOnly){throw 'Initial Admin onboarding requires the packaged Create Warehouse owner fixture.'}
 if($AdminCreateWarehouseOwnerOnly){
     if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $AdminDirectoryColumnsOnly -or $CheckTrackingSettings -or $CheckAuthReadOnly){throw 'Create owner coverage requires its separate compiled gate.'}
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-create-owner/'+[guid]::NewGuid().ToString('N'))

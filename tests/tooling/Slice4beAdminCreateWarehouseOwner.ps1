@@ -114,6 +114,10 @@ End Function
 '@)
     }
     Install-CreateAuthorityProbe $project $form $probe.CodeModule
+    if($CheckInitialAdminOnboarding){
+        . (Join-Path $PSScriptRoot 'Slice4beInitialAdminOnboarding.ps1')
+        Install-InitialAdminFailureProbe
+    }
 }
 
 function Test-AdminCreateWarehouseOwner($Fixture,$Other) {
@@ -138,6 +142,11 @@ function Test-AdminCreateWarehouseOwner($Fixture,$Other) {
     $sourceBefore=(Get-FileHash -LiteralPath $Fixture.Config).Hash
     $otherBefore=(Get-FileHash -LiteralPath $Other.Config).Hash
     try {
+        if($CheckInitialAdminOnboarding){
+            . (Join-Path $PSScriptRoot 'Slice4beInitialAdminOnboarding.ps1')
+            Test-InitialAdminOnboarding
+            return
+        }
         foreach($purpose in @('Operational','Training')){
             $case=New-CreateCase $purpose $purpose
             [void](Invoke-Create 'Create')
