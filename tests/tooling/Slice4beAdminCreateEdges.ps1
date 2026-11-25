@@ -2,6 +2,8 @@ function Install-CreateEdgeProbe($Core,$Probe){
     $owner=@($Core.VBComponents|Where-Object Name -ceq 'modWarehouseCreateCommands')
     $script:CreateCoreAvailable=$owner.Count -eq 1
     if(-not $script:CreateCoreAvailable){return}
+    $command=$owner[0].CodeModule
+    $privateArgs=if($command.Lines(1,$command.CountOfLines) -match 'Public Function MatchingInitialCredential\('){', initialPin:=privateEntry, confirmation:=privateEntry'}else{''}
     $Probe.InsertLines($Probe.CountOfDeclarationLines+1,'Private mContext As String, mInterrupt As Long, mAuthorization As Long, mReadStep As Long, mVersionBefore As Long, mTargetBefore As WarehouseTarget')
     $Probe.AddFromString(@'
 Public Sub BeforeBootstrap()
@@ -31,14 +33,15 @@ Public Sub BeforeAuthorization()
     If mInterrupt > 0 And mAuthorization = mInterrupt Then modAuth.SignOut
 End Sub
 Public Function DirectCreate(ByVal root As String, ByVal warehouseId As String) As Boolean
-    Dim report As String, operatorPath As String
-    DirectCreate = modWarehouseCreateCommands.CreateWarehouse(mContext, warehouseId, "Generated direct fixture", "S1", "destination-admin", root, "", "Training", report, operatorPath)
+    Dim report As String, operatorPath As String, privateEntry As String
+    privateEntry = CreateObject("Scripting.FileSystemObject").GetTempName
+    DirectCreate = modWarehouseCreateCommands.CreateWarehouse(mContext, warehouseId, "Generated direct fixture", "S1", "destination-admin", root, "", "Training", report, operatorPathPRIVATE_ARGS)
 End Function
 Public Function DirectPublish(ByVal root As String, ByVal share As String) As Boolean
     Dim report As String
     DirectPublish = modWarehouseCreateCommands.PublishExisting(mContext, root, share, report)
 End Function
-'@)
+'@.Replace('PRIVATE_ARGS',$privateArgs))
     $bootstrapLine=$Probe.ProcStartLine('ObserveBootstrap',0)
     $Probe.InsertLines($bootstrapLine+1,'    BeforeBootstrap')
     $module=$owner[0].CodeModule
