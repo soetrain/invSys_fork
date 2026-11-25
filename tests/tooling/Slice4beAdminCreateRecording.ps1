@@ -79,6 +79,17 @@ End Sub
 Public Function PickFolderForTest() As String
     PickFolderForTest = mPickerInput
 End Function
+Public Function EnterFixturePins(ByVal entry As String, ByVal confirmation As String) As Boolean
+    Dim ctl As Object
+    For Each ctl In frmCreateWarehouse.Controls
+        If ctl.Name = "txtInitialPin" Then
+            ctl.Value = entry
+            frmCreateWarehouse.Controls("txtConfirmPin").Value = confirmation
+            EnterFixturePins = True
+            Exit Function
+        End If
+    Next ctl
+End Function
 Public Sub Gesture(ByVal name As String, ByVal selection As String)
     mPickerInput = selection
     frmCreateWarehouse.RecordingGestureForTest name
@@ -90,10 +101,13 @@ function Test-AdminCreateRecording($Fixture,$Other) {
     function Invoke([string]$Name,[object[]]$Values=@()){Run 'invSys.Admin.xlam' ('TestCreateOwner.'+$Name) $Values}
     function Probe([string]$Name,[object[]]$Values=@()){Run 'invSys.Core.xlam' ('TestCreateRecording.'+$Name) $Values}
     $catalogVersion=[int](Probe 'CurrentCatalogVersion')
+    $entry=[guid]::NewGuid().ToString('N')
+    $confirmation=[guid]::NewGuid().ToString('N')
     function Observe([string]$Suffix,[string]$Outcome,[scriptblock]$Action,[string]$Label=$Suffix){
         $before=@(Get-Slice4beActivityFiles $Fixture)
         & $Action
-        $records=@(Get-Slice4beActivityFiles $Fixture|Where-Object{$_ -cnotin $before}|ForEach-Object{Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object ControlId -CEQ ('ADMIN_CREATE_'+$Suffix))
+        $newFiles=@(Get-Slice4beActivityFiles $Fixture|Where-Object{$_ -cnotin $before})
+        $records=@($newFiles|ForEach-Object{Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object ControlId -CEQ ('ADMIN_CREATE_'+$Suffix))
         $attempt=@($records|Where-Object OutcomeCode -CEQ 'REQUESTED');$result=@($records|Where-Object OutcomeCode -CEQ $Outcome)
         $valid=$records.Count -eq 2 -and $attempt.Count -eq 1 -and $result.Count -eq 1
         if(-not $valid){Write-Output ('Create observation counts '+$Label+': records='+$records.Count+' requested='+$attempt.Count+' result='+$result.Count+' outcomes='+(@($records|ForEach-Object OutcomeCode)-join ','))}
@@ -102,6 +116,10 @@ function Test-AdminCreateRecording($Fixture,$Other) {
         foreach($r in $records){$valid=$valid -and $r.CatalogVersion -eq $catalogVersion -and $r.OwnerId -ceq 'ADMIN_WAREHOUSE_CREATE' -and $r.WarehouseId -ceq $Fixture.Warehouse -and $r.UserId -ceq 'config-admin' -and @($r.SourceEventRefs).Count -eq 0}
         Check ('Create.Recording.'+$Label+'.ExactSourceContext') $valid
         $safe=$records.Count -eq 2
+        foreach($file in $newFiles){
+            $raw=[IO.File]::ReadAllText($file)
+            if($raw.Contains($entry) -or $raw.Contains($confirmation)){$safe=$false}
+        }
         foreach($r in $records){$raw=($r|ConvertTo-Json -Depth 12).Replace('\\','\');foreach($value in @($script:CreateRecordingId,$script:CreateRecordingRoot,$Fixture.Secret,'Generated Create coverage','create-fixture-admin')){if($value -and $raw.Contains($value)){$safe=$false}}}
         Check ('Create.Recording.'+$Label+'.Redacted') $safe
         if($result.Count -eq 1){
@@ -143,6 +161,10 @@ function Test-AdminCreateRecording($Fixture,$Other) {
         Observe 'PURPOSE' 'SELECTED' {[void](Invoke 'Gesture' @('Purpose',''))}
         Observe 'PUBLISH_OPTION' 'STAGED' {[void](Invoke 'Gesture' @('Option',''))}
         [void](Invoke 'Prepare' @($script:CreateRecordingId,$script:CreateRecordingRoot,'','Training'))
+        if([bool](Invoke 'EnterFixturePins' @($entry,$confirmation))){
+            Observe 'SUBMIT' 'REJECTED' {[void](Invoke 'Create')} 'MismatchedPrivateEntry'
+            [void](Invoke 'EnterFixturePins' @($entry,$entry))
+        }
         Observe 'SUBMIT' 'CREATED_LOCAL' {[void](Invoke 'Create')}
         Check 'Create.Recording.LocalOwnerResult' (([string](Invoke 'Facts')).StartsWith('True|True|'))
         Observe 'OPEN_WORKBOOK' 'OPENED' {[void](Invoke 'OpenReceiving')}

@@ -66,6 +66,9 @@ Public Sub SubmitPendingChoice()
     frmCreateDeleteUser.SubmitPendingChoiceForTest
     Unload frmCreateDeleteUser
 End Sub
+Public Function ChangedGuideSelection(ByVal field As String) As Boolean
+    ChangedGuideSelection = frmCreateDeleteUser.ChangeSelectedFieldForTest(field)
+End Function
 Public Function GuideAfterScopeChange(ByVal user As String) As Boolean
     Dim view As New frmCreateDeleteUser
     GuideAfterScopeChange = view.GuideAfterScopeChangeForTest(user)
@@ -96,6 +99,14 @@ End Sub
 Public Sub SubmitPendingChoiceForTest()
     mBtnSave_Click
 End Sub
+Public Function ChangeSelectedFieldForTest(ByVal field As String) As Boolean
+    Select Case field
+        Case "User": mTxtUserId.Value = "other-training-user"
+        Case "Warehouse": mTxtWarehouseId.Value = "other-training-warehouse"
+        Case "Station": mTxtStationId.Value = "S2"
+    End Select
+    ChangeSelectedFieldForTest = (mLblStatus.Caption = "Select the user and exact station again before changing Maintain Action Paths.")
+End Function
 Public Function GuideAfterScopeChangeForTest(ByVal user As String) As Boolean
     Dim target As WarehouseTarget, ctl As Object
     Set target = modNasConnection.GetCurrentTarget()
@@ -275,8 +286,13 @@ function Test-InitialAdminOnboarding {
             Test-OnboardingPeer $case $user $secret
             $textLeak=$false
             $storedRepresentation=[string](Run 'invSys.Core.xlam' 'modAuth.HashUserCredential' @($secret))
-            foreach($file in Get-ChildItem -LiteralPath $runRoot,$reportRoot -Recurse -File -Include '*.json','*.jsonl','*.log','*.txt','*.md'){
-                $content=[IO.File]::ReadAllText($file.FullName)
+            $textFiles=Get-ChildItem -LiteralPath $runRoot,$reportRoot -Recurse -File | Where-Object Extension -in '.json','.jsonl','.log','.txt','.md'
+            foreach($file in $textFiles){
+                $stream=[IO.File]::Open($file.FullName,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite)
+                try{
+                    $reader=[IO.StreamReader]::new($stream,$true)
+                    try{$content=$reader.ReadToEnd()}finally{$reader.Dispose()}
+                }finally{$stream.Dispose()}
                 if($content.Contains($secret) -or $content.Contains($differentEntry) -or $content.Contains($storedRepresentation)){$textLeak=$true;break}
             }
             Check 'Onboarding.Privacy.NoPrivateInputInTextEvidence' (-not $textLeak)
@@ -353,6 +369,14 @@ function Test-InitialAdminOnboarding {
             Check "Onboarding.Users.${change}PreservesStoredRoles" ($origin -ceq (Get-FileHash -LiteralPath $otherAuth).Hash)
         }
         Check 'Onboarding.Users.StaleSessionTrackingNoticePresented' ([int](Invoke-Create 'TrackingNotices') -gt 0)
+        foreach($field in @('User','Warehouse','Station')){
+            SelectTarget $Other
+            $origin=(Get-FileHash -LiteralPath $otherAuth).Hash
+            [void](Invoke-Create 'PendingChoice' @('config-reader',''))
+            Check "Onboarding.Users.Changed${field}ExplainsPendingChoice" ([bool](Invoke-Create 'ChangedGuideSelection' @($field)))
+            [void](Invoke-Create 'SubmitPendingChoice')
+            Check "Onboarding.Users.Changed${field}CannotRetargetPendingChoice" ($origin -ceq (Get-FileHash -LiteralPath $otherAuth).Hash)
+        }
     }
     # Characterize the existing bootstrap recovery boundary independently of
     # the future credential writer. Never manufacture an Auth row or a grant.
