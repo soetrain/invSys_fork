@@ -1,6 +1,9 @@
 # Packaged callback/form-handler diagnostic. Only generated warehouses are written.
 # Test adapters change modal presentation and expose fixed facts, not owner results.
 . (Join-Path $PSScriptRoot 'Slice4beAdminCreateAuthority.ps1')
+if($CheckInitialAdminOnboarding){
+    . (Join-Path $PSScriptRoot 'Slice4beInitialAdminOnboarding.ps1')
+}
 function Install-AdminCreateWarehouseOwnerProbe {
     $project=$packages['invSys.Admin.xlam'].VBProject
     $control=$project.VBComponents.Add(2);$control.Name='TestCreateRibbon'
@@ -65,6 +68,13 @@ Public Sub OwnerPrepareForTest(ByVal warehouseId As String, ByVal root As String
     Me.chkPublishInitial.Value = (share <> "")
     mWarehousePurpose.Value = purpose
     mFormBusy = False
+    Dim privateEntry As Object
+    For Each privateEntry In Me.Controls
+        If privateEntry.Name = "txtInitialPin" Then
+            privateEntry.Value = CreateObject("Scripting.FileSystemObject").GetTempName
+            Me.Controls("txtConfirmPin").Value = privateEntry.Value
+        End If
+    Next privateEntry
 End Sub
 Public Sub OwnerShareForTest(ByVal share As String)
     Me.txtPathSharePoint.Value = share
@@ -115,7 +125,6 @@ End Function
     }
     Install-CreateAuthorityProbe $project $form $probe.CodeModule
     if($CheckInitialAdminOnboarding){
-        . (Join-Path $PSScriptRoot 'Slice4beInitialAdminOnboarding.ps1')
         Install-InitialAdminFailureProbe
     }
 }
@@ -143,7 +152,6 @@ function Test-AdminCreateWarehouseOwner($Fixture,$Other) {
     $otherBefore=(Get-FileHash -LiteralPath $Other.Config).Hash
     try {
         if($CheckInitialAdminOnboarding){
-            . (Join-Path $PSScriptRoot 'Slice4beInitialAdminOnboarding.ps1')
             Test-InitialAdminOnboarding
             return
         }

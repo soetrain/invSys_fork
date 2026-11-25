@@ -950,7 +950,7 @@ if($AdminVerifyAddinsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4b
 if($AdminDirectoryColumnsOnly){$reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-directory-columns/'+[guid]::NewGuid().ToString('N'));Write-Output ('Admin directory columns evidence: '+$reportRoot)}
 if($CheckInitialAdminOnboarding -and -not $AdminCreateWarehouseOwnerOnly){throw 'Initial Admin onboarding requires the packaged Create Warehouse owner fixture.'}
 if($AdminCreateWarehouseOwnerOnly){
-    if(-not $CompileEvaluationProbesForTest -or $CheckViewerPublishedRead -or $AdminDirectoryColumnsOnly -or $CheckTrackingSettings -or $CheckAuthReadOnly){throw 'Create owner coverage requires its separate compiled gate.'}
+    if(-not $CompileEvaluationProbesForTest -or ($CheckViewerPublishedRead -and -not ($CheckInitialAdminOnboarding -and $GuideDraftOnly)) -or $AdminDirectoryColumnsOnly -or $CheckTrackingSettings -or $CheckAuthReadOnly){throw 'Create owner coverage requires its separate compiled gate or its guide-onboarding workflow.'}
     $reportRoot=Join-Path $repo ('reports/runtime/slice4be-admin-create-owner/'+[guid]::NewGuid().ToString('N'))
     Write-Output ('Create Warehouse owner evidence: '+$reportRoot)
 }
@@ -1910,13 +1910,13 @@ End Function
                 Install-GuideDraftProbe
                 if($CheckGuideLibrary){Install-GuideReaderCloseProbe}
                 if($CheckGuideLibrary -or $GuideActionCurationOnly -or $GuideRecordedEntryOnly){Install-GuideSearchReadProbe}
-                if($GuidePickerStoppedRunOnly){Install-GuideInputWriteProbe}
+                if($GuidePickerStoppedRunOnly -or $CheckInitialAdminOnboarding){Install-GuideInputWriteProbe}
                 if($GuideDeferredReentryOnly){
                     . (Join-Path $PSScriptRoot 'Slice4beGuideActionCuration.ps1')
                     Install-GuideDeferredCloseProbe
                 }
             }
-            if($CheckGuideTransfer){
+            if($CheckGuideTransfer -or $CheckInitialAdminOnboarding){
                 . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
                 Install-GuideTransferDialogProbe
                 if($CheckGuideTransferActivity){
@@ -2646,7 +2646,7 @@ End Function
             Test-Slice4beViewerPublication $a $b
         }
     }
-    if($CheckViewerPublishedRead) {
+    if($CheckViewerPublishedRead -and -not $CheckInitialAdminOnboarding) {
         if($CheckGuideTransfer){
             $step='packaged guide transfer entry and cancelled actions'
             Write-GuideTransferHostState 'BeforeGuideFixture'
