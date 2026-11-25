@@ -51,7 +51,8 @@ Public Function BootstrapWarehouseLocalValues(ByVal warehouseId As String, _
                                               ByVal stationId As String, _
                                               ByVal adminUser As String, _
                                               ByVal pathLocal As String, _
-                                              ByVal pathSharePoint As String, Optional ByVal warehousePurpose As String = "Operational") As Boolean
+                                              ByVal pathSharePoint As String, Optional ByVal warehousePurpose As String = "Operational", _
+                                              Optional ByVal initialPin As String = "", Optional ByVal createRequest As Collection = Nothing) As Boolean
     Dim spec As WarehouseSpec
 
     spec.WarehouseId = warehouseId
@@ -61,7 +62,7 @@ Public Function BootstrapWarehouseLocalValues(ByVal warehouseId As String, _
     spec.PathLocal = pathLocal
     spec.PathSharePoint = pathSharePoint
     spec.WarehousePurpose = warehousePurpose
-    BootstrapWarehouseLocalValues = BootstrapWarehouseLocal(spec)
+    BootstrapWarehouseLocalValues = BootstrapWarehouseLocal(spec, initialPin, createRequest)
 End Function
 
 Public Function PublishInitialArtifactsValues(ByVal warehouseId As String, _
@@ -134,7 +135,7 @@ Public Function WarehouseArtifactsExistAtPath(ByVal warehouseId As String, ByVal
     WarehouseArtifactsExistAtPath = RuntimeArtifactsExistBootstrap(rootPath, warehouseId)
 End Function
 
-Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
+Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec, Optional ByVal initialPin As String = "", Optional ByVal createRequest As Collection = Nothing) As Boolean
     Dim rootPath As String
     Dim priorRootOverride As String
     Dim report As String
@@ -146,6 +147,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Dim wbInventory As Workbook
     Dim wbOutbox As Workbook
     Dim createdRoot As Boolean
+    Dim writingInitialAdmin As Boolean
     Dim rootExisted As Boolean
     Dim inboxPath As String
     Dim operatorPath As String
@@ -153,6 +155,7 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     Dim seedReport As String
 
     On Error GoTo FailBootstrap
+    priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
 
     mLastBootstrapReport = vbNullString
     mLastBootstrapOperatorWorkbookPath = vbNullString
@@ -179,15 +182,24 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
         GoTo FailSoft
     End If
 
+    If initialPin <> "" Or Not createRequest Is Nothing Then
+        If Not modWarehouseCreateCommands.InitialCredentialAuthorized(createRequest) Then
+            report = "Initial Admin setup requires an authorized Create Warehouse command."
+            GoTo FailSoft
+        End If
+    End If
     rootExisted = FolderExistsBootstrap(rootPath)
     If Not rootExisted Then
-        EnsureFolderRecursiveBootstrap rootPath
+        EnsureFolderRecursiveBootstrap GetParentFolderBootstrap(rootPath)
+        MkDir rootPath
         createdRoot = True
-    ElseIf Not FolderExistsBootstrap(rootPath) Then
-        report = "Warehouse hub path is not accessible: " & rootPath
-        GoTo FailSoft
     End If
 
+    If initialPin <> "" Then
+        writingInitialAdmin = True
+        If Not PersistInitialAdmin(spec, rootPath, initialPin) Then GoTo CredentialFailed
+        writingInitialAdmin = False
+    End If
     EnsureFolderRecursiveBootstrap rootPath & "\inbox"
     EnsureFolderRecursiveBootstrap rootPath & "\outbox"
     EnsureFolderRecursiveBootstrap rootPath & "\snapshots"
@@ -197,7 +209,6 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     authPath = rootPath & "\" & spec.WarehouseId & ".invSys.Auth.xlsb"
     inventoryPath = rootPath & "\" & spec.WarehouseId & ".invSys.Data.Inventory.xlsb"
 
-    priorRootOverride = modRuntimeWorkbooks.GetCoreDataRootOverride()
     modRuntimeWorkbooks.SetCoreDataRootOverride rootPath
 
     If Not CopyInventoryTemplateBootstrap(spec.WarehouseId, inventoryPath, report) Then GoTo FailSoft
@@ -209,15 +220,17 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     If Not modConfig.EnsureStationConfigEntry(spec.WarehouseId, spec.StationId, spec.AdminUser, rootPath & "\inbox\", "RECEIVE", configPath, rootPath, report) Then GoTo FailSoft
     If Not modConfig.EnsureStationInbox(spec.WarehouseId, spec.StationId, "RECEIVE", configPath, inboxPath, report) Then GoTo FailSoft
 
-    If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "ADMIN", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
-    If StrComp(capabilityOut, "ADMIN_MAINT", vbTextCompare) <> 0 Then
-        report = "Admin capability was not provisioned."
-        GoTo FailSoft
-    End If
-    If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "RECEIVE", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
-    If StrComp(capabilityOut, "RECEIVE_POST", vbTextCompare) <> 0 Then
-        report = "Receiving capability was not provisioned."
-        GoTo FailSoft
+    If initialPin = "" Then
+        If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "ADMIN", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
+        If StrComp(capabilityOut, "ADMIN_MAINT", vbTextCompare) <> 0 Then
+            report = "Admin capability was not provisioned."
+            GoTo FailSoft
+        End If
+        If Not modAuth.EnsureStationRoleAuth(spec.WarehouseId, spec.StationId, spec.AdminUser, spec.AdminUser, "RECEIVE", authPath, "svc_processor", capabilityOut, report) Then GoTo FailSoft
+        If StrComp(capabilityOut, "RECEIVE_POST", vbTextCompare) <> 0 Then
+            report = "Receiving capability was not provisioned."
+            GoTo FailSoft
+        End If
     End If
 
     Set wbInventory = ResolveInventoryWorkbookBridge(spec.WarehouseId)
@@ -279,6 +292,11 @@ Public Function BootstrapWarehouseLocal(ByRef spec As WarehouseSpec) As Boolean
     report = "OK|Hub=" & rootPath & "|Inbox=" & inboxPath & "|Seed=" & seedReport & "|Operator=" & operatorPath
     GoTo CleanExit
 
+CredentialFailed:
+    report = "Initial Admin setup could not finish. Inspect the destination before retrying."
+    If createdRoot Then RemoveEmptyBootstrapFolder rootPath
+    GoTo CleanExit
+
 FailSoft:
     BootstrapWarehouseLocal = False
     If Len(report) = 0 Then report = "BootstrapWarehouseLocal failed."
@@ -293,6 +311,7 @@ FailSoft:
     GoTo CleanExit
 
 FailBootstrap:
+    If writingInitialAdmin Then Resume CredentialFailed
     report = "BootstrapWarehouseLocal failed: " & Err.Description
     Resume FailSoft
 
@@ -303,6 +322,44 @@ CleanExit:
     CloseWorkbookIfOpenBootstrap wbCfg
     RestoreCoreRootOverrideBootstrap priorRootOverride
 End Function
+
+Private Function PersistInitialAdmin(ByRef spec As WarehouseSpec, ByVal root As String, ByVal credential As String) As Boolean
+    Dim wb As Workbook, fs As Object, staging As String, stagedFile As String, destination As String
+    Dim ownsDirectory As Boolean, saved As Boolean
+    On Error GoTo Failed
+    Set wb = Application.Workbooks.Add(xlWBATWorksheet)
+    If Not modAuth.PrepareInitialAdmin(wb, spec.WarehouseId, spec.StationId, spec.AdminUser, credential) Then GoTo Cleanup
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    staging = fs.BuildPath(root, fs.GetTempName)
+    MkDir staging
+    ownsDirectory = True
+    stagedFile = fs.BuildPath(staging, "initial.xlsb")
+    destination = fs.BuildPath(root, spec.WarehouseId & ".invSys.Auth.xlsb")
+    wb.SaveAs Filename:=stagedFile, FileFormat:=xlExcel12, AddToMru:=False
+    saved = wb.Saved
+    wb.Close SaveChanges:=False
+    Set wb = Nothing
+    If Not saved Then GoTo Cleanup
+    ' Same-volume rename refuses an existing destination. A partial staging
+    ' file is never a warehouse Auth authority or a publication source.
+    Name stagedFile As destination
+    PersistInitialAdmin = True
+    GoTo Cleanup
+Failed:
+    Resume Cleanup
+Cleanup:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    If ownsDirectory Then RemoveEmptyBootstrapFolder staging
+End Function
+
+Private Sub RemoveEmptyBootstrapFolder(ByVal ownedPath As String)
+    Dim folder As Object
+    On Error GoTo Finished
+    Set folder = CreateObject("Scripting.FileSystemObject").GetFolder(ownedPath)
+    If folder.Files.Count = 0 And folder.SubFolders.Count = 0 Then RmDir ownedPath
+Finished:
+End Sub
 
 Public Function PublishInitialArtifacts(ByRef spec As WarehouseSpec) As Boolean
     Dim report As String

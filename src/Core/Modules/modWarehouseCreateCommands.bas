@@ -2,6 +2,7 @@ Attribute VB_Name = "modWarehouseCreateCommands"
 Option Explicit
 
 Private mWriting As Boolean
+Private mInitialRequest As Collection
 
 ' D8-CREATE-01: transient command scope also protects downstream diagnostics.
 Public Function DiagnosticText(ByVal original As String) As String
@@ -15,24 +16,44 @@ End Function
 Public Function CreateWarehouse(ByVal context As String, ByVal warehouseId As String, _
     ByVal warehouseName As String, ByVal stationId As String, ByVal adminUser As String, _
     ByVal localRoot As String, ByVal publishRoot As String, ByVal purpose As String, _
-    ByRef report As String, ByRef operatorPath As String, Optional ByRef outcome As String = "") As Boolean
+    ByRef report As String, ByRef operatorPath As String, Optional ByRef outcome As String = "", _
+    Optional ByVal initialPin As String = "", Optional ByVal confirmation As String = "") As Boolean
     On Error GoTo Failed
     report = "Another warehouse command is still running.": operatorPath = "": outcome = "FAILED"
     If mWriting Then Exit Function
     mWriting = True
     If Not Authorize(context, report) Then outcome = "DENIED": GoTo Finished
+    If Not MatchingInitialCredential(initialPin, confirmation) Then
+        outcome = "REJECTED": report = "Enter and confirm the initial Admin PIN.": GoTo Finished
+    End If
+    Set mInitialRequest = New Collection
+    mInitialRequest.Add context, "SourceContext"
     If Not modWarehouseBootstrap.BootstrapWarehouseLocalValues(warehouseId, warehouseName, _
-            stationId, adminUser, localRoot, publishRoot, purpose) Then
+            stationId, adminUser, localRoot, publishRoot, purpose, initialPin, mInitialRequest) Then
         report = "Warehouse creation could not finish. No rollback is claimed.": GoTo Finished
     End If
     operatorPath = modWarehouseBootstrap.GetLastWarehouseOperatorWorkbookPath()
     CreateWarehouse = True: report = "Warehouse hub creation complete.": outcome = "CREATED_LOCAL"
 Finished:
+    Set mInitialRequest = Nothing
     mWriting = False
     Exit Function
 Failed:
     report = "Warehouse creation could not finish. No rollback is claimed.": outcome = "FAILED"
     Resume Finished
+End Function
+
+Public Function MatchingInitialCredential(ByVal entry As String, ByVal confirmation As String) As Boolean
+    MatchingInitialCredential = Len(entry) > 0 And StrComp(entry, confirmation, vbBinaryCompare) = 0
+End Function
+
+Public Function InitialCredentialAuthorized(ByVal request As Collection) As Boolean
+    Dim report As String
+    If request Is Nothing Then Exit Function
+    If Not request Is mInitialRequest Then Exit Function
+    ' Consume only the verified Create invocation and recheck its live authority.
+    Set mInitialRequest = Nothing
+    InitialCredentialAuthorized = Authorize(CStr(request.Item("SourceContext")), report)
 End Function
 
 ' Both same-instance retry and explicit reopened publication use saved identity.

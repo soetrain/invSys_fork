@@ -14,6 +14,7 @@ Public Type UserWriteRequest
     Warehouse As String
     Station As String
     CapabilityMask As Long
+    GuideChoice As Long
 End Type
 
 Private Const TRACKING_NOTICE As String = "Tracking unavailable: the Users & Roles action could not be fully recorded."
@@ -31,7 +32,7 @@ Public Function Execute(ByRef request As UserWriteRequest, ByRef report As Strin
     Select Case request.Command
         Case "SAVE"
             saved = modAuthUserCommands.SaveUser(request.WriteContext, request.AuthPath, request.UserId, _
-                request.DisplayName, request.Credential, request.Warehouse, request.Station, request.CapabilityMask, report, outcome)
+                request.DisplayName, request.Credential, request.Warehouse, request.Station, request.CapabilityMask, report, outcome, request.GuideChoice)
             If saved Then report = "User and role assignments saved. Store the visible PIN/password now; it cannot be recovered later."
         Case "DEACTIVATE"
             saved = modAuthUserCommands.DeactivateUser(request.WriteContext, request.AuthPath, request.UserId, report, outcome)

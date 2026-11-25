@@ -38,6 +38,12 @@ Private WithEvents mChkReceiveView As MSForms.CheckBox
 Private WithEvents mChkShipPost As MSForms.CheckBox
 Private WithEvents mChkProdPost As MSForms.CheckBox
 Private WithEvents mChkInboxProcess As MSForms.CheckBox
+Private WithEvents mChkGuide As MSForms.CheckBox
+Private mGuideSelection As Long
+Private mLoadingGuide As Boolean
+Private mGuideUser As String, mGuideWarehouse As String, mGuideStation As String
+Private mLoadedGuideUser As String, mLoadedGuideGrant As Boolean
+Private mBoundGuideWarehouse As String, mBoundGuideStation As String
 Private WithEvents mBtnGeneratePin As MSForms.CommandButton
 Private WithEvents mBtnCopyPin As MSForms.CommandButton
 Private WithEvents mBtnRefreshUsers As MSForms.CommandButton
@@ -104,7 +110,13 @@ Private Declare Function WNetCancelConnection2 Lib "mpr.dll" Alias "WNetCancelCo
 #End If
 
 Private Sub UserForm_Initialize()
+    Dim target As WarehouseTarget
     mWriteContext = modAuthUserCommands.CaptureContext()
+    Set target = modNasConnection.GetCurrentTarget()
+    If Not target Is Nothing Then
+        mBoundGuideWarehouse = target.WarehouseId
+        mBoundGuideStation = target.StationId
+    End If
     mActivityContext = modActivity.CaptureContext()
     Randomize
     mBusy = True
@@ -207,6 +219,8 @@ Private Sub BuildUsersRolesLayout()
     Set mChkShipPost = AddCheckBoxForm("chkShipPost", "Shipping post", 474, 452, 120, 18)
     Set mChkProdPost = AddCheckBoxForm("chkProdPost", "Production post", 474, 474, 128, 18)
     Set mChkInboxProcess = AddCheckBoxForm("chkInboxProcess", "Inbox processor", 474, 496, 128, 18)
+    Set mChkGuide = AddCheckBoxForm("chkGuideMaint", "Maintain Action Paths", 316, 516, 164, 18)
+    mChkGuide.ControlTipText = "Turn off Roaming and select the signed-in warehouse and station to change guide maintenance."
 
     Set mBtnClear = AddButtonForm("btnClear", "Clear", 18, 474, 70, 26)
     Set mBtnDeactivate = AddButtonForm("btnDeactivate", "Deactivate", 96, 474, 86, 26)
@@ -246,6 +260,7 @@ Private Sub InitializeUsersRolesAnchors()
     mAnchors.Add mChkShipPost, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mChkProdPost, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mChkInboxProcess, ANCHOR_LEFT Or ANCHOR_TOP
+    mAnchors.Add mChkGuide, ANCHOR_LEFT Or ANCHOR_TOP
     mAnchors.Add mBtnClear, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDeactivate, ANCHOR_LEFT Or ANCHOR_BOTTOM
     mAnchors.Add mBtnDelete, ANCHOR_LEFT Or ANCHOR_BOTTOM
@@ -428,6 +443,60 @@ End Sub
 
 Private Sub mBtnSave_Click()
     RunUserWriteForm "SAVE"
+End Sub
+
+Private Sub mChkGuide_Click()
+    If mLoadingGuide Or mBusy Then Exit Sub
+    If mChkGuide.Value Then mGuideSelection = 1 Else mGuideSelection = 2
+    mGuideUser = CStr(mTxtUserId.Value)
+    mGuideWarehouse = CStr(mTxtWarehouseId.Value)
+    mGuideStation = CStr(mTxtStationId.Value)
+End Sub
+
+Private Sub ShowGuideChoice(ByVal selected As Boolean)
+    mLoadingGuide = True
+    mChkGuide.Value = selected
+    mLoadingGuide = False
+    mGuideSelection = 0
+End Sub
+
+Private Sub DisplayScopedGuideChoice()
+    If mChkGuide Is Nothing Or mBusy Or mGuideSelection <> 0 Then Exit Sub
+    ShowGuideChoice mLoadedGuideGrant And _
+        StrComp(mLoadedGuideUser, Trim$(CStr(mTxtUserId.Value)), vbTextCompare) = 0 And _
+        StrComp(mBoundGuideWarehouse, Trim$(CStr(mTxtWarehouseId.Value)), vbTextCompare) = 0 And _
+        StrComp(mBoundGuideStation, Trim$(CStr(mTxtStationId.Value)), vbTextCompare) = 0
+End Sub
+
+Private Sub mTxtStationId_Change()
+    DisplayScopedGuideChoice
+End Sub
+
+Private Sub mTxtWarehouseId_Change()
+    DisplayScopedGuideChoice
+End Sub
+
+Private Sub mTxtUserId_Change()
+    DisplayScopedGuideChoice
+End Sub
+
+Private Sub mTxtUserId_AfterUpdate()
+    Dim userId As String, wb As Workbook, opened As Boolean, report As String
+    If mBusy Or mGuideSelection <> 0 Then Exit Sub
+    userId = Trim$(CStr(mTxtUserId.Value))
+    If userId = "" Or StrComp(userId, mLoadedGuideUser, vbTextCompare) = 0 Then Exit Sub
+    On Error GoTo Finished
+    Set wb = OpenSelectedAuthWorkbookForm(opened, report)
+    If Not wb Is Nothing Then ReadGuideChoice FindListObjectForm(wb, "tblCapabilities"), userId
+Finished:
+    CloseTransientWorkbookForm wb, opened
+End Sub
+
+Private Sub ReadGuideChoice(ByVal capabilities As ListObject, ByVal userId As String)
+    mLoadedGuideUser = userId
+    mLoadedGuideGrant = HasActiveCapabilityForm(capabilities, userId, "ACTION_PATH_MAINT", mBoundGuideWarehouse, mBoundGuideStation, True)
+    mGuideSelection = 0
+    DisplayScopedGuideChoice
 End Sub
 
 Private Sub mBtnDeactivate_Click()
@@ -725,6 +794,7 @@ Private Sub LoadSelectedUserForm(ByVal userId As String)
     mChkShipPost.Value = HasActiveCapabilityForm(loCaps, userId, "SHIP_POST", whId, stId)
     mChkProdPost.Value = HasActiveCapabilityForm(loCaps, userId, "PROD_POST", whId, stId)
     mChkInboxProcess.Value = HasActiveCapabilityForm(loCaps, userId, "INBOX_PROCESS", whId, stId)
+    ReadGuideChoice loCaps, userId
 
 CleanExit:
     CloseTransientWorkbookForm wb, openedTransient
@@ -747,9 +817,21 @@ Private Sub RunUserWriteForm(ByVal command As String)
             If CBool(mChkShipPost.Value) Then .CapabilityMask = .CapabilityMask Or 8
             If CBool(mChkProdPost.Value) Then .CapabilityMask = .CapabilityMask Or 16
             If CBool(mChkInboxProcess.Value) Then .CapabilityMask = .CapabilityMask Or 32
+            .GuideChoice = mGuideSelection
+            If .GuideChoice <> 0 Then
+                If mGuideUser <> .UserId Or mGuideWarehouse <> .Warehouse Or mGuideStation <> .Station Then
+                    ShowStatusForm "Select the user and exact station again before changing Maintain Action Paths.", COLOR_ERROR
+                    Exit Sub
+                End If
+            End If
         End If
     End With
     If modAdminUsersAction.Execute(request, report, notice) Then
+        If request.GuideChoice <> 0 Then
+            mLoadedGuideUser = request.UserId
+            mLoadedGuideGrant = (request.GuideChoice = 1)
+        End If
+        mGuideSelection = 0
         If command = "DELETE" Then ClearUserFieldsForm
         ShowStatusForm report, COLOR_SUCCESS
         RefreshUsersForm
@@ -826,7 +908,7 @@ End Function
 
 Private Function HasActiveCapabilityForm(ByVal loCaps As ListObject, ByVal userId As String, _
                                          ByVal capability As String, ByVal warehouseId As String, _
-                                         ByVal stationId As String) As Boolean
+                                         ByVal stationId As String, Optional ByVal exactScope As Boolean = False) As Boolean
     Dim i As Long
     Dim statusText As String
     If loCaps Is Nothing Then Exit Function
@@ -835,6 +917,10 @@ Private Function HasActiveCapabilityForm(ByVal loCaps As ListObject, ByVal userI
     For i = 1 To loCaps.ListRows.Count
         If StrComp(SafeTextForm(GetCellByColumnForm(loCaps, i, "UserId")), userId, vbTextCompare) <> 0 Then GoTo ContinueLoop
         If StrComp(SafeTextForm(GetCellByColumnForm(loCaps, i, "Capability")), capability, vbTextCompare) <> 0 Then GoTo ContinueLoop
+        If exactScope Then
+            If StrComp(SafeTextForm(GetCellByColumnForm(loCaps, i, "WarehouseId")), warehouseId, vbTextCompare) <> 0 Then GoTo ContinueLoop
+            If StrComp(SafeTextForm(GetCellByColumnForm(loCaps, i, "StationId")), stationId, vbTextCompare) <> 0 Then GoTo ContinueLoop
+        End If
         If Not ScopeMatchesForm(SafeTextForm(GetCellByColumnForm(loCaps, i, "WarehouseId")), warehouseId) Then GoTo ContinueLoop
         If Not ScopeMatchesForm(SafeTextForm(GetCellByColumnForm(loCaps, i, "StationId")), stationId) Then GoTo ContinueLoop
         statusText = UCase$(SafeTextForm(GetCellByColumnForm(loCaps, i, "Status")))
@@ -896,6 +982,8 @@ Private Sub ClearUserFieldsForm()
     mChkShipPost.Value = False
     mChkProdPost.Value = False
     mChkInboxProcess.Value = False
+    mLoadedGuideUser = "": mLoadedGuideGrant = False
+    ShowGuideChoice False
     mLstUsers.ListIndex = -1
 End Sub
 

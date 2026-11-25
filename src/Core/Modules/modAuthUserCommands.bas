@@ -22,8 +22,8 @@ End Function
 Public Function SaveUser(ByVal context As String, ByVal authPath As String, ByVal userId As String, _
                          ByVal displayName As String, ByVal credential As String, ByVal warehouseScope As String, _
                          ByVal stationScope As String, ByVal capabilityMask As Long, ByRef report As String, _
-                         Optional ByRef outcome As String = "") As Boolean
-    SaveUser = Execute("SAVE", context, authPath, userId, displayName, credential, warehouseScope, stationScope, capabilityMask, report, outcome)
+                         Optional ByRef outcome As String = "", Optional ByVal guideChoice As Long = 0) As Boolean
+    SaveUser = Execute("SAVE", context, authPath, userId, displayName, credential, warehouseScope, stationScope, capabilityMask, report, outcome, guideChoice)
 End Function
 
 Public Function DeactivateUser(ByVal context As String, ByVal authPath As String, _
@@ -39,7 +39,8 @@ End Function
 Private Function Execute(ByVal command As String, ByVal context As String, ByVal authPath As String, _
                          ByVal userId As String, ByVal displayName As String, ByVal credential As String, _
                          ByVal warehouseScope As String, ByVal stationScope As String, _
-                         ByVal capabilityMask As Long, ByRef report As String, ByRef outcome As String) As Boolean
+                         ByVal capabilityMask As Long, ByRef report As String, ByRef outcome As String, _
+                         Optional ByVal guideChoice As Long = 0) As Boolean
     Dim target As WarehouseTarget, wb As Workbook, candidate As Workbook, opened As Boolean
     Dim users As ListObject, capabilities As ListObject, userFields As Object, capabilityFields As Object
     Dim userRow As Long, row As Long, index As Long, capability As Variant, capabilityRow As Long
@@ -64,6 +65,15 @@ Private Function Execute(ByVal command As String, ByVal context As String, ByVal
         If displayName = "" Then displayName = userId
         If stationScope = "" Then stationScope = "*"
         If capabilityMask < 0 Or capabilityMask > 63 Then report = "Invalid role choices.": GoTo CleanExit
+        If guideChoice < 0 Or guideChoice > 2 Then report = "Invalid guide permission choice.": GoTo CleanExit
+        If guideChoice <> 0 Then
+            If warehouseScope = "*" Or stationScope = "*" Or _
+                StrComp(warehouseScope, target.WarehouseId, vbTextCompare) <> 0 Or _
+                StrComp(stationScope, target.StationId, vbTextCompare) <> 0 Then
+                report = "Maintain Action Paths requires the signed-in warehouse and exact station."
+                outcome = "DENIED": GoTo CleanExit
+            End If
+        End If
     End If
     If Len(Dir$(target.AuthPath, vbNormal Or vbReadOnly Or vbHidden Or vbSystem)) = 0 Then
         report = "Auth workbook is missing. Use explicit warehouse provisioning."
@@ -117,9 +127,14 @@ Private Function Execute(ByVal command As String, ByVal context As String, ByVal
             If userRow = 0 Then userRow = users.ListRows.Add.Index
             PutText users, userFields, userRow, "UserId", userId
             PutText users, userFields, userRow, "DisplayName", displayName
-            If credential <> "" Then PutText users, userFields, userRow, "PinHash", modAuth.HashUserCredential(credential)
+            If credential <> "" Then modAuth.WriteUserCredential users.DataBodyRange.Cells(userRow, userFields("PinHash")), credential
             PutText users, userFields, userRow, "Status", "ACTIVE"
             names = Array("ADMIN_MAINT", "RECEIVE_POST", "RECEIVE_VIEW", "SHIP_POST", "PROD_POST", "INBOX_PROCESS")
+            If guideChoice <> 0 Then
+                ReDim Preserve names(6)
+                names(6) = "ACTION_PATH_MAINT"
+                If guideChoice = 1 Then capabilityMask = capabilityMask Or 64
+            End If
             For index = 0 To UBound(names)
                 capability = names(index): selected = ((capabilityMask And CLng(2 ^ index)) <> 0)
                 capabilityRow = MatchCapability(capabilities, capabilityFields, userId, CStr(capability), warehouseScope, stationScope)

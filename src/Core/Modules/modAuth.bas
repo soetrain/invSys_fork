@@ -381,7 +381,18 @@ Public Function CanPerform(ByVal capability As String, _
 
     ApplyCurrentTargetRootForAuth warehouseId, stationId
 
-    If Not EnsureFreshCache() Then
+    If StrComp(Trim$(capability), "ACTION_PATH_MAINT", vbTextCompare) = 0 Then
+        ' A different signed-in administrator can revoke between editor actions.
+        ' A borrowed read-only view can outlive another writer's saved changes.
+        Dim target As WarehouseTarget, borrowed As Workbook
+        Set target = modNasConnection.GetCurrentTarget()
+        If target Is Nothing Then Exit Function
+        Set borrowed = FindOpenWorkbookByFullNameAuth(target.AuthPath)
+        If Not borrowed Is Nothing Then
+            If borrowed.ReadOnly Or Not borrowed.Saved Then Exit Function
+        End If
+        If Not LoadAuth(target.WarehouseId) Then Exit Function
+    ElseIf Not EnsureFreshCache() Then
         LogDecision requestId, userId, capability, warehouseId, stationId, "DENY", source, "auth-cache-unavailable"
         Exit Function
     End If
@@ -535,6 +546,30 @@ Public Function DiagnoseUserCredential(ByVal userId As String, ByVal Password As
     End If
 
     DiagnoseUserCredential = "OK"
+End Function
+
+' The existing credential representation is text, including leading zeroes.
+Public Sub WriteUserCredential(ByVal destination As Range, ByVal credential As String)
+    destination.NumberFormat = "@"
+    destination.Value2 = HashUserCredential(credential)
+End Sub
+
+' Prepare only a new, unsaved workbook. Ordinary authorization stays at Create.
+Public Function PrepareInitialAdmin(ByVal wb As Workbook, ByVal warehouse As String, ByVal station As String, _
+                                    ByVal userId As String, ByVal credential As String) As Boolean
+    Dim users As ListObject, capabilities As ListObject
+    If wb.Path <> "" Or Len(credential) = 0 Then Exit Function
+    If Not EnsureAuthTables(wb) Then Exit Function
+    Set users = FindListObjectByName(wb, "tblUsers")
+    Set capabilities = FindListObjectByName(wb, "tblCapabilities")
+    EnsureUserRow users, userId, userId
+    WriteUserCredential users.DataBodyRange.Cells(FindAuthUserRow(users, userId), users.ListColumns("PinHash").Index), credential
+    EnsureCapabilityRow capabilities, userId, "ADMIN_MAINT", warehouse, station, "ACTIVE"
+    EnsureCapabilityRow capabilities, userId, "RECEIVE_POST", warehouse, station, "ACTIVE"
+    SeedAuthDefaults wb, warehouse, "svc_processor"
+    EnsureCapabilityRow capabilities, "svc_processor", "INBOX_PROCESS", warehouse, "*", "ACTIVE"
+    FormatAuthSurface wb
+    PrepareInitialAdmin = True
 End Function
 
 Public Function HashUserCredential(ByVal rawCredential As String) As String

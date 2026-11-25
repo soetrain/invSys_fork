@@ -52,6 +52,8 @@ Private Const ANCHOR_BOTTOM As Long = 8
 
 Private mAnchors As Object
 Private mResizeInitialized As Boolean
+Private mInitialPin As MSForms.TextBox
+Private mConfirmPin As MSForms.TextBox
 Private WithEvents mWarehousePurpose As MSForms.ComboBox
 Attribute mWarehousePurpose.VB_VarHelpID = -1
 
@@ -95,6 +97,10 @@ Private Sub UserForm_Initialize()
     ConfigureSharePointHelperButton
     ConfigureOpenReceivingButton
     ConfigureWarehousePurpose
+    Set mInitialPin = AddPrivateEntry("InitialPin", "Initial Admin PIN", 325)
+    Set mConfirmPin = AddPrivateEntry("ConfirmPin", "Confirm PIN", 462)
+    mInitialPin.TabIndex = mWarehousePurpose.TabIndex + 1
+    mConfirmPin.TabIndex = mInitialPin.TabIndex + 1
     ConfigurePublishExistingButton
     Me.btnOK.Caption = "Create"
     Me.btnCancel.Caption = "Cancel"
@@ -131,6 +137,7 @@ End Sub
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     Dim action As String
     If Cancel <> 0 Then Exit Sub
+    ClearInitialCredential
     action = BeginActivity("CLOSE")
     FinishActivity action, "CLOSED"
 End Sub
@@ -267,6 +274,13 @@ Private Sub btnOK_Click()
         ShowSummary "Fix the highlighted fields and try again.", COLOR_ERROR
         GoTo ActivityFinished
     End If
+    If Not mLocalBootstrapComplete Then
+        If Not modWarehouseCreateCommands.MatchingInitialCredential(CStr(mInitialPin.Value), CStr(mConfirmPin.Value)) Then
+            ShowSummary "Enter matching initial Admin PINs before creating the warehouse.", COLOR_ERROR
+            mInitialPin.SetFocus
+            GoTo ActivityFinished
+        End If
+    End If
 
     If pathSharePoint <> "" Then addinsFolder = pathSharePoint & "\Addins"
     If Not modLocalAddinsRegistration.EnsureLocalInvSysAddinsRegistered(addinsFolder, summaryText) Then
@@ -302,7 +316,8 @@ Private Sub btnOK_Click()
         GoTo ActivityFinished
     End If
 
-    If Not modWarehouseCreateCommands.CreateWarehouse(mWriteContext, warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, CStr(mWarehousePurpose.Value), commandReport, mCreatedOperatorWorkbookPath, outcome) Then
+    If Not modWarehouseCreateCommands.CreateWarehouse(mWriteContext, warehouseId, warehouseName, stationId, adminUser, pathLocal, pathSharePoint, CStr(mWarehousePurpose.Value), commandReport, mCreatedOperatorWorkbookPath, outcome, CStr(mInitialPin.Value), CStr(mConfirmPin.Value)) Then
+        ClearInitialCredential
         ShowSummary commandReport, COLOR_ERROR
         GoTo ActivityFinished
     End If
@@ -314,6 +329,9 @@ Private Sub btnOK_Click()
     mCreatedPathLocal = pathLocal
     mCreatedPathSharePoint = pathSharePoint
     mLocalBootstrapComplete = True
+    ClearInitialCredential
+    mInitialPin.Enabled = False
+    mConfirmPin.Enabled = False
     mWarehousePurpose.Enabled = False
     summaryText = "Warehouse hub bootstrap complete for " & warehouseId & "."
     If mCreatedOperatorWorkbookPath <> "" Then
@@ -347,7 +365,9 @@ ActivityFinished:
     FinishActivity action, outcome
     Exit Sub
 Failed:
-    RaiseActivityFailure action
+    ClearInitialCredential
+    FinishActivity action, "FAILED"
+    ShowSummary "Warehouse creation could not finish. Inspect the destination before retrying.", COLOR_ERROR
 End Sub
 
 Private Sub mBtnPublishExisting_Click()
@@ -407,12 +427,29 @@ FailOpen:
 End Sub
 
 Private Sub MarkFormComplete(ByVal summaryText As String, ByVal includeCloseHint As Boolean)
+    ClearInitialCredential
     If includeCloseHint Then summaryText = summaryText & vbCrLf & "Click Close to finish."
     Me.Tag = "COMPLETE"
     Me.btnOK.Caption = "Close"
     ConfigureCompleteButtonLayout
     If Not mAnchors Is Nothing Then mAnchors.ResizeControls
     ShowSummary summaryText, COLOR_SUCCESS
+End Sub
+
+Private Function AddPrivateEntry(ByVal controlName As String, ByVal prompt As String, ByVal leftPos As Single) As MSForms.TextBox
+    Dim fieldLabel As MSForms.Label, entry As MSForms.TextBox
+    Set fieldLabel = Me.Controls.Add("Forms.Label.1", "lbl" & controlName, True)
+    fieldLabel.Caption = prompt
+    fieldLabel.Move leftPos, mWarehousePurpose.Top - 3, 124, 13
+    Set entry = Me.Controls.Add("Forms.TextBox.1", "txt" & controlName, True)
+    entry.PasswordChar = "*"
+    entry.Move leftPos, fieldLabel.Top + fieldLabel.Height, 124, 18
+    Set AddPrivateEntry = entry
+End Function
+
+Private Sub ClearInitialCredential()
+    If Not mInitialPin Is Nothing Then mInitialPin.Value = ""
+    If Not mConfirmPin Is Nothing Then mConfirmPin.Value = ""
 End Sub
 
 Private Function BuildSpecFromForm(ByRef warehouseId As String, _
