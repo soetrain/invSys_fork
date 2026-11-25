@@ -2,10 +2,10 @@ Attribute VB_Name = "modExecutionInputs"
 Option Explicit
 Option Private Module
 
-' Registered B0 adapter inputs. This registry never dispatches a workflow.
+' Registered execution inputs. Dispatch stays with the workflow owner.
 Public Function Supported(ByVal controlId As String) As Boolean
     Select Case controlId
-        Case "RECEIVING_OPEN", "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_SELECT_ITEM", "RECEIVING_ADD_SELECTED", "RECEIVING_CONFIRM_WRITES"
+        Case "RECEIVING_OPEN", "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_SELECT_ITEM", "RECEIVING_ADD_SELECTED", "RECEIVING_CONFIRM_WRITES", "ADMIN_DEMO_SEED"
             Supported = True
     End Select
 End Function
@@ -13,6 +13,7 @@ End Function
 Public Function Names(ByVal controlId As String) As String
     Select Case controlId
         Case "RECEIVING_SELECT_ITEM": Names = "SourceEntity"
+        Case "ADMIN_DEMO_SEED": Names = "DataSet"
         Case "RECEIVING_ADD_SELECTED": Names = "Reference|Quantity|Location|LotNumber|Condition"
     End Select
 End Function
@@ -20,6 +21,7 @@ End Function
 Public Function InputType(ByVal name As String) As String
     Select Case name
         Case "SourceEntity": InputType = "InventoryEntity"
+        Case "DataSet": InputType = "BuiltInDemoDataSet"
         Case "Quantity": InputType = "PositiveDecimalText"
         Case "Reference", "Location": InputType = "RequiredText"
         Case "LotNumber": InputType = "OptionalText"
@@ -35,6 +37,8 @@ Public Function Create(ByVal controlId As String) As Collection
             item.Add "Name", CStr(name): item.Add "Type", InputType(CStr(name))
             If name = "SourceEntity" Then
                 binding.Add "Kind", "Prompt": binding.Add "PromptId", "RECEIVING_SOURCE_ENTITY"
+            ElseIf name = "DataSet" Then
+                binding.Add "Kind", "Literal": binding.Add "Value", "R1_WORKFLOW_KIT"
             Else
                 binding.Add "Kind", "Literal": binding.Add "Value", ""
             End If
@@ -64,6 +68,7 @@ Public Function ValidBinding(ByVal name As String, ByVal binding As Object) As B
     Next i
     Select Case name
         Case "Reference", "Location": ValidBinding = (Trim$(value) <> "")
+        Case "DataSet": ValidBinding = (StrComp(value, "R1_WORKFLOW_KIT", vbBinaryCompare) = 0)
         Case "LotNumber": ValidBinding = True
         Case "Condition"
             Select Case value
