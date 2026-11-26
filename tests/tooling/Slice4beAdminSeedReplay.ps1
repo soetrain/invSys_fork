@@ -165,10 +165,11 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             $ready=(BoundControl 'btnStartRun' 'State' '' $runner) -ceq 'True|True'
             Check 'SeedReplay.Run.StartNeedsNoReceivingEntity' $ready
             if(-not $ready){return}
-            if($AdminSeedReplayLostAck){
+            if($AdminSeedReplayLostAck -or $AdminSeedReplayNested){
                 . (Join-Path $PSScriptRoot 'Slice4beSeedLostAck.ps1')
-                Test-SeedLostAck
-                Check 'SeedLostAck.PreservesSource' ((BoundSame $pins (BoundPins $sourceRoot)) -and (Get-AuthReadFixtureHash $sourceInventory) -ceq $sourceHash)
+                $caseName=if($AdminSeedReplayNested){"SeedNested$AdminSeedReplayNested"}else{'SeedLostAck'}
+                Test-SeedReturn
+                Check "$caseName.PreservesSource" ((BoundSame $pins (BoundPins $sourceRoot)) -and (Get-AuthReadFixtureHash $sourceInventory) -ceq $sourceHash)
                 return
             }
             Deliver $runner 'btnStartRun' 'Click'
