@@ -3162,10 +3162,10 @@ catch {
     Check ('Harness.Exception.'+$step) $false
     $message=$_.Exception.Message -replace '(?i)[A-Z]:\\[^\r\n"'']+', '<path>'
     Write-Output $message
-    if($GuideActionCurationOnly){
+    if($GuideActionCurationOnly -or $AdminSeedReplayProfile){
         foreach($frame in ($_.ScriptStackTrace -split '\r?\n')){
             if($frame -match '[/\\]([a-zA-Z0-9_.-]+\.ps1):\s*line\s+(\d+)'){
-                Write-Output ('Curation failure at '+$Matches[1]+' line '+$Matches[2])
+                Write-Output ('Fixture failure at '+$Matches[1]+' line '+$Matches[2])
             }
         }
     }

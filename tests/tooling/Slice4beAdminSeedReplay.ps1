@@ -3,6 +3,8 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTransferWire.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beSeedReplayProof.ps1')
+    . (Join-Path $PSScriptRoot 'Slice4beAuthReadOnly.ps1')
     function Deliver($form,$control,$action,$value='') {
         if((BoundControl $control $action $value $form) -cne 'DELIVERED'){throw "Fixture control unavailable: $form.$control"}
     }
@@ -72,9 +74,13 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
         Deliver $library 'btnExportGuide' 'Click'
         if(-not (Test-Path -LiteralPath $export -PathType Leaf)){throw 'Source export unavailable.'}
         CloseRecordingViewer
+        $sourceInventory=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
+        $sourceHash=Get-AuthReadFixtureHash $sourceInventory
+        if($AdminSeedReplayRun){$reference=Read-SeedReplayInventory $sourceInventory}
         $pins=BoundPins $sourceRoot
         OpenTarget $Destination
         $before=(Get-FileHash -LiteralPath $inventory).Hash
+        if($AdminSeedReplayRun){$baseline=Read-SeedReplayInventory $inventory}
         $authority=$excel.Workbooks.Open($inventory,0,$true)
         try{
             $entities=Table $authority 'tblInventoryEntities'
@@ -134,6 +140,20 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             $applied=$attempt.Steps[0].ReasonCode -ceq 'APPLIED' -and $attempt.Steps[0].ActivityId -cne '' -and $attempt.Steps[0].SourceEventRefs.Count -eq 1
             Check 'SeedReplay.Run.OrdinaryOwnerAppliedWithFreshEvent' $applied
             if(-not $applied -and ($attempt.State -cne 'Unknown' -or $attempt.Steps[0].ReasonCode -cne 'CAPTURE_UNAVAILABLE' -or $attempt.Steps[0].SourceEventRefs.Count -ne 0 -or (Get-FileHash $inventory).Hash -cne $before)){throw 'Unexpected replay failure; inspect before classifying RED.'}
+            $effect=$false
+            if($applied){
+                $event=$attempt.Steps[0].SourceEventRefs[0]
+                $after=Read-SeedReplayInventory $inventory
+                $effect=$attempt.State -ceq 'Completed' -and $event.WarehouseId -ceq $Destination.Warehouse -and $event.EventId -cne $outcome[0].SourceEventRefs[0].EventId -and $attempt.Steps[0].ActivityId -cne $outcome[0].ActivityId -and (Test-SeedReplayInventory $reference $baseline $after $event.EventId $Destination)
+                Deliver 'frmInventoryViewer' 'btnRefresh' 'Click'
+                $evaluation=Read-SeedRunEvaluation $attempt $guide $destRoot
+                $refs=@($evaluation.TerminalSources)
+                $keys=@($after.tblInventoryLog|Where-Object EventID -CEQ $event.EventId|ForEach-Object System_Key|Sort-Object)
+                $effect=$effect -and $evaluation.ResultState -ceq 'Concluded' -and $refs.Count -eq 1 -and $refs[0].OwnerStatus -ceq 'Applied' -and $refs[0].EventId -ceq $event.EventId -and $refs[0].LineCount -eq 21 -and (($refs[0].SystemKeys|Sort-Object) -join '|') -ceq ($keys -join '|')
+            }
+            Check 'SeedReplay.Run.ExactSavedInventoryAndVerifiedCurrentEvent' $effect
+            Test-SeedReplayStoppedWithStock $guide $saved $attempt $destRoot $inventory $Destination $reference $baseline $applied
+            Check 'SeedReplay.Run.PreservesSourceGuideAndWarehouse' ((BoundSame $pins (BoundPins $sourceRoot)) -and (Get-AuthReadFixtureHash $sourceInventory) -ceq $sourceHash)
         }
     }finally{
         TransferSetFile ''
