@@ -5,13 +5,19 @@ Option Private Module
 ' Invocation-local optional observations; the existing owner determines effects.
 Public Function Seed(ByVal warehouseId As String, ByVal stationId As String, _
                      ByVal userId As String, ByVal runtimeRoot As String, _
-                     ByVal csvPath As String, ByRef report As String) As Boolean
+                     ByVal csvPath As String, ByRef report As String, Optional ByVal replayContext As String = "") As Boolean
     Dim action As String, notice As String, outcome As String, eventId As String
     Dim surface As Object, number As Long, source As String, description As String
     On Error GoTo Failed
     Set surface = modAdminActionObservation.CurrentSurface()
     action = BeginSeed(warehouseId, stationId, userId, runtimeRoot, notice)
     modAdminActionObservation.RestoreSurface surface
+    If replayContext <> "" Then
+        If action = "" Or modActivity.CaptureContext() <> replayContext Then
+            FinishSeed action, "FAILED", "", notice
+            Exit Function
+        End If
+    End If
     If csvPath = "" Then
         Seed = modAdminInventorySeed.SeedDemoInventoryForWarehouse(warehouseId, stationId, userId, report, outcome, eventId)
     Else

@@ -1,4 +1,33 @@
 # B1 uses a real source recording and a destination-local execution profile.
+function Install-SeedReplayGuardProbe {
+    $project=$packages['invSys.Operations.xlam'].VBProject
+    $module=$project.VBComponents.Item('frmActionPathRun').CodeModule
+    $start=$module.ProcStartLine('DispatchSteps',0)
+    $count=$module.ProcCountLines('DispatchSteps',0)
+    $code=$module.Lines($start,$count)
+    $owner='"''invSys.Admin.xlam''!modAdminSeedReplay.ApplyBuiltIn"'
+    $call="delivered = Application.Run($owner, mToken, stepId, inputs)"
+    if(-not $code.Contains($call)){return}
+    $probe=$project.VBComponents.Add(1)
+    $probe.Name='TestSeedBridgeGuard'
+    $probe.CodeModule.AddFromString(@'
+Option Explicit
+Public Refused As Long
+Public Function CountRefused() As Long
+    CountRefused = Refused
+End Function
+'@)
+    $checks=@(
+        "If Not Application.Run($owner, mToken, stepId, inputs & ""-wrong"") Then TestSeedBridgeGuard.Refused = TestSeedBridgeGuard.Refused + 1",
+        "If Not Application.Run($owner, mToken, stepId & ""-wrong"", inputs) Then TestSeedBridgeGuard.Refused = TestSeedBridgeGuard.Refused + 1",
+        "If Not Application.Run($owner, mToken & ""-wrong"", stepId, inputs) Then TestSeedBridgeGuard.Refused = TestSeedBridgeGuard.Refused + 1",
+        $call,
+        "If Not Application.Run($owner, mToken, stepId, inputs) Then TestSeedBridgeGuard.Refused = TestSeedBridgeGuard.Refused + 1"
+    )
+    $module.DeleteLines($start,$count)
+    $module.InsertLines($start,$code.Replace($call,($checks -join "`r`n            ")))
+}
+
 function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     . (Join-Path $PSScriptRoot 'Slice4beRecordingFixture.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beGuideTestActions.ps1')
@@ -33,9 +62,17 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     if($Fixture.Warehouse -ceq $Destination.Warehouse -or $Fixture.Root -eq $Destination.Root){throw 'Source and destination must be distinct.'}
     $anchor=$excel.Workbooks.Add()
     try{
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $expectedBuilds=@{}
         foreach($package in $packages.Keys){
             $expectedPath=Join-Path $deploy $package
             if($packages[$package].FullName -ine $expectedPath){throw 'Wrong loaded package path.'}
+            $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $inputDeploy $package))
+            try{
+                $reader=[IO.StreamReader]::new($archive.GetEntry('docProps/custom.xml').Open())
+                try{$properties=([xml]$reader.ReadToEnd()).DocumentElement.ChildNodes}finally{$reader.Dispose()}
+                $expectedBuilds[$package]=($properties|Where-Object {$_.GetAttribute('name') -ceq 'invSysBuildIdentity'}).InnerText
+            }finally{$archive.Dispose()}
         }
         $anchor.SaveAs((Join-Path $runRoot 'b1-host.xlsb'),50)
         $excel.Visible=$true
@@ -127,11 +164,7 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             if((BoundControl '' 'Count' '' $runner) -cne '1' -or -not (BoundControl 'lblRunGuide' 'Label' '' $runner).Contains($guide.ContentSha256) -or -not (BoundControl 'lblRunProfile' 'Label' '' $runner).Contains($saved.ContentSha256) -or -not (BoundControl 'lblRunTarget' 'Label' '' $runner).Contains($Destination.Warehouse)){throw 'Actual runner did not bind the exact destination, guide and profile.'}
             $ready=(BoundControl 'btnStartRun' 'State' '' $runner) -ceq 'True|True'
             Check 'SeedReplay.Run.StartNeedsNoReceivingEntity' $ready
-            if(-not $ready){
-                # Exercise the actual dispatcher even on the Receiving-only baseline.
-                # This UI choice is local and is never used as a Seed profile input.
-                if((BoundControl 'lstRunSourceEntities' 'Select' '0' $runner) -cne 'SELECTED'){throw 'Unable to reach baseline dispatcher.'}
-            }
+            if(-not $ready){return}
             Deliver $runner 'btnStartRun' 'Click'
             $attempts=@(Get-ChildItem (Join-Path $destRoot 'Runs') -File -Filter '*.json'|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
             if(-not $attempts.Count){throw 'No durable replay attempt; dispatch RED unavailable.'}
@@ -139,10 +172,14 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             if($attempt.Guide.RecordId -cne $guide.RecordId -or $attempt.Profile.RecordId -cne $saved.RecordId -or $attempt.WarehouseId -cne $Destination.Warehouse -or $attempt.Steps.Count -ne 1 -or $attempt.Steps[0].StepId -cne $guide.Steps[0].StepId -or $attempt.Steps[0].ControlId -cne 'ADMIN_DEMO_SEED'){throw 'Durable run/step identity did not match.'}
             $applied=$attempt.Steps[0].ReasonCode -ceq 'APPLIED' -and $attempt.Steps[0].ActivityId -cne '' -and $attempt.Steps[0].SourceEventRefs.Count -eq 1
             Check 'SeedReplay.Run.OrdinaryOwnerAppliedWithFreshEvent' $applied
+            if($applied){Check 'SeedReplay.Bridge.RefusesAlteredKitStepTokenAndDuplicate' ((Run 'invSys.Operations.xlam' 'TestSeedBridgeGuard.CountRefused') -eq 4)}
             if(-not $applied -and ($attempt.State -cne 'Unknown' -or $attempt.Steps[0].ReasonCode -cne 'CAPTURE_UNAVAILABLE' -or $attempt.Steps[0].SourceEventRefs.Count -ne 0 -or (Get-FileHash $inventory).Hash -cne $before)){throw 'Unexpected replay failure; inspect before classifying RED.'}
             $effect=$false
             if($applied){
                 $event=$attempt.Steps[0].SourceEventRefs[0]
+                $journal=@(Get-ChildItem $destRoot -File -Filter '*.json'|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object {$_.RecordType -ceq 'Close' -and $_.SequenceId -ceq $attempt.Recording.SequenceId})
+                $pair=@($journal[0].Observations|Where-Object {$_.ActivityId -ceq $attempt.Steps[0].ActivityId -and $_.WarehouseId -ceq $Destination.Warehouse -and $_.SequenceId -ceq $attempt.Recording.SequenceId -and $_.ControlId -ceq 'ADMIN_DEMO_SEED'})
+                Check 'SeedReplay.Proof.FiveExactBuildsAndCurrentOwnerPair' ($attempt.PackageBuilds.Count -eq 5 -and @($attempt.PackageBuilds|Where-Object {$_.BuildIdentity -cne $expectedBuilds[$_.PackageId]}).Count -eq 0 -and $journal.Count -eq 1 -and $journal[0].Observations.Count -eq 2 -and $pair.Count -eq 2 -and $pair[0].OutcomeCode -ceq 'REQUESTED' -and $pair[1].OutcomeCode -ceq 'APPLIED' -and $pair[1].SourceEventRefs.Count -eq 1 -and $pair[1].SourceEventRefs[0].EventId -ceq $event.EventId -and $event.SubmissionState -ceq 'Submitted')
                 $after=Read-SeedReplayInventory $inventory
                 $effect=$attempt.State -ceq 'Completed' -and $event.WarehouseId -ceq $Destination.Warehouse -and $event.EventId -cne $outcome[0].SourceEventRefs[0].EventId -and $attempt.Steps[0].ActivityId -cne $outcome[0].ActivityId -and (Test-SeedReplayInventory $reference $baseline $after $event.EventId $Destination)
                 Deliver 'frmInventoryViewer' 'btnRefresh' 'Click'

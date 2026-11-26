@@ -18,6 +18,7 @@ Option Explicit
 Private mOwner As frmActionPathLibrary
 Private mContext As String
 Private mToken As String
+Private mNeedsEntity As Boolean
 Private mWorkbook As String
 Private mCapturedWorkbook As Workbook
 Private mExecuting As Boolean
@@ -72,7 +73,13 @@ Public Function BindSetup(ByVal context As String, ByVal key As String, ByVal to
     Dim rows As Variant, index As Long
     mContext = context: mToken = token: Set mOwner = owner
     Me.Controls("lblRunGuide").Caption = guide: Me.Controls("lblRunProfile").Caption = profile: Me.Controls("lblRunTarget").Caption = target
-    rows = modReceivingExecution.Choices(snapshot)
+    mNeedsEntity = (snapshot <> "")
+    If mNeedsEntity Then
+        rows = modReceivingExecution.Choices(snapshot)
+    Else
+        Me.Controls("lblRunWorkbook").Caption = "Admin will seed the built-in R1 Workflow Kit in the captured Training warehouse."
+        Me.Controls("lblRunSource").Visible = False: mEntities.Visible = False
+    End If
     If Not IsEmpty(rows) Then
         For index = 1 To UBound(rows, 1)
             mEntities.AddItem CStr(rows(index, 1))
@@ -87,7 +94,7 @@ Private Sub UpdateState()
     Dim state As String, completed As Long, total As Long, current As Boolean
     state = modExecutionRun.State(mContext, mToken, completed, total)
     current = (mContext <> "" And mContext = modActivity.CaptureContext())
-    mStart.Enabled = current And state = "Ready" And mEntities.ListIndex >= 0 And Not mExecuting
+    mStart.Enabled = current And state = "Ready" And (Not mNeedsEntity Or mEntities.ListIndex >= 0) And Not mExecuting
     mNext.Enabled = current And state = "Running" And Not mExecuting
     mStop.Enabled = (state = "Running")
     mVerify.Enabled = current And state <> "Ready" And state <> "Running" And state <> "Unavailable" And Not mExecuting
@@ -100,12 +107,13 @@ Private Sub mEntities_Change()
 End Sub
 
 Private Sub mStart_Click()
-    Dim mode As String, notice As String, started As Boolean
+    Dim mode As String, notice As String, started As Boolean, entity As String
     On Error GoTo Failed
-    If mExecuting Or mEntities.ListIndex < 0 Then Exit Sub
+    If mExecuting Or (mNeedsEntity And mEntities.ListIndex < 0) Then Exit Sub
+    If mNeedsEntity Then entity = CStr(mEntities.Value)
     mode = "RunAll": If mMode.Value = "Step through" Then mode = "StepThrough"
     mExecuting = True: UpdateState
-    started = modExecutionRun.Start(mContext, mToken, CStr(mEntities.Value), mode, notice)
+    started = modExecutionRun.Start(mContext, mToken, entity, mode, notice)
     mExecuting = False
     If started Then
         mStatus.Caption = notice
@@ -124,13 +132,18 @@ End Sub
 
 Private Sub DispatchSteps(ByVal allSteps As Boolean)
     Dim controlId As String, inputs As String, notice As String, delivered As Boolean, completed As Boolean, state As String, count As Long, total As Long
+    Dim stepId As String
     On Error GoTo Failed
     If mExecuting Then Exit Sub
     mExecuting = True: UpdateState
     Do
-        If Not modExecutionRun.BeginStep(mContext, mToken, controlId, inputs, notice) Then Exit Do
+        If Not modExecutionRun.BeginStep(mContext, mToken, controlId, inputs, notice, stepId) Then Exit Do
         mStatus.Caption = notice: Me.Repaint
-        delivered = modReceivingExecution.Dispatch(mContext, controlId, inputs, mCapturedWorkbook, mWorkbook, notice)
+        If controlId = "ADMIN_DEMO_SEED" Then
+            delivered = Application.Run("'invSys.Admin.xlam'!modAdminSeedReplay.ApplyBuiltIn", mToken, stepId, inputs)
+        Else
+            delivered = modReceivingExecution.Dispatch(mContext, controlId, inputs, mCapturedWorkbook, mWorkbook, notice)
+        End If
         completed = modExecutionRun.FinishStep(mContext, mToken, delivered, notice)
         mStatus.Caption = notice
         state = modExecutionRun.State(mContext, mToken, count, total)

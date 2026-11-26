@@ -286,6 +286,14 @@ Private Sub mBtnSeed_Click()
     AcceptDemoInventoryAction modAdminInventorySeed.DEMO_ACTION_SEED
 End Sub
 
+Public Function SelectBoundKit(ByVal stationId As String, ByVal kit As String) As Boolean
+    If mCboDemoDataSet.ListIndex <> 0 Then Exit Function
+    If CStr(mCboDemoDataSet.List(0, 1)) <> kit Then Exit Function
+    mTxtStation.Value = stationId
+    mBtnSeed_Click
+    SelectBoundKit = (mAccepted And mSelectedAction = modAdminInventorySeed.DEMO_ACTION_SEED And mSelectedUploadPath = "")
+End Function
+
 Private Sub mBtnDelete_Click()
     AcceptDemoInventoryAction modAdminInventorySeed.DEMO_ACTION_DELETE
 End Sub

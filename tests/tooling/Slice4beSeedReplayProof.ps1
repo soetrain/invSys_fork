@@ -93,9 +93,6 @@ function Test-SeedReplayStoppedWithStock($guide,$saved,$attempt,$destRoot,$inven
     $preserved=Get-AuthReadFixtureHash $inventory
     BoundSelect $guide
     Deliver 'frmActionPathLibrary' 'btnRunHowTo' 'Click'
-    if((BoundControl 'btnStartRun' 'State' '' $runner) -cne 'True|True'){
-        if((BoundControl 'lstRunSourceEntities' 'Select' '0' $runner) -cne 'SELECTED'){throw 'Baseline setup unavailable.'}
-    }
     Deliver $runner 'cboRunMode' 'Write' 'Step through'
     $runs=Join-Path $destRoot 'Runs'
     $before=BoundPins $runs
@@ -116,12 +113,21 @@ function Test-SeedReplayStoppedWithStock($guide,$saved,$attempt,$destRoot,$inven
     $terminal=@(Get-ChildItem $activityRoot -File -Filter '*.json'|Where-Object {-not $old.ContainsKey($_.FullName)}|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object {$_.ControlId -ceq 'ADMIN_DEMO_SEED' -and $_.OutcomeCode -cne 'REQUESTED'})
     $repeated=Read-SeedReplayInventory $inventory
     Check 'SeedReplay.OrdinaryRepeat.UnchangedWithoutEventOrDuplicate' ($terminal.Count -eq 1 -and $terminal[0].OutcomeCode -ceq 'UNCHANGED' -and $terminal[0].SourceEventRefs.Count -eq 0 -and $repeated.tblAppliedEvents.Count -eq $seeded.tblAppliedEvents.Count -and (Test-SeedReplayInventory $reference $baseline $repeated $event[0].EventID $destination))
+    BoundSelect $guide
+    Deliver 'frmActionPathLibrary' 'btnRunHowTo' 'Click'
+    $before=BoundPins $runs
+    Deliver $runner 'btnStartRun' 'Click'
+    $revisions=@(Get-ChildItem $runs -File -Filter '*.json'|Where-Object {-not $before.ContainsKey($_.FullName)}|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
+    $noop=$revisions[-1]
+    if($noop.Steps.Count -ne 1){throw 'Repeat replay did not return its ordinary outcome.'}
+    Deliver 'frmInventoryViewer' 'btnRefresh' 'Click'
+    $evaluation=Read-SeedRunEvaluation $noop $guide $destRoot
+    $afterRepeat=Read-SeedReplayInventory $inventory
+    Check 'SeedReplay.ReplayRepeat.UnchangedNoFreshEffect' ($noop.RunId -cne $attempt.RunId -and $noop.State -ceq 'Completed' -and $noop.Steps[0].ReasonCode -ceq 'UNCHANGED' -and $noop.Steps[0].ActivityId -cne $attempt.Steps[0].ActivityId -and $noop.Steps[0].SourceEventRefs.Count -eq 0 -and $evaluation.ResultState -cne 'Concluded' -and $evaluation.TerminalSources.Count -eq 0 -and $afterRepeat.tblAppliedEvents.Count -eq $seeded.tblAppliedEvents.Count -and (Test-SeedReplayInventory $reference $baseline $afterRepeat $event[0].EventID $destination))
+    Deliver $runner 'btnCloseRun' 'Click'
     foreach($change in 'Authority','Destination'){
         BoundSelect $guide
         Deliver 'frmActionPathLibrary' 'btnRunHowTo' 'Click'
-        if((BoundControl 'btnStartRun' 'State' '' $runner) -cne 'True|True'){
-            if((BoundControl 'lstRunSourceEntities' 'Select' '0' $runner) -cne 'SELECTED'){throw 'Captured setup unavailable.'}
-        }
         $priorRuns=BoundPins $runs
         $inventoryPin=Get-AuthReadFixtureHash $inventory
         if($change -ceq 'Authority'){
@@ -136,4 +142,12 @@ function Test-SeedReplayStoppedWithStock($guide,$saved,$attempt,$destRoot,$inven
         if((BoundLibrary 'Open') -cne 'DELIVERED'){throw 'Could not reopen destination guide library.'}
         BoundOpen
     }
+    BoundSelect $guide
+    $admin=$packages['invSys.Admin.xlam']
+    $before=BoundPins $runs
+    $inventoryPin=Get-AuthReadFixtureHash $inventory
+    [void](Run 'invSys.Admin.xlam' 'TestD5Commands.CloseSettings')
+    $admin.Close($false)
+    Deliver 'frmActionPathLibrary' 'btnRunHowTo' 'Click'
+    Check 'SeedReplay.MissingAdmin.RefusesSetupWithoutWrite' ((BoundControl '' 'Count' '' $runner) -ceq '0' -and (BoundControl 'lblPublishedGuideStatus' 'Label').Contains('Admin') -and (BoundSame $before (BoundPins $runs)) -and (Get-AuthReadFixtureHash $inventory) -ceq $inventoryPin)
 }

@@ -15,6 +15,8 @@ Private mProfile As Object
 Private mBuilds As Collection
 Private mRun As Object
 Private mPending As Long
+Private mSeedClaimed As Boolean
+Private mNeedsEntity As Boolean
 Private mBefore As Long
 Private mStop As Boolean
 Private mWriteFailed As Boolean
@@ -22,7 +24,7 @@ Private mStarting As Boolean
 
 Public Function OpenSetup(ByVal context As String, ByVal key As String, ByRef token As String, ByRef snapshot As String, _
                           ByRef guideCaption As String, ByRef profileCaption As String, ByRef targetCaption As String, ByRef notice As String) As Boolean
-    Dim target As WarehouseTarget, guide As Object, profile As Object, builds As Collection, policyHash As String
+    Dim target As WarehouseTarget, guide As Object, profile As Object, builds As Collection, policyHash As String, step As Object
     On Error GoTo Failed
     token = "": snapshot = "": guideCaption = "": profileCaption = "": targetCaption = ""
     If mStarting Or mPending > 0 Then notice = "A run action is still returning. Stop it before opening another setup.": Exit Function
@@ -37,6 +39,13 @@ Public Function OpenSetup(ByVal context As String, ByVal key As String, ByRef to
     profileCaption = "Profile " & CStr(profile("ProfileId")) & "; version " & CStr(profile("Version")) & vbCrLf & CStr(profile("ContentSha256"))
     targetCaption = "Training warehouse: " & target.WarehouseId & "; station: " & target.StationId & "; user: " & modAuth.GetCurrentUserId()
     notice = "Review the captured Training target and choose an exact local source entity. Start Run executes ordinary Receiving actions."
+    mNeedsEntity = False
+    For Each step In profile("Steps")
+        If step("ControlId") <> "ADMIN_DEMO_SEED" Then mNeedsEntity = True
+    Next step
+    If Not mNeedsEntity Then
+        snapshot = "": notice = "Review the captured Training target. Start Run applies the reviewed built-in Seed kit."
+    End If
     OpenSetup = True
 Failed:
 End Function
@@ -70,7 +79,11 @@ Private Function StartAttempt(ByVal context As String, ByVal token As String, By
     If mPending > 0 Or Not mRun Is Nothing Then notice = "This setup already has an attempt. Close it and explicitly open a new setup.": Exit Function
     If mode <> "RunAll" And mode <> "StepThrough" Then notice = "Choose Run all or Step through.": Exit Function
     If Not Guard(context, token, notice) Then Exit Function
-    If Not modExecutionTarget.ContainsEntity(context, entity, notice) Then Exit Function
+    If mNeedsEntity Then
+        If Not modExecutionTarget.ContainsEntity(context, entity, notice) Then Exit Function
+    ElseIf entity <> "" Then
+        notice = "Seed has no source entity input.": Exit Function
+    End If
     notice = modActionRecording.Status(context, active, canStart)
     If active Or Not canStart Then notice = "Stop the current recording and enable required capture before starting a run.": Exit Function
     If mStop Then notice = "Run was stopped before its first action.": Exit Function
@@ -89,10 +102,10 @@ Failed:
     If Not mRun Is Nothing Then EndRun "Unknown", "CAPTURE_UNAVAILABLE", notice
 End Function
 
-Public Function BeginStep(ByVal context As String, ByVal token As String, ByRef controlId As String, ByRef inputs As String, ByRef notice As String) As Boolean
+Public Function BeginStep(ByVal context As String, ByVal token As String, ByRef controlId As String, ByRef inputs As String, ByRef notice As String, Optional ByRef stepId As String = "") As Boolean
     Dim header As Object, observations As Collection, step As Object, item As Object, binding As Object
     On Error GoTo Failed
-    controlId = "": inputs = ""
+    controlId = "": inputs = "": stepId = ""
     If mStarting Or Not Matches(context, token) Or mPending > 0 Or mRun Is Nothing Then Exit Function
     If mRun("State") <> "Running" Or mWriteFailed Then Exit Function
     If mStop Then EndRun "Stopped", "STOP_REQUESTED", notice: Exit Function
@@ -109,10 +122,33 @@ Public Function BeginStep(ByVal context As String, ByVal token As String, ByRef 
         If binding("Kind") = "Prompt" Then inputs = inputs & mEntity Else inputs = inputs & CStr(binding("Value"))
     Next item
     mBefore = observations.Count: mPending = mRun("Steps").Count + 1
+    stepId = CStr(step("StepId")): mSeedClaimed = False
     notice = "Running: " & CStr(mGuide("Steps")(mPending)("Caption"))
     BeginStep = True: Exit Function
 Failed:
     If Not mRun Is Nothing Then EndRun "Unknown", "CAPTURE_UNAVAILABLE", notice
+End Function
+
+Public Function PendingSeed(ByVal token As String, ByVal stepId As String, ByVal kit As String, ByVal claim As Boolean) As Boolean
+    Dim step As Object, context As String, notice As String, saved As Object, header As Object, observations As Collection
+    On Error GoTo Failed
+    context = modActivity.CaptureContext()
+    If mPending = 0 Or mSeedClaimed Or mStop Or mRun Is Nothing Then Exit Function
+    If mRun("State") <> "Running" Or Not Matches(context, token) Then Exit Function
+    Set step = mProfile("Steps")(mPending)
+    If step("ControlId") <> "ADMIN_DEMO_SEED" Or step("StepId") <> stepId Then Exit Function
+    If step("Inputs")(1)("Binding")("Value") <> kit Or kit <> "R1_WORKFLOW_KIT" Then Exit Function
+    If Not Guard(context, token, notice) Then Exit Function
+    Set saved = modExecutionRunStore.ReadVersion(mTarget, CStr(mRun("RunId")), CLng(mRun("Revision")))
+    If saved Is Nothing Then Exit Function
+    If saved("ContentSha256") <> mHash Or saved("Steps").Count + 1 <> mPending Then Exit Function
+    If Not modRecordingSession.ActiveFor(context) Then Exit Function
+    If Not modRecordingSession.ExecutionEvidence(context, header, observations) Then Exit Function
+    If header("SequenceId") <> saved("Recording")("SequenceId") Or observations.Count <> mBefore Then Exit Function
+    If mStop Or mSeedClaimed Or context <> modActivity.CaptureContext() Then Exit Function
+    If claim Then mSeedClaimed = True
+    PendingSeed = True
+Failed:
 End Function
 
 Public Function FinishStep(ByVal context As String, ByVal token As String, ByVal delivered As Boolean, ByRef notice As String) As Boolean
@@ -159,6 +195,7 @@ End Function
 
 Private Function PositiveOwnerOutcome(ByVal controlId As String, ByVal outcome As String) As Boolean
     Select Case controlId
+        Case "ADMIN_DEMO_SEED": PositiveOwnerOutcome = (outcome = "APPLIED" Or outcome = "UNCHANGED")
         Case "RECEIVING_OPEN": PositiveOwnerOutcome = (outcome = "OPENED" Or outcome = "REUSED")
         Case "RECEIVING_REFRESH": PositiveOwnerOutcome = (outcome = "REFRESHED")
         Case "RECEIVING_CLEAR": PositiveOwnerOutcome = (outcome = "CLEARED" Or outcome = "EMPTY")

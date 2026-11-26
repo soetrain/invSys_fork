@@ -6,6 +6,7 @@ Public Function Read(ByVal context As String, ByVal key As String, ByRef target 
                      ByRef guide As Object, ByRef profile As Object, ByRef policyHash As String, _
                      ByRef builds As Collection, ByRef snapshot As String, ByRef notice As String) As Boolean
     Dim policy As Object, parts As Variant, version As Long, capture As Object, visible As Object, step As Object, definition As Object
+    Dim needsAdmin As Boolean
     On Error GoTo Failed
     If Not modExecutionTarget.Read(context, target, snapshot, notice) Then Exit Function
     If Not modTrainingReadContext.Read(context, target, policy, notice) Then Exit Function
@@ -19,6 +20,7 @@ Public Function Read(ByVal context As String, ByVal key As String, ByRef target 
     If guide("ContentSha256") <> parts(2) Then Exit Function
     Set capture = modEvaluationMatches.PolicyControls(policy, True): Set visible = modEvaluationMatches.PolicyControls(policy, False)
     For Each step In guide("Steps")
+        If step("ControlId") = "ADMIN_DEMO_SEED" Then needsAdmin = True
         If Not modEvaluationMatches.Permitted(capture, CStr(step("ControlId"))) Or Not modEvaluationMatches.Permitted(visible, CStr(step("ControlId"))) Then Exit Function
         Set definition = modActivityCatalog.Control(CStr(step("ControlId")))
         If definition Is Nothing Then Exit Function
@@ -36,13 +38,14 @@ Public Function Read(ByVal context As String, ByVal key As String, ByRef target 
     If profile("PackageSetVersion") <> CStr(ThisWorkbook.CustomDocumentProperties("invSysPackageSetVersion").Value) Then Exit Function
     policy("SavedCatalogVersion") = CLng(policy("SavedCatalogVersion"))
     policyHash = modTrainingWire.Sha256(modTrainingJson.EncodeObject(policy))
-    Set builds = PackageBuilds()
+    If needsAdmin Then notice = "Run requires the compatible Admin add-in from this package set."
+    Set builds = PackageBuilds(needsAdmin)
     If builds Is Nothing Or context <> modActivity.CaptureContext() Then Exit Function
     notice = "": Read = True
 Failed:
 End Function
 
-Public Function PackageBuilds() As Collection
+Public Function PackageBuilds(Optional ByVal needsAdmin As Boolean = False) As Collection
     Dim result As New Collection, name As Variant, wb As Workbook, entry As Object
     On Error GoTo Failed
     For Each name In Array("invSys.Core.xlam", "invSys.Inventory.Domain.xlam", "invSys.Designs.Domain.xlam", "invSys.Operations.xlam", "invSys.Admin.xlam")
@@ -53,8 +56,12 @@ Public Function PackageBuilds() As Collection
         Err.Clear
         On Error GoTo Failed
         If wb Is Nothing Then
+            If needsAdmin And name = "invSys.Admin.xlam" Then Exit Function
             If name = "invSys.Core.xlam" Or name = "invSys.Inventory.Domain.xlam" Or name = "invSys.Operations.xlam" Then Exit Function
             GoTo NextPackage
+        End If
+        If needsAdmin And name = "invSys.Admin.xlam" Then
+            If Not wb.IsAddin Or StrComp(wb.Path, ThisWorkbook.Path, vbTextCompare) <> 0 Then Exit Function
         End If
         If CStr(wb.CustomDocumentProperties("invSysPackageSetVersion").Value) <> CStr(ThisWorkbook.CustomDocumentProperties("invSysPackageSetVersion").Value) Then Exit Function
         Set entry = CreateObject("Scripting.Dictionary")
