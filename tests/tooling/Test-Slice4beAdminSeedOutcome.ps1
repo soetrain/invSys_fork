@@ -1,6 +1,7 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-detail-glyph-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$NativeFeedback,[switch]$WorkflowEdges,[switch]$Recording,[switch]$RecordingBoundaries,[switch]$GuidePaths,[switch]$GuideTiming,[switch]$SeedReplayProfile,[switch]$SeedReplayRun)
+param([string]$DeployRoot='deploy/validation-detail-glyph-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$NativeFeedback,[switch]$WorkflowEdges,[switch]$Recording,[switch]$RecordingBoundaries,[switch]$GuidePaths,[switch]$GuideTiming,[switch]$SeedReplayProfile,[switch]$SeedReplayRun,[switch]$SeedReplayLostAck)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+if($SeedReplayLostAck){$SeedReplayRun=$true}
 if($SeedReplayRun){$SeedReplayProfile=$true}
 if($SeedReplayProfile){$Recording=$true;$RecordingBoundaries=$true;$GuidePaths=$true}
 if($RecordingBoundaries -and -not $Recording){throw 'Recording boundaries require the retained recording gate.'}
@@ -21,6 +22,7 @@ Write-Output ('Admin Seed outcome controller: '+$root)
 try{
     $extra=@();if($NativeFeedback){$extra+='-AdminSeedNativeFeedback'}
     if($SeedReplayRun){$extra+='-AdminSeedReplayRun'}
+    if($SeedReplayLostAck){$extra+='-AdminSeedReplayLostAck'}
     if($SeedReplayProfile){$extra+='-AdminSeedReplayProfile';$extra+='-ViewerStartupPackageStateForTest';$extra+='SavedCopies'}
     if($WorkflowEdges){$extra+='-AdminSeedWorkflowEdges'}
     if($Recording){$extra+='-AdminSeedRecording'}

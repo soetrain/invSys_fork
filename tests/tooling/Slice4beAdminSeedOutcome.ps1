@@ -146,7 +146,12 @@ End Function
         Install-GuideTransferDialogProbe
         if($AdminSeedReplayRun){
             . (Join-Path $PSScriptRoot 'Slice4beAdminSeedReplay.ps1')
-            Install-SeedReplayGuardProbe
+            if($AdminSeedReplayLostAck){
+                . (Join-Path $PSScriptRoot 'Slice4beSeedLostAck.ps1')
+                Install-SeedLostAckProbe
+            }else{
+                Install-SeedReplayGuardProbe
+            }
         }
     }
 }

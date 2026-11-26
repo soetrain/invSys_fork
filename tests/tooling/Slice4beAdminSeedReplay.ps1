@@ -165,6 +165,12 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             $ready=(BoundControl 'btnStartRun' 'State' '' $runner) -ceq 'True|True'
             Check 'SeedReplay.Run.StartNeedsNoReceivingEntity' $ready
             if(-not $ready){return}
+            if($AdminSeedReplayLostAck){
+                . (Join-Path $PSScriptRoot 'Slice4beSeedLostAck.ps1')
+                Test-SeedLostAck
+                Check 'SeedLostAck.PreservesSource' ((BoundSame $pins (BoundPins $sourceRoot)) -and (Get-AuthReadFixtureHash $sourceInventory) -ceq $sourceHash)
+                return
+            }
             Deliver $runner 'btnStartRun' 'Click'
             $attempts=@(Get-ChildItem (Join-Path $destRoot 'Runs') -File -Filter '*.json'|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Sort-Object Revision)
             if(-not $attempts.Count){throw 'No durable replay attempt; dispatch RED unavailable.'}
