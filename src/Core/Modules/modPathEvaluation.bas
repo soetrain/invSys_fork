@@ -31,12 +31,14 @@ Public Function UseGuide(ByVal context As String, ByVal pathId As String, ByVal 
 End Function
 
 Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal previousId As String, _
-                         ByRef evaluationId As String, ByRef text As String, ByRef notice As String) As Boolean
+                         ByRef evaluationId As String, ByRef text As String, ByRef notice As String, _
+                         Optional ByVal runId As String = "", Optional ByVal revision As Long = 0, Optional ByVal runHash As String = "") As Boolean
     Dim target As WarehouseTarget, policy As Object, header As Object, definition As Object, source As String
     Dim currentHeader As Object, records As Collection, result As Object, historical As Object, visible As Object
     Dim publication As Object, provenance As Object, terminal As Object, previous As Object, step As Object
     Dim version As Long, collect As Boolean, show As Boolean, available As Boolean, ignored As String
     Dim binding As String, guide As Object
+    Dim credits As Object, saved As Object, profile As Object
     On Error GoTo Failed
     evaluationId = "": text = "": notice = "Incomplete evidence: evaluation is unavailable."
     If mBusy Then Exit Function
@@ -49,6 +51,16 @@ Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal 
     Set result = modEvaluationModel.Create(header, definition, source, version)
     If Not modPathExpectation.GuideReference(context, pathId, guide, notice) Then GoTo Done
     Set result("Guide") = guide
+    If runId <> "" Then
+        Set saved = modExecutionRunStore.ReadVersion(target, runId, revision)
+        If saved Is Nothing Then GoTo Done
+        If saved("SchemaVersion") <> 2 Or saved("ContentSha256") <> runHash Or saved("State") = "Running" Then GoTo Done
+        If saved("Guide")("ContentSha256") <> guide("ContentSha256") Or saved("Recording")("SequenceId") <> header("SequenceId") Then GoTo Done
+        Set profile = modExecutionProfileStore.ReadVersion(target, CStr(saved("Profile")("ProfileId")), CLng(saved("Profile")("Version")))
+        If profile Is Nothing Then GoTo Done
+        If profile("ContentSha256") <> saved("Profile")("ContentSha256") Then GoTo Done
+        Set credits = modOperatorStepEvidence.CreditMap(profile, saved)
+    End If
     available = modLoadedEvents.Read(context, publication, provenance): result.Add "Publication", provenance
     Set records = modRecordingReader.ReadRun(target, pathId, CLng(header("Version")), currentHeader, ignored)
     If Not records Is Nothing Then
@@ -62,7 +74,7 @@ Public Function Evaluate(ByVal context As String, ByVal pathId As String, ByVal 
         If Not modActivityPolicy.ReadPolicy(target, "ADMIN_SETTINGS_SAVE_VALUE", version, collect, show, ignored, historical, requestedVersion:=CLng(header("PolicyVersion"))) Then Set historical = Nothing
         Set historical = modEvaluationMatches.PolicyControls(historical, True)
         Set visible = modEvaluationMatches.PolicyControls(policy, False)
-        Set terminal = modEvaluationMatches.Match(result, records, historical, visible)
+        Set terminal = modEvaluationMatches.Match(result, records, historical, visible, credits)
         Classify result, header, terminal, publication
     End If
     If previousId <> "" Then

@@ -4338,6 +4338,53 @@ Private Function OutputUomIsCatalogValue(ByVal uomName As String) As Boolean
     Next idx
 End Function
 
+Public Property Get CompletionWorkbook() As Workbook
+    Set CompletionWorkbook = mOperatorWorkbook
+End Property
+
+Public Function CompletionSelection(ByVal context As String, ByVal ticket As String, ByVal stamp As Boolean, _
+                                    ByRef kind As String, ByRef caption As String, Optional ByVal resolvedRow As Long = 0, _
+                                    Optional ByVal actual As String = "") As String
+    Dim output As ListObject, checks As ListObject, selected As Long, i As Long, fieldName As Variant, state As String, matches As Long
+    If context <> mActivityContext Or Not modProductionDesignerActions.ContextIsCurrent(context, mOperatorWorkbook) Then Exit Function
+    If mLstManagerOutput.ListIndex < 0 Then Exit Function
+    If actual = "" Then actual = Trim$(mTxtOutputReal.Text)
+    If Not IsNumeric(actual) Then Exit Function
+    If CDbl(actual) <= 0 Then Exit Function
+    actual = CStr(CDbl(actual))
+    If modProductionReusableRun.ReusableRunIsLoaded() Then
+        kind = "ReusableProcess"
+        selected = modProductionReusableRun.ReusableRunOutputDefinitionIndex(mLstManagerOutput.ListIndex + 1)
+        CompletionSelection = modProductionReusableRun.CompletionSelection(ActiveRunProcess(), ActiveRunLocation(), selected, actual, ticket, stamp, caption)
+        Exit Function
+    End If
+    kind = "WorksheetOutput"
+    Set output = ProductionTable(TABLE_MANAGER_OUTPUT): Set checks = ProductionTable(TABLE_MANAGER_CHECK)
+    If output Is Nothing Or checks Is Nothing Then Exit Function
+    If Not HasProductionCheckRows() Then Exit Function
+    selected = SelectedProductionOutputTableRow()
+    If selected = 0 Or (resolvedRow > 0 And selected <> resolvedRow) Then Exit Function
+    If CellByHeader(output, selected, "System_Key") = "" Then
+        For i = 1 To output.ListRows.Count
+            If StrComp(CellByHeader(output, i, "PROCESS"), CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 0)), vbTextCompare) = 0 And _
+               StrComp(CellByHeader(output, i, "OUTPUT"), CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 1)), vbTextCompare) = 0 Then matches = matches + 1
+        Next i
+        If matches <> 1 Then Exit Function
+    End If
+    If Not modProductionOperatorBinding.MarkedRow(mOperatorWorkbook, output, selected, ticket, stamp) Then Exit Function
+    state = modProductionOperatorBinding.Framed(ticket) & modProductionOperatorBinding.Framed(actual)
+    For Each fieldName In Array("System_Key", "PROCESS", "OUTPUT", "ITEM_CODE", "UOM", "LOCATION", "Condition", "AttributesJson")
+        state = state & modProductionOperatorBinding.Framed(CellByHeader(output, selected, CStr(fieldName)))
+    Next fieldName
+    For i = 1 To checks.ListRows.Count
+        For Each fieldName In Array("System_Key", "USED", "ITEM_CODE", "LOCATION")
+            state = state & modProductionOperatorBinding.Framed(CellByHeader(checks, i, CStr(fieldName)))
+        Next fieldName
+    Next i
+    caption = mOperatorWorkbook.Name & ", " & CellByHeader(output, selected, "PROCESS") & ", " & CellByHeader(output, selected, "OUTPUT")
+    CompletionSelection = modTrainingWire.TextSha256(state)
+End Function
+
 Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAction = Nothing)
     Dim outputIndex As Long, outputRowNumber As Long
     Dim outputRowVal As String, outputProcess As String, outputName As String
@@ -4363,6 +4410,7 @@ Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAc
         action.OutcomeCode = "FAILED"
         ShowPersistencePending "Saving the reusable Process run to the warehouse server..."
         If Not action.CanContinue(reusableReport) Then ShowStatus reusableReport: Exit Sub
+        modProductionOperatorBinding.ObserveOwner Me, action.RecordedActivityId, True
         If modProductionReusableRun.CompleteReusableProcess(ActiveRunProcess(), _
                 ActiveRunLocation(), reusableReport, action) Then
             ResetInventoryCache
@@ -4391,7 +4439,7 @@ Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAc
             Exit Sub
         End If
     End If
-    If processName <> "" Then
+    If mLstManagerOutput.ListIndex < 0 And processName <> "" Then
         If Not SelectProductionOutputForProcess(processName) Then
             ShowStatus "No Production Output row matches process '" & processName & "'."
             Exit Sub
@@ -4433,6 +4481,7 @@ Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAc
     BindOperatorWorkbookForRun
     ShowPersistencePending "Saving the completed production run to the warehouse server..."
     If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
+    modProductionOperatorBinding.ObserveOwner Me, action.RecordedActivityId, True, outputRowNumber, enteredRealOutput
     completionSucceeded = mProduction.CompleteProductionRunAfterCheckInForOutput(outputRowNumber, completionReport, action)
     If Not action.CanContinue(completionReport) Then ShowStatus completionReport: Exit Sub
     If Not completionSucceeded Then

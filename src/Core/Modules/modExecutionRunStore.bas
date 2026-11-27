@@ -48,6 +48,10 @@ Public Function Append(ByVal target As WarehouseTarget, ByVal model As Object, B
     If model("Revision") > 1 Then
         Set previous = ReadVersion(target, CStr(model("RunId")), CLng(model("Revision")) - 1)
         If previous Is Nothing Then Exit Function
+        If model("SchemaVersion") <> previous("SchemaVersion") Then Exit Function
+        If model("SchemaVersion") = 2 Then
+            If Not modOperatorStepEvidence.Retains(previous("OperatorClaims"), model("OperatorClaims")) Then Exit Function
+        End If
         If model("PreviousRecordId") <> previous("RecordId") Or model("PreviousSha256") <> previous("ContentSha256") Then Exit Function
         For Each field In Array("ContextSha256", "CreatedByUserId", "WarehouseId", "StationId", "Mode", "PackageSetVersion")
             If model(field) <> previous(field) Then Exit Function

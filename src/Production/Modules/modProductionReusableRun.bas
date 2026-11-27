@@ -31,6 +31,7 @@ Private mLastOutputQty As Object
 Private mOutputHistory As Collection
 Private mCompletedNodes As Object
 Private mCheckedInNodeId As String
+Private mSelectionTicket As String
 Private mRunId As String
 Private mEventIds As String
 Private mAppliedCount As Long
@@ -40,6 +41,7 @@ Private mBatchNote As String
 Private mBatchNoteFrozen As Boolean
 
 Public Sub ClearReusableRun()
+    mSelectionTicket = ""
     mLoaded = False
     mCheckedIn = False
     mCheckedInNodeId = ""
@@ -733,6 +735,7 @@ Public Function CheckInReusableProcess(ByVal processName As String, _
     mCheckedIn = True
     mBatchNoteFrozen = True
     mCheckedInNodeId = nodeId
+    mSelectionTicket = ""
     report = "Checked in Process " & RunRecordText(node, "ProcessName") & _
              " using " & CStr(AllocationCountForNode(nodeId)) & _
              " exact System_Key allocation(s)."
@@ -1053,6 +1056,35 @@ Public Function CompleteReusableRun(ByVal runLocation As String, _
 
 Failed:
     report = "Reusable Production completion failed: " & Err.Description
+End Function
+
+Public Function CompletionSelection(ByVal process As String, ByVal location As String, ByVal outputIndex As Long, _
+                                    ByVal actual As String, ByVal ticket As String, ByVal stamp As Boolean, ByRef caption As String) As String
+    Dim node As Object, selected As Object, i As Long, k As Variant, state As String, qty As String
+    If Not mLoaded Or Not mCheckedIn Or mCompleted Or mCheckedInNodeId = "" Then Exit Function
+    Set selected = FindNode(mCheckedInNodeId)
+    If selected Is Nothing Then Exit Function
+    Set node = FindNodeByProcessName(process)
+    If Not node Is selected Then Exit Function
+    If outputIndex < 1 Or outputIndex > mOutputs.Count Then Exit Function
+    If RunRecordText(mOutputs(outputIndex), "ProcessNodeId") <> mCheckedInNodeId Then Exit Function
+    If stamp Then mSelectionTicket = ticket
+    If mSelectionTicket <> ticket Then Exit Function
+    For Each k In Array(ticket, mRecipeId, mRecipeVersion, mCheckedInNodeId, mBatchNumber, mScalePercent, location, mRunId, outputIndex)
+        state = state & modProductionOperatorBinding.Framed(CStr(k))
+    Next k
+    For Each k In mAllocations.Keys
+        If AllocationBelongsToNode(CStr(k), mCheckedInNodeId) Then state = state & modProductionOperatorBinding.Framed(CStr(k)) & modProductionOperatorBinding.Framed(CStr(mAllocations(k))) & modProductionOperatorBinding.Framed(CStr(NativeAllocationQty(CStr(k))))
+    Next k
+    For i = 1 To mOutputs.Count
+        If RunRecordText(mOutputs(i), "ProcessNodeId") = mCheckedInNodeId Then
+            qty = ReusableRunActualOutput(i)
+            If i = outputIndex Then qty = actual
+            state = state & modProductionOperatorBinding.Framed(RunRecordText(mOutputs(i), "OutputId")) & modProductionOperatorBinding.Framed(qty)
+        End If
+    Next i
+    caption = mRecipeName & " v" & mRecipeVersion & ", batch " & CStr(mBatchNumber) & ", " & process
+    CompletionSelection = modTrainingWire.TextSha256(state)
 End Function
 
 Public Function CompleteReusableProcess(ByVal processName As String, _

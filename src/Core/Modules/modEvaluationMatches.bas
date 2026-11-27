@@ -29,8 +29,14 @@ Public Function Permitted(ByVal controls As Object, ByVal controlId As String) A
 End Function
 
 ' One action occurrence can match at most one step, regardless of its record count.
+Private Function CreditMatches(ByVal credits As Object, ByVal stepId As String, ByVal activityId As String) As Boolean
+    CreditMatches = True
+    If credits Is Nothing Then Exit Function
+    If credits.Exists(stepId) Then CreditMatches = (credits(stepId) = activityId)
+End Function
+
 Public Function Match(ByVal result As Object, ByVal observations As Collection, ByVal historical As Object, _
-                      ByVal visible As Object) As Object
+                      ByVal visible As Object, Optional ByVal credits As Object = Nothing) As Object
     Dim actions As New Collection, outcomes As Object, selected As Object, used As Object
     Dim record As Object, step As Object, attempt As Object, found As Object, matchRow As Object
     Dim cursor As Long, index As Long, first As Long, id As String, terminal As Object
@@ -52,7 +58,7 @@ Public Function Match(ByVal result As Object, ByVal observations As Collection, 
         Else
             For index = cursor + 1 To actions.Count
                 Set attempt = actions(index)
-                If attempt("ControlId") = id Then
+                If attempt("ControlId") = id And CreditMatches(credits, CStr(step("StepId")), CStr(attempt("ActivityId"))) Then
                     If first = 0 Then first = index
                     Set selected = attempt
                     If step("RequiredOutcome") <> "REQUESTED" And outcomes.Exists(attempt("ActivityId")) Then

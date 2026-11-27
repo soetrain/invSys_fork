@@ -53,6 +53,10 @@ Unavailable:
     mNotice = "Tracking unavailable: the action could not be recorded."
 End Sub
 
+Public Property Get RecordedActivityId() As String
+    RecordedActivityId = mActivityId
+End Property
+
 Public Function CanContinue(ByRef report As String) As Boolean
     If Not CurrentBinding(report) Then OutcomeCode = "FAILED": Exit Function
     If Not Permitted() Then

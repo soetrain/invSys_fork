@@ -24,6 +24,10 @@ Private mCapturedWorkbook As Workbook
 Private mExecuting As Boolean
 Private mClosing As Boolean
 Private mCloseRequested As Boolean
+Private mOperatorStep As String
+Private mBoundSelection As Boolean
+Private WithEvents mBind As MSForms.CommandButton
+Private WithEvents mCheck As MSForms.CommandButton
 Private mLayout As cOperationsAnchorManager
 Private WithEvents mEntities As MSForms.ListBox
 Private mMode As MSForms.ComboBox
@@ -52,6 +56,8 @@ Private Sub UserForm_Initialize()
         Array("CommandButton", "btnStopRun", "Stop", 550, 378, 130, 28, 3), _
         Array("Label", "lblRunStatus", "", 12, 424, 868, 56, 7), _
         Array("TextBox", "txtRunVerification", "", 12, 492, 868, 112, 15), _
+        Array("CommandButton", "btnBindProduction", "Bind selected Production output", 12, 614, 240, 26, 9), _
+        Array("CommandButton", "btnCheckProduction", "Check completion evidence", 270, 614, 220, 26, 9), _
         Array("CommandButton", "btnVerifyRun", "Verify run", 12, 648, 160, 28, 9), _
         Array("CommandButton", "btnCloseRun", "Close", 782, 648, 98, 28, 12))
         Set control = Me.Controls.Add("Forms." & definition(0) & ".1", CStr(definition(1)), True)
@@ -65,6 +71,8 @@ Private Sub UserForm_Initialize()
     Set mStart = Me.Controls("btnStartRun"): Set mNext = Me.Controls("btnNextRunStep"): Set mStop = Me.Controls("btnStopRun")
     Set mVerify = Me.Controls("btnVerifyRun"): Set mClose = Me.Controls("btnCloseRun"): Set mStatus = Me.Controls("lblRunStatus")
     Set mEvaluation = Me.Controls("txtRunVerification"): mEvaluation.MultiLine = True: mEvaluation.Locked = True: mEvaluation.ScrollBars = fmScrollBarsVertical
+    Set mBind = Me.Controls("btnBindProduction"): Set mCheck = Me.Controls("btnCheckProduction")
+    mBind.Visible = False: mCheck.Visible = False
     mStart.Enabled = False: mNext.Enabled = False: mStop.Enabled = False: mVerify.Enabled = False
 End Sub
 
@@ -80,6 +88,7 @@ Public Function BindSetup(ByVal context As String, ByVal key As String, ByVal to
         Me.Controls("lblRunWorkbook").Caption = "Admin will seed the built-in R1 Workflow Kit in the captured Training warehouse."
         Me.Controls("lblRunSource").Visible = False: mEntities.Visible = False
     End If
+    If modExecutionRun.HasOperatorStep(context, token) Then Me.Controls("lblRunWorkbook").Caption = "In Production, prepare the destination selection and Check In. Bind the selection when its guide step is reached."
     If Not IsEmpty(rows) Then
         For index = 1 To UBound(rows, 1)
             mEntities.AddItem CStr(rows(index, 1))
@@ -95,7 +104,10 @@ Private Sub UpdateState()
     state = modExecutionRun.State(mContext, mToken, completed, total)
     current = (mContext <> "" And mContext = modActivity.CaptureContext())
     mStart.Enabled = current And state = "Ready" And (Not mNeedsEntity Or mEntities.ListIndex >= 0) And Not mExecuting
-    mNext.Enabled = current And state = "Running" And Not mExecuting
+    mNext.Enabled = current And state = "Running" And Not mExecuting And mOperatorStep = ""
+    mBind.Visible = (mOperatorStep <> "" And state = "Running"): mCheck.Visible = mBind.Visible
+    mBind.Enabled = current And Not mBoundSelection And Not mExecuting
+    mCheck.Enabled = Not mExecuting
     mStop.Enabled = (state = "Running")
     mVerify.Enabled = current And state <> "Ready" And state <> "Running" And state <> "Unavailable" And Not mExecuting
     mEntities.Enabled = (state = "Ready" And Not mExecuting): mMode.Enabled = mEntities.Enabled
@@ -139,7 +151,11 @@ Private Sub DispatchSteps(ByVal allSteps As Boolean)
     Do
         If Not modExecutionRun.BeginStep(mContext, mToken, controlId, inputs, notice, stepId) Then Exit Do
         mStatus.Caption = notice: Me.Repaint
-        If controlId = "ADMIN_DEMO_SEED" Then
+        If controlId = "PRODUCTION_RUN_COMPLETE" Then
+            mOperatorStep = stepId: mBoundSelection = False
+            modProductionOperatorBinding.WaitForSelection mContext, mToken, stepId, Me
+            Exit Do
+        ElseIf controlId = "ADMIN_DEMO_SEED" Then
             delivered = Application.Run("'invSys.Admin.xlam'!modAdminSeedReplay.ApplyBuiltIn", mToken, stepId, inputs)
         Else
             delivered = modReceivingExecution.Dispatch(mContext, controlId, inputs, mCapturedWorkbook, mWorkbook, notice)
@@ -166,6 +182,32 @@ Private Sub mNext_Click()
     DispatchSteps False
 End Sub
 
+Private Sub mBind_Click()
+    Dim notice As String
+    If mExecuting Or mBoundSelection Or mOperatorStep = "" Then Exit Sub
+    mExecuting = True: UpdateState
+    mBoundSelection = modProductionOperatorBinding.BindSelected(mContext, mToken, notice)
+    mExecuting = False: mStatus.Caption = notice: UpdateState
+    If mCloseRequested And Not mOwner Is Nothing Then mOwner.CloseRunner
+End Sub
+
+Private Sub mCheck_Click()
+    Dim notice As String, count As Long, total As Long
+    If mExecuting Or mOperatorStep = "" Then Exit Sub
+    mExecuting = True: UpdateState
+    If modExecutionRun.CheckCompletion(mContext, mToken, mOperatorStep, notice, modProductionOperatorBinding.SelectionStillBound(mToken)) Or modExecutionRun.State(mContext, mToken, count, total) <> "Running" Then
+        modProductionOperatorBinding.Clear mToken
+        mOperatorStep = "": mBoundSelection = False
+    End If
+    mExecuting = False: mStatus.Caption = notice: UpdateState
+    If mCloseRequested And Not mOwner Is Nothing Then mOwner.CloseRunner
+End Sub
+
+Public Sub OperatorOwnerReturned()
+    UpdateState
+    If mCloseRequested And Not mOwner Is Nothing Then mOwner.CloseRunner
+End Sub
+
 Private Sub mStop_Click()
     Dim notice As String
     modExecutionRun.RequestStop mContext, mToken, notice
@@ -184,6 +226,7 @@ Public Function ReleaseRunner() As Boolean
     mCloseRequested = True
     If mExecuting Then modExecutionRun.RequestStop mContext, mToken, notice: Exit Function
     If Not modExecutionRun.CloseSetup(mContext, mToken) Then Exit Function
+    modProductionOperatorBinding.Clear mToken
     mClosing = True: Set mLayout = Nothing: Set mCapturedWorkbook = Nothing: mContext = "": mToken = ""
     ReleaseRunner = True
 End Function

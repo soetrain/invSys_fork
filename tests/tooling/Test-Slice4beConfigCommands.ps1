@@ -47,6 +47,8 @@ param(
     [switch]$RunCompleteStatusOnly,
     [switch]$RunCompletePathsOnly,
     [switch]$CheckCompleteReplayRefusal,
+    [switch]$CheckWorksheetSelection,
+    [switch]$CheckCompleteOperatorBinding,
     [ValidateSet('Reusable','Worksheet')][string]$RunCompletePathMode='Reusable',
     [switch]$RunCompleteBaselineOnly,
     [switch]$RunCompletePreparationDiagnostic,
@@ -368,6 +370,8 @@ if($RunCompleteActivityOnly -and (-not $RunCompleteBaselineOnly -or $RunNextBase
 if($RunCompleteSubmissionFaultOnly -and -not $RunCompleteActivityOnly){throw 'Complete submission faults require the activity fixture.'}
 if($RunCompleteStatusOnly -and (-not $RunCompleteActivityOnly -or $RunCompleteSubmissionFaultOnly)){throw 'Status-only evidence requires the completion activity fixture without submission faults.'}
 if($CheckCompleteReplayRefusal -and -not $RunCompletePathsOnly){throw 'Complete Run replay classification requires a recorded Production guide.'}
+if($CheckCompleteOperatorBinding -and (-not $RunCompletePathsOnly -or $CheckCompleteReplayRefusal -or $CheckWorksheetSelection)){throw 'Operator binding requires its own recorded guide fixture.'}
+if($CheckWorksheetSelection -and (-not $RunCompletePathsOnly -or $RunCompletePathMode -ne 'Worksheet' -or $CheckCompleteReplayRefusal)){throw 'Select the worksheet owner fixture for the selection control.'}
 if($RunCompletePathsOnly -and (-not $RunCompleteBaselineOnly -or $RunCompleteActivityOnly -or $RunCompletePreparationDiagnostic -or $RunNextBaselineOnly)){throw 'Complete paths require their isolated baseline fixture.'}
 if($RunNextActivityOnly -and -not $RunNextBaselineOnly){throw 'Next Batch activity requires its binding baseline.'}
 if($RunNextYieldOnly -and (-not $RunNextBaselineOnly -or $RunNextActivityOnly -or $RunNextPathsOnly)){throw 'Next Batch interruptions require the isolated Next baseline fixture.'}
@@ -1651,7 +1655,7 @@ function NewFixture([string]$Suffix) {
     New-Item -ItemType Directory -Path $share -Force | Out-Null
     [void](Run 'invSys.Core.xlam' 'modRuntimeWorkbooks.SetCoreDataRootOverride' @($root))
     $creationArgs=@($wh,'Config command fixture','S1','config-admin',$root,$share)
-    if($GuideNasTestLeaf -or $AdminSeedReplayProfile -or (($CheckReceivingReplay -or $AdminReconcileIdentityOnly -or $CheckCompleteReplayRefusal) -and $Suffix -ceq 'a')){$creationArgs+='Training'}
+    if($GuideNasTestLeaf -or $AdminSeedReplayProfile -or $CheckCompleteOperatorBinding -or (($CheckReceivingReplay -or $AdminReconcileIdentityOnly -or $CheckCompleteReplayRefusal -or $CheckWorksheetSelection) -and $Suffix -ceq 'a')){$creationArgs+='Training'}
     $created=[bool](Run 'invSys.Admin.xlam' 'modAdminConsole.BootstrapWarehouseLocalAdmin' $creationArgs)
     if(-not $created){throw 'Admin Generate Warehouse fixture failed.'}
     $secret=[guid]::NewGuid().ToString('N')
@@ -3170,7 +3174,7 @@ catch {
     Check ('Harness.Exception.'+$step) $false
     $message=$_.Exception.Message -replace '(?i)[A-Z]:\\[^\r\n"'']+', '<path>'
     Write-Output $message
-    if($GuideActionCurationOnly -or $AdminSeedReplayProfile -or $CheckCompleteReplayRefusal){
+    if($GuideActionCurationOnly -or $AdminSeedReplayProfile -or $CheckCompleteReplayRefusal -or $CheckCompleteOperatorBinding){
         foreach($frame in ($_.ScriptStackTrace -split '\r?\n')){
             if($frame -match '[/\\]([a-zA-Z0-9_.-]+\.ps1):\s*line\s+(\d+)'){
                 Write-Output ('Fixture failure at '+$Matches[1]+' line '+$Matches[2])

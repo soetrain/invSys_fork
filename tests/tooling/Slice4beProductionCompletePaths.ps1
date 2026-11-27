@@ -1,17 +1,29 @@
 # Real Complete Run recordings, owning publication and independent guide evaluation.
 function Install-CompletePathsProbe {
+    if($CheckCompleteOperatorBinding){
+        . (Join-Path $PSScriptRoot 'Slice4beGuideTransfer.ps1')
+        Install-GuideTransferPickerProbe
+    }
     $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestShippingCatalog').CodeModule.AddFromString(@'
 Public Function CompletePathCatalog() As Long
     CompletePathCatalog = modActivityCatalog.CATALOG_VERSION
 End Function
 '@)
-    if($CheckCompleteReplayRefusal){
+    if($CheckCompleteReplayRefusal -or $CheckWorksheetSelection -or $CheckCompleteOperatorBinding){
         $project=$packages['invSys.Operations.xlam'].VBProject
         $counter=$project.VBComponents.Add(1)
         $counter.Name='TestCompleteReplay'
         $counter.CodeModule.AddFromString(@'
 Option Explicit
 Public Clicks As Long, Owners As Long
+Private holdNotification As Boolean
+Public Sub LoseNextNotification()
+    holdNotification = True
+End Sub
+Public Function DeliverNotification() As Boolean
+    DeliverNotification = Not holdNotification
+    holdNotification = False
+End Function
 Public Function Counts() As String
     Counts = Clicks & "|" & Owners
 End Function
@@ -24,6 +36,37 @@ End Function
             $body=$module.ProcBodyLine($entry[0],0)
             $module.InsertLines($body+1,('TestCompleteReplay.'+$entry[1]+' = TestCompleteReplay.'+$entry[1]+' + 1'))
         }
+        if($CheckCompleteOperatorBinding){
+            $actions=$project.VBComponents.Item('modProductionCompleteActions').CodeModule
+            $counter.CodeModule.AddFromString(@'
+Public Sub ReleaseForTest(ByVal activity As String)
+    modProductionOperatorBinding.Returned activity
+End Sub
+'@)
+            $start=$actions.ProcStartLine('Execute',0)
+            $end=$start+$actions.ProcCountLines('Execute',0)
+            for($i=$start;$i -lt $end;$i++){
+                $line=$actions.Lines($i,1).Trim()
+                if($line -ceq 'modProductionOperatorBinding.Returned action.RecordedActivityId'){
+                    $actions.ReplaceLine($i,('        If TestCompleteReplay.DeliverNotification() Then '+$line))
+                    break
+                }
+            }
+            $module.AddFromString(@'
+Public Sub ClearEnteredActualForTest()
+    mTxtOutputReal.Text = ""
+End Sub
+'@)
+            $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
+Public Sub ClearEnteredActual()
+    mForm.ClearEnteredActualForTest
+End Sub
+'@)
+        }
+    }
+    if($CheckWorksheetSelection){
+        . (Join-Path $PSScriptRoot 'Slice4beProductionWorksheetSelection.ps1')
+        Install-WorksheetSelectionProbe
     }
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
 Public Function CompletePathWorksheetKeysForTest() As Variant
@@ -81,6 +124,11 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
             }
             if(-not $ready){throw 'Actual Complete Run prerequisite unavailable; not product RED.'}
             [void](Probe 'RunLocalShowAndCapture' @($work.Name,'CHECK_IN'))
+            if($CheckWorksheetSelection){
+                . (Join-Path $PSScriptRoot 'Slice4beProductionWorksheetSelection.ps1')
+                Test-PreparedWorksheetSelection $work $Fixture $Canary $Decoy
+                return
+            }
             $prior=BoundPins $journalRoot
             Delivered (RecordingControl 'Start Recording' 'Click')
             $starts=@(Get-ChildItem $journalRoot -File -Filter '*.json'|Where-Object {-not $prior.ContainsKey($_.FullName)}|ForEach-Object{Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
@@ -133,7 +181,7 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
     }
     try{
         SelectTarget $Fixture
-        if($CheckCompleteReplayRefusal){
+        if($CheckCompleteReplayRefusal -or $CheckWorksheetSelection -or $CheckCompleteOperatorBinding){
             $config=$excel.Workbooks.Open($Fixture.Config,0,$true)
             try{
                 $warehouse=Table $config 'tblWarehouseConfig'
@@ -202,6 +250,12 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
         if($fresh.Count -ne 1){throw 'Saved guide unavailable.'}
         $guide=ReadGuideExpectationRecord $fresh[0].FullName;if($null -eq $guide){throw 'Guide integrity unavailable.'}
         Pass 'ImmutableGuideExactSourceAndExplicitConclusion' ($guide.SourceRun.RecordId -ceq $source.Journal.RecordId -and $guide.SourceRun.ContentSha256 -ceq $source.Journal.ContentSha256 -and $guide.Steps[0].SourceActivityId -ceq $source.Terminal.ActivityId -and $guide.ExpectedConclusion.TerminalKind -ceq 'SourceEventsApplied')
+        if($CheckCompleteOperatorBinding){
+            Delivered (Author 'btnCancelGuide' 'Click')
+            BoundOpen;BoundSelect $guide
+            . (Join-Path $PSScriptRoot 'Slice4beProductionOperatorStep.ps1')
+            Test-ProductionOperatorStep $Fixture $guide $Mode
+        }
         if($CheckCompleteReplayRefusal){
             Delivered (Author 'btnCancelGuide' 'Click')
             BoundOpen;BoundSelect $guide
@@ -250,7 +304,7 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
     }finally{[void](Probe 'CloseDesigner');CloseRecordingViewer;SelectTarget $Fixture}
 }
 
-function Test-CompletePathAuthority($Fixture,[string[]]$Ids,$Keys,$Deltas,[string]$Prefix){
+function Test-CompletePathAuthority($Fixture,[string[]]$Ids,$Keys,$Deltas,[string]$Prefix,[string]$OutputSku=''){
     $path=Join-Path $Fixture.Root ($Fixture.Warehouse+'.invSys.Data.Inventory.xlsb')
     $before=@($excel.Workbooks|Where-Object {$_.FullName -ieq $path});$pin=Hash $path
     if($before.Count -gt 1){throw 'Duplicate Inventory authority.'}
@@ -263,6 +317,7 @@ function Test-CompletePathAuthority($Fixture,[string[]]$Ids,$Keys,$Deltas,[strin
             $rows=@($audit.ListRows|Where-Object {$_.Range.Cells.Item(1,$audit.ListColumns.Item('EventID').Index).Value2 -ceq $Ids[$i]})
             $exact=$exact -and $events.Count -eq 1 -and $rows.Count -eq 1
             if($rows.Count -eq 1){$exact=$exact -and $rows[0].Range.Cells.Item(1,$audit.ListColumns.Item('System_Key').Index).Value2 -ceq $Keys[$i] -and [double]$rows[0].Range.Cells.Item(1,$audit.ListColumns.Item('QtyDelta').Index).Value2 -eq $Deltas[$i]}
+            if($OutputSku -and $i -eq 1){Check ($Prefix+'.SavedOutputMatchesOwnerCreatedRowSku') ($rows.Count -eq 1 -and $rows[0].Range.Cells.Item(1,$audit.ListColumns.Item('SKU').Index).Value2 -ceq $OutputSku)}
         }
         Check ($Prefix+'.IndependentExactAppliedEventsAndAudit') $exact
     }finally{if($opened){$authority.Close($false)}}

@@ -29,6 +29,9 @@ Failed:
     Resume Cleanup
 End Function
 '@)
+    Install-GuideTransferPickerProbe
+}
+function Install-GuideTransferPickerProbe {
     $script:guideTransferDialogProbeInstalled=$false
     $component=@($packages['invSys.Operations.xlam'].VBProject.VBComponents|Where-Object Name -CEQ 'modGuideTransferUi')
     if($component.Count -eq 0){return}

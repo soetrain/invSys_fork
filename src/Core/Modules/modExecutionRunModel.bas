@@ -18,6 +18,10 @@ Public Function Create(ByVal target As WarehouseTarget, ByVal context As String,
     model.Add "PackageSetVersion", CStr(ThisWorkbook.CustomDocumentProperties("invSysPackageSetVersion").Value)
     model.Add "PackageBuilds", builds: model.Add "Mode", mode: model.Add "State", "Ready": model.Add "ReasonCode", ""
     model.Add "Recording", recording: model.Add "Steps", steps
+    If modOperatorStepEvidence.IncludesCompletion(profile("Steps")) Then
+        Dim claims As New Collection
+        model("SchemaVersion") = 2&: model.Add "OperatorClaims", claims
+    End If
     Set Create = model
 End Function
 
@@ -31,20 +35,26 @@ End Function
 Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object) As Boolean
     Dim field As Variant, entry As Object, seen As Object, index As Long
     On Error GoTo Invalid
-    If Not modEvaluationModel.HasFields(model, FIELDS) Then Exit Function
+    Select Case model("SchemaVersion")
+        Case 1: If Not modEvaluationModel.HasFields(model, FIELDS) Then Exit Function
+        Case 2
+            If Not modEvaluationModel.HasFields(model, FIELDS & "|OperatorClaims") Then Exit Function
+            If Not modOperatorStepEvidence.ValidClaims(model) Then Exit Function
+        Case Else: Exit Function
+    End Select
     For Each field In model.Keys
         Select Case CStr(field)
             Case "SchemaVersion", "Revision"
                 If Not modEvaluationModel.IsInteger(model(field)) Or model(field) < 1 Then Exit Function
             Case "Guide", "Profile", "Recording"
                 If TypeName(model(field)) <> "Dictionary" Then Exit Function
-            Case "Steps", "PackageBuilds"
+            Case "Steps", "PackageBuilds", "OperatorClaims"
                 If TypeName(model(field)) <> "Collection" Then Exit Function
             Case Else
                 If VarType(model(field)) <> vbString Then Exit Function
         End Select
     Next field
-    If model("SchemaVersion") <> 1 Or model("RecordKind") <> "ExecutionRun" Then Exit Function
+    If model("RecordKind") <> "ExecutionRun" Then Exit Function
     If model("WarehouseId") <> target.WarehouseId Or model("StationId") <> target.StationId Then Exit Function
     For Each field In Array("RunId", "RecordId")
         If Not modTrainingWire.ValidId(CStr(model(field))) Then Exit Function
@@ -74,6 +84,7 @@ Public Function Validate(ByVal target As WarehouseTarget, ByVal model As Object)
     Set seen = CreateObject("Scripting.Dictionary")
     For Each entry In model("Steps")
         If Not ValidStep(entry, target.WarehouseId) Then Exit Function
+        If model("SchemaVersion") = 1 And entry("ControlId") = modOperatorStepEvidence.CONTROL_ID Then Exit Function
         If seen.Exists(entry("StepId")) Then Exit Function
         seen.Add entry("StepId"), True
     Next entry

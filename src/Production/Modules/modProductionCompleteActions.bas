@@ -18,13 +18,19 @@ Public Sub Execute(ByVal owner As frmProduction, ByVal context As String, _
         GoTo Done
     End If
     Set owner.RunActionContinuation = action
+    modProductionOperatorBinding.ObserveOwner owner, action.RecordedActivityId
     owner.CompleteProductionRun action
     ' Native workbook closure may already have unloaded this exact form.
     If modOperationsFormLifetime.IsLoaded(owner) Then report = owner.RunAllocationStatus()
 Done:
     If modOperationsFormLifetime.IsLoaded(owner) Then Set owner.RunActionContinuation = Nothing
     loading = priorLoading
-    If Not action Is Nothing Then action.Finish report
+    If Not action Is Nothing Then
+        action.Finish report
+        ' Release the claim's call-lifetime guard even when the form misses its notification.
+        modProductionOperatorBinding.OwnerExited action.RecordedActivityId
+        modProductionOperatorBinding.Returned action.RecordedActivityId
+    End If
     busy = priorBusy
     If report <> "" And modOperationsFormLifetime.IsLoaded(owner) Then owner.ShowStatus report
     If number <> 0 Then

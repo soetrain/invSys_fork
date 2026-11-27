@@ -41,6 +41,10 @@ End Function
 
 ' JSON is ASCII-escaped UTF-8: hash exactly the persisted bytes, without a BOM.
 ' CNG owns the hash buffer when BCryptCreateHash receives a null buffer.
+Public Function TextSha256(ByVal value As String) As String
+    TextSha256 = Sha256(modTrainingJson.Quote(value))
+End Function
+
 Public Function Sha256(ByVal asciiText As String) As String
     Dim algorithm As LongPtr, hash As LongPtr, bytes() As Byte
     Dim digest(0 To 31) As Byte, i As Long, name As String

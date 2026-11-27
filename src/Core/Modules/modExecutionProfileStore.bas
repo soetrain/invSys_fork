@@ -2,7 +2,7 @@ Attribute VB_Name = "modExecutionProfileStore"
 Option Explicit
 Option Private Module
 
-Private Function ReadVersion(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long) As Object
+Public Function ReadVersion(ByVal target As WarehouseTarget, ByVal id As String, ByVal version As Long) As Object
     Dim root As String, path As String, text As String, marker As Long, hash As String, body As String, model As Object, fso As Object
     On Error GoTo Invalid
     If Not modTrainingWire.ValidId(id) Or version < 1 Then Exit Function

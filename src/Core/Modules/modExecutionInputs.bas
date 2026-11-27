@@ -5,7 +5,7 @@ Option Private Module
 ' Registered execution inputs. Dispatch stays with the workflow owner.
 Public Function Supported(ByVal controlId As String) As Boolean
     Select Case controlId
-        Case "RECEIVING_OPEN", "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_SELECT_ITEM", "RECEIVING_ADD_SELECTED", "RECEIVING_CONFIRM_WRITES", "ADMIN_DEMO_SEED"
+        Case "RECEIVING_OPEN", "RECEIVING_REFRESH", "RECEIVING_CLEAR", "RECEIVING_SELECT_ITEM", "RECEIVING_ADD_SELECTED", "RECEIVING_CONFIRM_WRITES", "ADMIN_DEMO_SEED", "PRODUCTION_RUN_COMPLETE"
             Supported = True
     End Select
 End Function
