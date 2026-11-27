@@ -2,6 +2,8 @@
 # No activity records or business results are manufactured by this fixture.
 function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$Canary,[switch]$SubmissionFaultOnly,[switch]$StatusOnly) {
     function Files {@(Get-Slice4beActivityFiles $Fixture)}
+    $catalogVersion=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.DeclaredCatalogVersionForTest')
+    if($catalogVersion -lt 28){throw 'Complete Run requires its registered observation definition.'}
     $activities=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     function Pair([string[]]$Before,[string]$Outcome,[string]$Label,[string[]]$EventIds=@(),[string]$Actor='config-producer',[string[]]$ReferenceStates=@()) {
         $raw=@(Files|Where-Object {$_ -cnotin $Before}|ForEach-Object {[IO.File]::ReadAllText($_)})
@@ -12,7 +14,7 @@ function Test-ProductionCompleteActivity($Fixture,$Other,$Book,$Decoy,[string]$C
         $paired=$records.Count -eq $(if($incomplete){1}else{2}) -and $first.Count -eq 1 -and $last.Count -eq 1
         $context=$paired;$safe=$paired;$integrity=$paired;$linked=$false;$facts=$false;$terminal=$false;$sources=$false
         foreach($record in $records){
-            $context=$context -and $record.ControlId -ceq 'PRODUCTION_RUN_COMPLETE' -and $record.OwnerId -ceq 'PRODUCTION_RUN_COMPLETION' -and $record.UserId -ceq $Actor -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.CatalogVersion -eq 28
+            $context=$context -and $record.ControlId -ceq 'PRODUCTION_RUN_COMPLETE' -and $record.OwnerId -ceq 'PRODUCTION_RUN_COMPLETION' -and $record.UserId -ceq $Actor -and $record.WarehouseId -ceq $Fixture.Warehouse -and $record.StationId -ceq 'S1' -and $record.CatalogVersion -eq $catalogVersion
         }
         foreach($value in $raw){
             foreach($private in @($Canary,$Fixture.Secret,(CredentialHash $Fixture.Secret),$Fixture.Root,'mBtn','PinHash','DEMO-RAW-BLACK-TEA')){
