@@ -77,7 +77,6 @@ try{
     if($NextClosedEscapeForTest){$extra+='-RunNextClosedEscapeForTest'}
     if($NextPathsOnly){$extra+=@('-RunNextPathsOnly','-RunNextPathMode',$NextPathMode)}
     if($CompleteVisibleHostForTest){$extra+='-RunCompleteVisibleHostForTest'}
-    if($CompleteVisibleHostForTest -and $CompleteActivityOnly){$extra+='-VisibleExcelForTest'}
 
     if($SavedDecoyForTest){$extra+='-RunCompleteSavedDecoyForTest'}
     if($RefillOnly){$extra=@('-RunLocalRefillDiagnostic')}
