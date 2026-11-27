@@ -7,6 +7,9 @@ function Test-ReceivingRunControls {
     $choices=@((RunnerControl 'lstRunSourceEntities' 'Values') -split "`n"|Where-Object {$_ -cne '' -and $_ -cne 'MISSING'})
     $selected=$false
     if($choices.Count){$selected=(RunnerControl 'lstRunSourceEntities' 'Select' '0') -ceq 'SELECTED'}
+    $bindState=RunnerControl 'btnBindProduction' 'State'
+    $checkState=RunnerControl 'btnCheckProduction' 'State'
+    Check 'ReceivingRun.ProductionOnlyControlsHidden' ($opened -and $bindState -clike 'False|*' -and $checkState -clike 'False|*')
     foreach($size in @('Minimum','Default','Larger')){
         Check ('ReceivingRun.Layout.'+$size) ($opened -and (RunnerControl '' 'Fit' $size) -ceq 'True')
         if($CaptureEvidence){CaptureOwnedFormByCaptionEvidence 'Run How-To' ('b0-run-'+$size.ToLowerInvariant()+'.png')}

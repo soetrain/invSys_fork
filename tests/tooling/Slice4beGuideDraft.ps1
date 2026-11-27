@@ -51,7 +51,10 @@ Public Function GuideDraftControlForTest(ByVal formName As String, ByVal name As
         GuideDraftControlForTest = "False"
         For Each control In owner.Controls
             If formName = "frmActionPathView" And Not control.Visible Then GoTo NextFitControl
-            If Not control.Visible Or control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Then Exit Function
+            If Not control.Visible Then
+                If formName <> "frmActionPathRun" Or (control.Name <> "btnBindProduction" And control.Name <> "btnCheckProduction") Then Exit Function
+            End If
+            If control.Left < 0 Or control.Top < 0 Or control.Width <= 0 Or control.Height <= 0 Then Exit Function
             If control.Left + control.Width > owner.InsideWidth Or control.Top + control.Height > owner.InsideHeight Then Exit Function
             For Each item In owner.Controls
                 If item.Name <> control.Name And (item.Visible Or formName <> "frmActionPathView") Then
