@@ -137,6 +137,7 @@ param(
     [switch]$AdminSeedReplayRun,
     [switch]$AdminSeedReplayLostAck,
     [ValidateSet('Start','Reopen')][string]$AdminSeedReplayNested,
+    [ValidateSet('Normal','Lost')][string]$AdminSeedMultiStep,
     [switch]$AdminSeedGuideTimingOnly,
     [switch]$AdminConsoleOnly,
     [switch]$AdminDirectoryColumnsOnly,
@@ -615,6 +616,7 @@ if($AdminSeedReplayProfile -and (-not $AdminSeedGuidePaths -or $AdminSeedGuideTi
 if($AdminSeedReplayRun -and -not $AdminSeedReplayProfile){throw 'Seed replay requires its saved profile gate.'}
 if($AdminSeedReplayLostAck -and -not $AdminSeedReplayRun){throw 'Lost acknowledgment requires the bound Seed run fixture.'}
 if($AdminSeedReplayNested -and (-not $AdminSeedReplayRun -or $AdminSeedReplayLostAck)){throw 'Nested entry requires its own bound Seed run fixture.'}
+if($AdminSeedMultiStep -and (-not $AdminSeedReplayRun -or $AdminSeedReplayNested -or $AdminSeedReplayLostAck)){throw 'Multi-step replay requires its own bound Seed run fixture.'}
 if($AdminSeedRecordingBoundaries -and -not $AdminSeedRecording){throw 'Seed boundaries require the recording probe.'}
 if($AdminSeedGuidePaths -and -not $AdminSeedRecordingBoundaries){throw 'Seed guides require the boundary probe.'}
 if($AdminSeedGuideTimingOnly -and -not $AdminSeedGuidePaths){throw 'Seed guide timing requires the guide fixture.'}

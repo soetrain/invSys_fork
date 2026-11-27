@@ -1,8 +1,8 @@
 [CmdletBinding()]
-param([string]$DeployRoot='deploy/validation-detail-glyph-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$NativeFeedback,[switch]$WorkflowEdges,[switch]$Recording,[switch]$RecordingBoundaries,[switch]$GuidePaths,[switch]$GuideTiming,[switch]$SeedReplayProfile,[switch]$SeedReplayRun,[switch]$SeedReplayLostAck,[ValidateSet('Start','Reopen')][string]$SeedReplayNested)
+param([string]$DeployRoot='deploy/validation-detail-glyph-01',[ValidateSet('RED','GREEN')][string]$Phase='RED',[switch]$NativeFeedback,[switch]$WorkflowEdges,[switch]$Recording,[switch]$RecordingBoundaries,[switch]$GuidePaths,[switch]$GuideTiming,[switch]$SeedReplayProfile,[switch]$SeedReplayRun,[switch]$SeedReplayLostAck,[ValidateSet('Start','Reopen')][string]$SeedReplayNested,[ValidateSet('Normal','Lost')][string]$SeedMultiStep)
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
-if($SeedReplayLostAck -and $SeedReplayNested){throw 'Select a single Seed return case.'}
-if($SeedReplayLostAck -or $SeedReplayNested){$SeedReplayRun=$true}
+if(([int]$SeedReplayLostAck.IsPresent + [int][bool]$SeedReplayNested + [int][bool]$SeedMultiStep) -gt 1){throw 'Select a single Seed return case.'}
+if($SeedReplayLostAck -or $SeedReplayNested -or $SeedMultiStep){$SeedReplayRun=$true}
 if($SeedReplayRun){$SeedReplayProfile=$true}
 if($SeedReplayProfile){$Recording=$true;$RecordingBoundaries=$true;$GuidePaths=$true}
 if($RecordingBoundaries -and -not $Recording){throw 'Recording boundaries require the retained recording gate.'}
@@ -25,6 +25,7 @@ try{
     if($SeedReplayRun){$extra+='-AdminSeedReplayRun'}
     if($SeedReplayLostAck){$extra+='-AdminSeedReplayLostAck'}
     if($SeedReplayNested){$extra+=@('-AdminSeedReplayNested',$SeedReplayNested)}
+    if($SeedMultiStep){$extra+=@('-AdminSeedMultiStep',$SeedMultiStep)}
     if($SeedReplayProfile){$extra+='-AdminSeedReplayProfile';$extra+='-ViewerStartupPackageStateForTest';$extra+='SavedCopies'}
     if($WorkflowEdges){$extra+='-AdminSeedWorkflowEdges'}
     if($Recording){$extra+='-AdminSeedRecording'}

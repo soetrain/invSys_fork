@@ -60,10 +60,11 @@ function Test-SeedReplayInventory($reference,$baseline,$after,$eventId,$target) 
     return (@($entities.SKU|Sort-Object -Unique).Count -eq 24)
 }
 
-function Read-SeedRunEvaluation($attempt,$guide,$destRoot) {
+function Read-SeedRunEvaluation($attempt,$guide,$destRoot,[switch]$SelectedRecording) {
     $evalRoot=Join-Path $destRoot 'Evaluations'
     $before=BoundPins $evalRoot
-    Deliver 'frmActionPathRun' 'btnVerifyRun' 'Click'
+    if($SelectedRecording){Deliver 'frmActionPaths' 'btnEvaluatePath' 'Click'}
+    else{Deliver 'frmActionPathRun' 'btnVerifyRun' 'Click'}
     $new=@(Get-ChildItem -LiteralPath $evalRoot -File -Filter '*.json'|Where-Object {-not $before.ContainsKey($_.FullName)})
     if($new.Count -ne 1){throw 'Verify did not save exactly one fresh evaluation.'}
     $evaluation=Get-Content $new[0].FullName -Raw|ConvertFrom-Json

@@ -27,6 +27,8 @@ End Function
     if($AdminSeedReplayNested){
         $dispatch+='If TestAckDispatch.Calls = 1 Then Set TestSeedNested.Runner = Me'
         $dispatch+="delivered = $call"
+    }elseif($AdminSeedMultiStep -eq 'Normal'){
+        $dispatch+="delivered = $call"
     }else{
         $dispatch+="delivered = LoseOwnerReply($call)"
     }
@@ -78,6 +80,10 @@ End Function
     if($AdminSeedReplayNested){
         . (Join-Path $PSScriptRoot 'Slice4beSeedNestedEntry.ps1')
         Install-SeedNestedEntry $runner $owner
+    }
+    if($AdminSeedMultiStep){
+        . (Join-Path $PSScriptRoot 'Slice4beSeedMultiStep.ps1')
+        Install-SeedReceivingProbe $ops $runner
     }
 }
 

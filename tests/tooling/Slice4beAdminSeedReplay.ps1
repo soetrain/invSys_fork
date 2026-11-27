@@ -39,7 +39,9 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     }
     function OpenTarget($target) {
         SelectTarget $target
-        foreach($capability in @('ADMIN_MAINT','ACTION_PATH_MAINT')){
+        $capabilities=@('ADMIN_MAINT','ACTION_PATH_MAINT')
+        if($AdminSeedMultiStep){$capabilities+='RECEIVE_POST'}
+        foreach($capability in $capabilities){
             if(-not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @($capability,'config-admin',$target.Warehouse,'S1'))){throw 'Required fixture capability unavailable.'}
         }
         if(-not [bool](Run 'invSys.Core.xlam' 'TestSeedRecording.EnablePolicy' @('Capture'))){throw 'Training capture policy unavailable.'}
@@ -51,7 +53,8 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
         $files=@(Get-ChildItem -LiteralPath $root -Filter '*.json' -File)
         if($files.Count -ne 1){throw 'One saved guide required.'}
         $guide=ReadGuideExpectationRecord $files[0].FullName
-        if($null -eq $guide -or $guide.Steps.Count -ne 1 -or $guide.Steps[0].ControlId -cne 'ADMIN_DEMO_SEED' -or $guide.ExpectedConclusion.TerminalKind -cne 'SourceEventsApplied'){throw 'Expected a sealed single-step Seed guide.'}
+        if($null -eq $guide -or $guide.Steps.Count -ne $stepCount -or $guide.Steps[0].ControlId -cne 'ADMIN_DEMO_SEED' -or $guide.ExpectedConclusion.TerminalKind -cne 'SourceEventsApplied'){throw 'Expected a sealed guide beginning with Seed.'}
+        if($AdminSeedMultiStep -and ($guide.Steps[1].ControlId -cne 'RECEIVING_OPEN' -or $guide.ExpectedConclusion.Steps.Count -ne 2 -or $guide.ExpectedConclusion.Steps[1].RequiredOutcome -cne 'OPENED')){throw 'Required later Receiving step missing.'}
         return $guide
     }
     $editor='frmActionPathGuide'
@@ -59,6 +62,13 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
     $profileEditor='frmActionPathExecution'
     $export=Join-Path $runRoot 'b1-source-guide.json'
     $inventory=Join-Path $Destination.Root ($Destination.Warehouse+'.invSys.Data.Inventory.xlsb')
+    $stepCount=1
+    if($AdminSeedMultiStep){
+        $stepCount=2
+        . (Join-Path $PSScriptRoot 'Slice4beSeedMultiStep.ps1')
+        $operatorRoot=Join-Path $runRoot 'seed-receiving-operators'
+        if(-not (Run 'invSys.Core.xlam' 'modWarehouseBootstrap.SetLocalOperatorRootOverrideForAutomation' @($operatorRoot))){throw 'Isolated operator workbook root unavailable.'}
+    }
     if($Fixture.Warehouse -ceq $Destination.Warehouse -or $Fixture.Root -eq $Destination.Root){throw 'Source and destination must be distinct.'}
     $anchor=$excel.Workbooks.Add()
     try{
@@ -82,9 +92,16 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
         try{
             if((Run 'invSys.Admin.xlam' 'TestSeedOutcome.InvokeWorkflow' @('SEED','',$true)) -cne 'OK'){throw 'Ordinary built-in source Seed failed.'}
         }finally{[void](Run 'invSys.Admin.xlam' 'TestSeedOutcome.Release')}
+        if($AdminSeedMultiStep){
+            [void](Run 'invSys.Operations.xlam' 'modTS_Received.ShowReceivingForm' @($true,'',(Run 'invSys.Core.xlam' 'modActivity.CaptureContext')))
+        }
         if((RecordingControl 'Stop Recording' 'Click') -cne 'DELIVERED'){throw 'Source Stop unavailable.'}
+        if($AdminSeedMultiStep){
+            $sourceBook=$excel.Workbooks.Item($Fixture.Warehouse+'.Receiving.Operator.xlsm')
+            $sourceBook.Close($false)
+        }
         $closed=@(Get-ChildItem -LiteralPath $journalRoot -File -Filter '*.json'|ForEach-Object {Get-Content $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Close')
-        if($closed.Count -ne 1 -or $closed[0].ActionCount -ne 1 -or $closed[0].Lifecycle -cne 'Stopped'){throw 'Single-step source recording unavailable.'}
+        if($closed.Count -ne 1 -or $closed[0].ActionCount -ne $stepCount -or $closed[0].Lifecycle -cne 'Stopped'){throw 'Expected source recording unavailable.'}
         $outcome=@($closed[0].Observations|Where-Object {$_.ControlId -ceq 'ADMIN_DEMO_SEED' -and $_.OutcomeCode -ceq 'APPLIED'})
         if($outcome.Count -ne 1 -or $outcome[0].SourceEventRefs.Count -ne 1){throw 'Source recording lacks owner evidence.'}
         if((BoundLibrary 'Open') -cne 'DELIVERED' -or (BoundLibrary 'Select' $closed[0].ActionPathId) -cne 'SELECTED'){throw 'Source recording selection unavailable.'}
@@ -97,6 +114,12 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
         Deliver $expect 'cboExpectedOutcome' 'Write' 'APPLIED'
         Deliver $expect 'chkExpectedRetry' 'Check' 'False'
         Deliver $expect 'btnAddExpectedStep' 'Click'
+        if($AdminSeedMultiStep){
+            Deliver $expect 'cboExpectedControl' 'Write' 'RECEIVING_OPEN'
+            Deliver $expect 'cboExpectedOutcome' 'Write' 'OPENED'
+            Deliver $expect 'chkExpectedRetry' 'Check' 'False'
+            Deliver $expect 'btnAddExpectedStep' 'Click'
+        }
         if((BoundControl 'cboTerminalStep' 'Select' '0' $expect) -cne 'SELECTED'){throw 'Expected terminal step unavailable.'}
         Deliver $expect 'cboTerminalKind' 'Write' 'SourceEventsApplied'
         Deliver $expect 'btnUseExpectation' 'Click'
@@ -151,7 +174,8 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             if($profiles.Count -eq 1){
                 $saved=Get-Content $profiles[0].FullName -Raw|ConvertFrom-Json
                 $step=$saved.Steps[0]
-                $exact=$saved.Guide.RecordId -ceq $guide.RecordId -and $saved.Guide.ContentSha256 -ceq $guide.ContentSha256 -and $saved.WarehouseId -ceq $Destination.Warehouse -and $saved.Steps.Count -eq 1 -and $step.StepId -ceq $guide.Steps[0].StepId -and $step.AdapterId -ceq 'ADMIN_DEMO_SEED' -and $step.AdapterVersion -eq 1 -and $step.Inputs.Count -eq 1 -and $step.Inputs[0].Name -ceq 'DataSet' -and $step.Inputs[0].Binding.Kind -ceq 'Literal' -and $step.Inputs[0].Binding.Value -ceq 'R1_WORKFLOW_KIT'
+                $exact=$saved.Guide.RecordId -ceq $guide.RecordId -and $saved.Guide.ContentSha256 -ceq $guide.ContentSha256 -and $saved.WarehouseId -ceq $Destination.Warehouse -and $saved.Steps.Count -eq $stepCount -and $step.StepId -ceq $guide.Steps[0].StepId -and $step.AdapterId -ceq 'ADMIN_DEMO_SEED' -and $step.AdapterVersion -eq 1 -and $step.Inputs.Count -eq 1 -and $step.Inputs[0].Name -ceq 'DataSet' -and $step.Inputs[0].Binding.Kind -ceq 'Literal' -and $step.Inputs[0].Binding.Value -ceq 'R1_WORKFLOW_KIT'
+                if($AdminSeedMultiStep){$exact=$exact -and $saved.Steps[1].StepId -ceq $guide.Steps[1].StepId -and $saved.Steps[1].AdapterId -ceq 'RECEIVING_OPEN' -and $saved.Steps[1].AdapterVersion -eq 1 -and $saved.Steps[1].Inputs.Count -eq 0}
             }
             Check 'SeedReplay.Profile.ExactGuideAndExplicitBuiltInKitSaved' $exact
         }
@@ -162,6 +186,11 @@ function Test-AdminSeedReplayProfile($Fixture,$Destination) {
             Deliver $library 'btnRunHowTo' 'Click'
             $runner='frmActionPathRun'
             if((BoundControl '' 'Count' '' $runner) -cne '1' -or -not (BoundControl 'lblRunGuide' 'Label' '' $runner).Contains($guide.ContentSha256) -or -not (BoundControl 'lblRunProfile' 'Label' '' $runner).Contains($saved.ContentSha256) -or -not (BoundControl 'lblRunTarget' 'Label' '' $runner).Contains($Destination.Warehouse)){throw 'Actual runner did not bind the exact destination, guide and profile.'}
+            if($AdminSeedMultiStep){
+                Test-SeedMultiStep
+                Check 'SeedMulti.PreservesSource' ((BoundSame $pins (BoundPins $sourceRoot)) -and (Get-AuthReadFixtureHash $sourceInventory) -ceq $sourceHash)
+                return
+            }
             $ready=(BoundControl 'btnStartRun' 'State' '' $runner) -ceq 'True|True'
             Check 'SeedReplay.Run.StartNeedsNoReceivingEntity' $ready
             if(-not $ready){return}
