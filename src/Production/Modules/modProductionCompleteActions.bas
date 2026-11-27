@@ -66,3 +66,46 @@ Public Sub AppendProcessorReport(ByRef reports As String, ByVal report As String
     If reports <> "" Then reports = reports & " | "
     reports = reports & report
 End Sub
+
+Public Function FindOutputRow(ByVal owner As frmProduction, ByVal lo As ListObject, _
+                                              ByVal rowVal As String, _
+                                              ByVal procVal As String, _
+                                              ByVal outputVal As String, _
+                                              Optional ByVal fallbackRow As Long = 0) As Long
+    Dim r As Long
+    Dim cRow As Long
+    Dim cProc As Long
+    Dim cOutput As Long
+    Dim wantedRow As String
+
+    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
+    cRow = owner.ProductionColumnIndex(lo, "System_Key")
+    cProc = owner.ProductionColumnIndex(lo, "PROCESS")
+    cOutput = owner.ProductionColumnIndex(lo, "OUTPUT")
+    wantedRow = rowVal
+
+    If wantedRow <> "" Then
+        If cRow = 0 Then Exit Function
+        For r = 1 To lo.ListRows.Count
+            If StrComp(owner.NzStr(lo.DataBodyRange.Cells(r, cRow).Value2), wantedRow, vbBinaryCompare) = 0 Then
+                If FindOutputRow <> 0 Then FindOutputRow = 0: Exit Function
+                FindOutputRow = r
+            End If
+        Next r
+        Exit Function
+    End If
+
+    If cProc > 0 And cOutput > 0 Then
+        For r = 1 To lo.ListRows.Count
+            If StrComp(Trim$(owner.NzStr(lo.DataBodyRange.Cells(r, cProc).Value)), Trim$(procVal), vbTextCompare) = 0 _
+               And StrComp(Trim$(owner.NzStr(lo.DataBodyRange.Cells(r, cOutput).Value)), Trim$(outputVal), vbTextCompare) = 0 Then
+                FindOutputRow = r
+                Exit Function
+            End If
+        Next r
+    End If
+
+    If fallbackRow >= 1 And fallbackRow <= lo.ListRows.Count Then
+        FindOutputRow = fallbackRow
+    End If
+End Function

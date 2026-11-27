@@ -113,6 +113,8 @@ function Test-ProductionOperatorStep($Source,$SourceGuide,[string]$Mode){
         $credited=$done.State -ceq 'Completed' -and $done.Steps.Count -eq 1 -and $done.Steps[0].State -ceq 'OperatorCompleted' -and $done.Steps[0].ActivityId -ceq $terminal.ActivityId -and ($done.Steps[0].SourceEventRefs.EventId -join '|') -ceq ($terminal.SourceEventRefs.EventId -join '|')
         Pass 'OnlyFreshAppliedClaimAdvances' $credited
         if(!$credited){return}
+        $repeat=BoundControl 'btnCheckProduction' 'Click' '' $runner
+        Pass 'DuplicateEvidenceCheckCannotConsumeAgain' ($repeat -ceq 'DISABLED' -and (LastRun).ContentSha256 -ceq $done.ContentSha256 -and (Hash $inventoryPath) -ceq $afterEffects -and (Run 'invSys.Operations.xlam' 'TestCompleteReplay.Counts') -ceq '3|3')
         [ordered]@{RunId=$done.RunId;SequenceId=$done.Recording.SequenceId;StepId=$done.Steps[0].StepId;BindingId=$done.OperatorClaims[0].BindingId;ActivityId=$terminal.ActivityId;EventIds=@($terminal.SourceEventRefs.EventId)}|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'operator-completion-identities.json')
         foreach($i in 1..2){
             $evaluations=Join-Path $destRoot 'Evaluations'

@@ -189,7 +189,7 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
             }finally{$config.Close($false)}
             if($purpose -cne 'Training'){throw 'A generated Training warehouse is required for replay classification.'}
             Add-Type -AssemblyName System.IO.Compression.FileSystem
-            foreach($leaf in $packages.Keys){
+            $loadedPackages=foreach($leaf in $packages.Keys){
                 $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $inputDeploy $leaf))
                 try{
                     $reader=[IO.StreamReader]::new($archive.GetEntry('docProps/custom.xml').Open())
@@ -197,7 +197,9 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
                 }finally{$archive.Dispose()}
                 $id=($props|Where-Object {$_.GetAttribute('name') -ceq 'invSysBuildIdentity'}).InnerText
                 if($id.Length -ne 32 -or $packages[$leaf].FullName -ine (Join-Path $deploy $leaf) -or (Run 'invSys.Operations.xlam' 'TestCompleteReplay.LoadedBuild' @($leaf)) -cne $id){throw 'Loaded package path or build identity differs.'}
+                [ordered]@{Package=$leaf;BuildIdentity=$id;Candidate=(Join-Path $inputDeploy $leaf);CandidateSha256=(Hash (Join-Path $inputDeploy $leaf));Loaded=$packages[$leaf].FullName;LoadedSha256=(Hash $packages[$leaf].FullName)}
             }
+            $loadedPackages|ConvertTo-Json|Set-Content (Join-Path $reportRoot 'production-loaded-packages.json')
             Pass 'FiveLoadedBuildsInGeneratedTraining' ($packages.Count -eq 5)
         }
         if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Complete recording policy unavailable.'}

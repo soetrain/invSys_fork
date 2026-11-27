@@ -117,3 +117,29 @@ Public Function MarkedRow(ByVal book As Workbook, ByVal output As ListObject, By
     MarkedRow = (Application.WorksheetFunction.CountIf(col.DataBodyRange, ticket) = 1)
 Failed:
 End Function
+
+Public Function WorksheetDigest(ByVal owner As frmProduction, ByVal book As Workbook, ByVal output As ListObject, _
+                                ByVal checks As ListObject, ByVal selected As Long, ByVal processName As String, _
+                                ByVal outputName As String, ByVal actual As String, ByVal ticket As String, _
+                                ByVal stamp As Boolean, ByRef caption As String) As String
+    Dim i As Long, fieldName As Variant, state As String, matches As Long
+    If owner.CellByHeader(output, selected, "System_Key") = "" Then
+        For i = 1 To output.ListRows.Count
+            If StrComp(owner.CellByHeader(output, i, "PROCESS"), processName, vbTextCompare) = 0 And _
+               StrComp(owner.CellByHeader(output, i, "OUTPUT"), outputName, vbTextCompare) = 0 Then matches = matches + 1
+        Next i
+        If matches <> 1 Then Exit Function
+    End If
+    If Not MarkedRow(book, output, selected, ticket, stamp) Then Exit Function
+    state = Framed(ticket) & Framed(actual)
+    For Each fieldName In Array("System_Key", "PROCESS", "OUTPUT", "ITEM_CODE", "UOM", "LOCATION", "Condition", "AttributesJson")
+        state = state & Framed(owner.CellByHeader(output, selected, CStr(fieldName)))
+    Next fieldName
+    For i = 1 To checks.ListRows.Count
+        For Each fieldName In Array("System_Key", "USED", "ITEM_CODE", "LOCATION")
+            state = state & Framed(owner.CellByHeader(checks, i, CStr(fieldName)))
+        Next fieldName
+    Next i
+    caption = book.Name & ", " & owner.CellByHeader(output, selected, "PROCESS") & ", " & owner.CellByHeader(output, selected, "OUTPUT")
+    WorksheetDigest = modTrainingWire.TextSha256(state)
+End Function

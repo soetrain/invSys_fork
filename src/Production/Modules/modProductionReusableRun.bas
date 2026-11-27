@@ -1681,15 +1681,6 @@ Private Function OutputKeyForConnection(ByVal connection As Object) As String
     End If
 End Function
 
-Private Function AllocationBelongsToNode(ByVal allocationId As String, _
-                                         ByVal nodeId As String) As Boolean
-    Dim parts() As String
-    parts = Split(allocationId, vbTab)
-    If UBound(parts) = 2 Then _
-        AllocationBelongsToNode = _
-            (StrComp(parts(0), nodeId, vbTextCompare) = 0)
-End Function
-
 Private Function AllocationCountForNode(ByVal nodeId As String) As Long
     Dim key As Variant
     For Each key In mAllocations.Keys
@@ -2376,17 +2367,6 @@ Public Function ScaledConnectionQty(ByVal connection As Object) As Double
     End If
 End Function
 
-Private Function AllocationKey(ByVal nodeId As String, ByVal requirementId As String, _
-                               ByVal systemKey As String) As String
-    AllocationKey = nodeId & vbTab & requirementId & vbTab & systemKey
-End Function
-
-Private Function AllocationSystemKey(ByVal allocationKeyValue As String) As String
-    Dim parts() As String
-    parts = Split(allocationKeyValue, vbTab)
-    If UBound(parts) >= 2 Then AllocationSystemKey = parts(2)
-End Function
-
 Private Function AllocationQty(ByVal nodeId As String, ByVal requirementId As String, _
                                ByVal systemKey As String) As Variant
     Dim key As String
@@ -2407,22 +2387,6 @@ Private Function AllocationPercent(ByVal nodeId As String, ByVal requirementId A
     If requirement Is Nothing Then Exit Function
     requiredQty = ScaledRecordQty(requirement)
     If requiredQty > 0 Then AllocationPercent = CDbl(qty) / requiredQty * 100#
-End Function
-
-Private Function StockBucketKey(ByVal sku As String, ByVal uom As String, _
-                                ByVal locationValue As String, _
-                                ByVal conditionValue As String) As String
-    StockBucketKey = UCase$(Trim$(sku)) & vbTab & UCase$(Trim$(uom)) & vbTab & _
-                     UCase$(Trim$(locationValue)) & vbTab & UCase$(Trim$(conditionValue))
-End Function
-
-Private Function StockBucketKeyForEntity(ByVal entities As Variant, _
-                                         ByVal entityRow As Long) As String
-    Dim conditionValue As String
-
-    If UBound(entities, 2) >= 8 Then conditionValue = CStr(entities(entityRow, 8))
-    StockBucketKeyForEntity = StockBucketKey(CStr(entities(entityRow, 2)), _
-        CStr(entities(entityRow, 5)), CStr(entities(entityRow, 7)), conditionValue)
 End Function
 
 Private Function FindExactEntityRow(ByVal entities As Variant, _
@@ -2655,10 +2619,6 @@ Public Function ReusableRunInventoryDisplayForTest(ByVal trackQty As String, _
     entities(1, 12) = itemKind
     entities(1, 13) = categoryValue
     ReusableRunInventoryDisplayForTest = CStr(ExactEntityInventoryDisplay(entities, 1))
-End Function
-
-Private Function OutputIdentityKey(ByVal nodeId As String, ByVal outputId As String) As String
-    OutputIdentityKey = nodeId & vbTab & outputId
 End Function
 
 Private Function UomCompatible(ByVal sourceUom As String, ByVal targetUom As String) As Boolean

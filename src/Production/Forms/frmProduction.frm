@@ -4063,42 +4063,7 @@ Private Function FindProductionOutputTableRow(ByVal lo As ListObject, _
                                               ByVal procVal As String, _
                                               ByVal outputVal As String, _
                                               Optional ByVal fallbackRow As Long = 0) As Long
-    Dim r As Long
-    Dim cRow As Long
-    Dim cProc As Long
-    Dim cOutput As Long
-    Dim wantedRow As String
-
-    If lo Is Nothing Or lo.DataBodyRange Is Nothing Then Exit Function
-    cRow = ProductionColumnIndex(lo, "System_Key")
-    cProc = ProductionColumnIndex(lo, "PROCESS")
-    cOutput = ProductionColumnIndex(lo, "OUTPUT")
-    wantedRow = rowVal
-
-    If wantedRow <> "" Then
-        If cRow = 0 Then Exit Function
-        For r = 1 To lo.ListRows.Count
-            If StrComp(NzStr(lo.DataBodyRange.Cells(r, cRow).Value2), wantedRow, vbBinaryCompare) = 0 Then
-                If FindProductionOutputTableRow <> 0 Then FindProductionOutputTableRow = 0: Exit Function
-                FindProductionOutputTableRow = r
-            End If
-        Next r
-        Exit Function
-    End If
-
-    If cProc > 0 And cOutput > 0 Then
-        For r = 1 To lo.ListRows.Count
-            If StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cProc).Value)), Trim$(procVal), vbTextCompare) = 0 _
-               And StrComp(Trim$(NzStr(lo.DataBodyRange.Cells(r, cOutput).Value)), Trim$(outputVal), vbTextCompare) = 0 Then
-                FindProductionOutputTableRow = r
-                Exit Function
-            End If
-        Next r
-    End If
-
-    If fallbackRow >= 1 And fallbackRow <= lo.ListRows.Count Then
-        FindProductionOutputTableRow = fallbackRow
-    End If
+    FindProductionOutputTableRow = modProductionCompleteActions.FindOutputRow(Me, lo, rowVal, procVal, outputVal, fallbackRow)
 End Function
 
 Private Function NextOutputBatchNumberForListIndex(ByVal outputIndex As Long) As Long
@@ -4345,7 +4310,7 @@ End Property
 Public Function CompletionSelection(ByVal context As String, ByVal ticket As String, ByVal stamp As Boolean, _
                                     ByRef kind As String, ByRef caption As String, Optional ByVal resolvedRow As Long = 0, _
                                     Optional ByVal actual As String = "") As String
-    Dim output As ListObject, checks As ListObject, selected As Long, i As Long, fieldName As Variant, state As String, matches As Long
+    Dim output As ListObject, checks As ListObject, selected As Long
     If context <> mActivityContext Or Not modProductionDesignerActions.ContextIsCurrent(context, mOperatorWorkbook) Then Exit Function
     If mLstManagerOutput.ListIndex < 0 Then Exit Function
     If actual = "" Then actual = Trim$(mTxtOutputReal.Text)
@@ -4364,25 +4329,8 @@ Public Function CompletionSelection(ByVal context As String, ByVal ticket As Str
     If Not HasProductionCheckRows() Then Exit Function
     selected = SelectedProductionOutputTableRow()
     If selected = 0 Or (resolvedRow > 0 And selected <> resolvedRow) Then Exit Function
-    If CellByHeader(output, selected, "System_Key") = "" Then
-        For i = 1 To output.ListRows.Count
-            If StrComp(CellByHeader(output, i, "PROCESS"), CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 0)), vbTextCompare) = 0 And _
-               StrComp(CellByHeader(output, i, "OUTPUT"), CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 1)), vbTextCompare) = 0 Then matches = matches + 1
-        Next i
-        If matches <> 1 Then Exit Function
-    End If
-    If Not modProductionOperatorBinding.MarkedRow(mOperatorWorkbook, output, selected, ticket, stamp) Then Exit Function
-    state = modProductionOperatorBinding.Framed(ticket) & modProductionOperatorBinding.Framed(actual)
-    For Each fieldName In Array("System_Key", "PROCESS", "OUTPUT", "ITEM_CODE", "UOM", "LOCATION", "Condition", "AttributesJson")
-        state = state & modProductionOperatorBinding.Framed(CellByHeader(output, selected, CStr(fieldName)))
-    Next fieldName
-    For i = 1 To checks.ListRows.Count
-        For Each fieldName In Array("System_Key", "USED", "ITEM_CODE", "LOCATION")
-            state = state & modProductionOperatorBinding.Framed(CellByHeader(checks, i, CStr(fieldName)))
-        Next fieldName
-    Next i
-    caption = mOperatorWorkbook.Name & ", " & CellByHeader(output, selected, "PROCESS") & ", " & CellByHeader(output, selected, "OUTPUT")
-    CompletionSelection = modTrainingWire.TextSha256(state)
+    CompletionSelection = modProductionOperatorBinding.WorksheetDigest(Me, mOperatorWorkbook, output, checks, selected, _
+        CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 0)), CStr(mLstManagerOutput.List(mLstManagerOutput.ListIndex, 1)), actual, ticket, stamp, caption)
 End Function
 
 Public Sub CompleteProductionRun(Optional ByVal action As cProductionWorksheetAction = Nothing)
@@ -5193,7 +5141,7 @@ Private Sub ClearTableContentsKeepRows(ByVal lo As ListObject)
     lo.DataBodyRange.ClearContents
 End Sub
 
-Private Function CellByHeader(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal headerName As String) As String
+Friend Function CellByHeader(ByVal lo As ListObject, ByVal rowIndex As Long, ByVal headerName As String) As String
     Dim colIndex As Long
     If lo Is Nothing Then Exit Function
     If lo.DataBodyRange Is Nothing Then Exit Function
@@ -5265,7 +5213,7 @@ Private Sub ClearTableContentsKeepBlank(ByVal lo As ListObject)
     lo.DataBodyRange.ClearContents
 End Sub
 
-Private Function ProductionColumnIndex(ByVal lo As ListObject, ByVal headerName As String) As Long
+Friend Function ProductionColumnIndex(ByVal lo As ListObject, ByVal headerName As String) As Long
     On Error Resume Next
     ProductionColumnIndex = mProduction.ColumnIndex(lo, headerName)
     On Error GoTo 0
