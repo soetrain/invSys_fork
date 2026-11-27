@@ -105,7 +105,7 @@ function Test-OperatorBindingControls {
         PrepareBook;OpenAndBind
         $pin=Hash $inventoryPath
         $before=@(Get-Slice4beActivityFiles $dest)
-        [void](Probe 'ClearEnteredActual')
+        [void](Probe 'SetEnteredActual' @(''))
         OrdinaryClick
         $refusal=@(CompletionOutcomes $before 'REJECTED')
         ClickRun 'btnCheckProduction'
@@ -121,6 +121,10 @@ function Test-OperatorBindingControls {
         $revoked=LastRun
         Pass 'DifferentSessionAndWarehouseCannotRetarget' ($revoked.WarehouseId -ceq $dest.Warehouse -and $old.RunId -ceq $revoked.RunId -and !$revoked.OperatorClaims[0].ActivityId -and $revoked.Steps.Count -eq 0 -and $old.ContextSha256 -ceq $revoked.ContextSha256 -and (Hash $inventoryPath) -ceq $pin -and (Hash $sourceInventory) -ceq $sourceHash)
         SelectTarget $dest 'config-producer'
+        if($Mode -ceq 'Reusable'){
+            . (Join-Path $PSScriptRoot 'Slice4beProductionOperatorProgression.ps1')
+            Test-OperatorStepProgression
+        }
     }finally{
         [void](Probe 'CompleteSubmissionReset')
         [void](Probe 'CloseDesigner')

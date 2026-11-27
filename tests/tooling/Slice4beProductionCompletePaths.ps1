@@ -53,13 +53,13 @@ End Sub
                 }
             }
             $module.AddFromString(@'
-Public Sub ClearEnteredActualForTest()
-    mTxtOutputReal.Text = ""
+Public Sub SetEnteredActualForTest(ByVal quantity As String)
+    mTxtOutputReal.Text = quantity
 End Sub
 '@)
             $project.VBComponents.Item('TestProductionDesigner').CodeModule.AddFromString(@'
-Public Sub ClearEnteredActual()
-    mForm.ClearEnteredActualForTest
+Public Sub SetEnteredActual(ByVal quantity As String)
+    mForm.SetEnteredActualForTest quantity
 End Sub
 '@)
         }
