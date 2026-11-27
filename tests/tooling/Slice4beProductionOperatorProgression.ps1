@@ -3,14 +3,16 @@
 function Test-OperatorStepProgression {
     PrepareBook
     OpenRecordingViewer
-    $journals=BoundPins $destRoot
+    $before=BoundPins $destRoot
     Delivered (RecordingControl 'Start Recording' 'Click')
+    $starts=@(Get-ChildItem $destRoot -File -Filter '*.json'|Where-Object {!$before.ContainsKey($_.FullName)}|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Start')
+    if($starts.Count -ne 1){throw 'One fresh two-step source recording is required.'}
     [void](Probe 'SetEnteredActual' @(''))
     OrdinaryClick
     [void](Probe 'SetEnteredActual' @('1'))
     OrdinaryClick
     Delivered (RecordingControl 'Stop Recording' 'Click')
-    $closed=@(Get-ChildItem $destRoot -File -Filter '*.json'|Where-Object {!$journals.ContainsKey($_.FullName)}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object RecordType -CEQ 'Close')
+    $closed=@(Get-ChildItem $destRoot -File -Filter '*.json'|Where-Object {!$before.ContainsKey($_.FullName)}|ForEach-Object {Get-Content -LiteralPath $_.FullName -Raw|ConvertFrom-Json}|Where-Object {$_.RecordType -ceq 'Close' -and $_.SequenceId -ceq $starts[0].SequenceId})
     if($closed.Count -ne 1 -or $closed[0].ActionCount -ne 2){throw 'Exactly two ordinary recorded completions are required for progression.'}
     CloseRecordingViewer
     SelectTarget $dest
