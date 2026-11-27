@@ -25,6 +25,9 @@ function Test-OperatorBindingControls {
         [void](Probe 'CompleteSubmissionArm' @('','','ObserveOnly'))
         if(-not [bool](Probe 'CompleteEntryAct' @(''))){throw 'Ordinary button unavailable.'}
     }
+    function CompletionOutcomes($previous,[string]$outcome){
+        Get-Slice4beActivityFiles $dest|Where-Object {$_ -cnotin $previous}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object {$_.ControlId -ceq $control -and $_.OutcomeCode -ceq $outcome}
+    }
     function VerifySaved {
         $evalRoot=Join-Path $destRoot 'Evaluations'
         $before=BoundPins $evalRoot
@@ -35,6 +38,23 @@ function Test-OperatorBindingControls {
     }
     try{
         ClickRun 'btnCloseRun'
+        PrepareBook
+        BoundSelect $guide
+        Delivered (BoundControl 'btnRunHowTo' 'Click')
+        StartCase
+        $eligible=LastRun
+        $before=@(Get-Slice4beActivityFiles $dest)
+        OrdinaryClick
+        $earlier=@(CompletionOutcomes $before 'CONFIRMED')
+        if($earlier.Count -ne 1 -or $earlier[0].SequenceId -cne $eligible.Recording.SequenceId){throw 'Unbound ordinary completion in the same recording required.'}
+        PrepareBook
+        ClickRun 'btnBindProduction'
+        $selection=LastRun
+        Delivered (BoundControl 'btnRefresh' 'Click' '' 'frmInventoryViewer')
+        ClickRun 'btnCheckProduction'
+        Pass 'PublishedSuccessBeforeBindingCannotBeAttached' ($selection.State -ceq 'Running' -and $selection.OperatorClaims[0].BindingId -ceq $eligible.OperatorClaims[0].BindingId -and $selection.OperatorClaims[0].Kind -ceq $kind -and $selection.OperatorClaims[0].AfterObservation -ge 2 -and !$selection.OperatorClaims[0].ActivityId -and $selection.Steps.Count -eq 0 -and (LastRun).ContentSha256 -ceq $selection.ContentSha256)
+        ClickRun 'btnStopRun'
+        ClickRun 'btnCloseRun'
         PrepareBook;OpenAndBind
         $stopping=LastRun
         ClickRun 'btnStopRun'
@@ -42,7 +62,7 @@ function Test-OperatorBindingControls {
         $recordingPins=BoundPins (Join-Path $destRoot 'Runs')
         $before=@(Get-Slice4beActivityFiles $dest)
         OrdinaryClick
-        $later=@(Get-Slice4beActivityFiles $dest|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json}|Where-Object {$_.ControlId -ceq $control -and $_.OutcomeCode -ceq 'CONFIRMED'})
+        $later=@(CompletionOutcomes $before 'CONFIRMED')
         Pass 'StopExcludesLaterOrdinaryCompletion' ($later.Count -eq 1 -and $later[0].SourceEventRefs.Count -eq 2 -and $stopped.State -ceq 'Stopped' -and $stopped.RunId -ceq $stopping.RunId -and !$stopped.OperatorClaims[0].ActivityId -and $stopped.Steps.Count -eq 0 -and (BoundSame $recordingPins (BoundPins (Join-Path $destRoot 'Runs'))))
         ClickRun 'btnCloseRun'
         PrepareBook;OpenAndBind
@@ -52,8 +72,7 @@ function Test-OperatorBindingControls {
         PrepareBook
         $before=@(Get-Slice4beActivityFiles $dest)
         OrdinaryClick
-        $rows=@(Get-Slice4beActivityFiles $dest|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json})
-        $other=@($rows|Where-Object {$_.ControlId -ceq $control -and $_.OutcomeCode -ceq 'CONFIRMED'})
+        $other=@(CompletionOutcomes $before 'CONFIRMED')
         if($other.Count -ne 1 -or $other[0].SequenceId -cne $original.Recording.SequenceId){throw 'A successful unrelated completion in this recording is required.'}
         $pin=Hash $inventoryPath
         ClickRun 'btnCheckProduction'
@@ -88,8 +107,7 @@ function Test-OperatorBindingControls {
         $before=@(Get-Slice4beActivityFiles $dest)
         [void](Probe 'ClearEnteredActual')
         OrdinaryClick
-        $rows=@(Get-Slice4beActivityFiles $dest|Where-Object {$_ -cnotin $before}|ForEach-Object {Get-Content $_ -Raw|ConvertFrom-Json})
-        $refusal=@($rows|Where-Object {$_.ControlId -ceq $control -and $_.OutcomeCode -ceq 'REJECTED'})
+        $refusal=@(CompletionOutcomes $before 'REJECTED')
         ClickRun 'btnCheckProduction'
         $refused=LastRun
         Pass 'OwnerRefusalPreservedWithoutInventoryEffectOrCredit' ($refusal.Count -eq 1 -and $refusal[0].SequenceId -ceq $refused.Recording.SequenceId -and $refused.Steps.Count -eq 0 -and !$refused.OperatorClaims[0].ActivityId -and $refused.State -ceq 'Blocked' -and (Hash $inventoryPath) -ceq $pin)
