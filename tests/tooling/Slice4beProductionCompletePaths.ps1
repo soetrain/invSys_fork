@@ -1,5 +1,30 @@
 # Real Complete Run recordings, owning publication and independent guide evaluation.
 function Install-CompletePathsProbe {
+    $packages['invSys.Core.xlam'].VBProject.VBComponents.Item('TestShippingCatalog').CodeModule.AddFromString(@'
+Public Function CompletePathCatalog() As Long
+    CompletePathCatalog = modActivityCatalog.CATALOG_VERSION
+End Function
+'@)
+    if($CheckCompleteReplayRefusal){
+        $project=$packages['invSys.Operations.xlam'].VBProject
+        $counter=$project.VBComponents.Add(1)
+        $counter.Name='TestCompleteReplay'
+        $counter.CodeModule.AddFromString(@'
+Option Explicit
+Public Clicks As Long, Owners As Long
+Public Function Counts() As String
+    Counts = Clicks & "|" & Owners
+End Function
+Public Function LoadedBuild(ByVal packageName As String) As String
+    LoadedBuild = CStr(Application.Workbooks(packageName).CustomDocumentProperties("invSysBuildIdentity").Value)
+End Function
+'@)
+        $module=$project.VBComponents.Item('frmProduction').CodeModule
+        foreach($entry in @(@('mBtnManagerApplyOutput_Click','Clicks'),@('CompleteProductionRun','Owners'))){
+            $body=$module.ProcBodyLine($entry[0],0)
+            $module.InsertLines($body+1,('TestCompleteReplay.'+$entry[1]+' = TestCompleteReplay.'+$entry[1]+' + 1'))
+        }
+    }
     $packages['invSys.Operations.xlam'].VBProject.VBComponents.Item('frmProduction').CodeModule.AddFromString(@'
 Public Function CompletePathWorksheetKeysForTest() As Variant
     Dim output As ListObject
@@ -21,6 +46,8 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationContracts.ps1')
     . (Join-Path $PSScriptRoot 'Slice4beEvaluationEvidence.ps1')
     $control='PRODUCTION_RUN_COMPLETE';$prefix='CompletePaths.'+$Mode+'.'
+    $catalog=[int](Run 'invSys.Core.xlam' 'TestShippingCatalog.CompletePathCatalog')
+    if($catalog -lt 28){throw 'Complete Run requires its registered observation definition.'}
     function Pass([string]$Name,[bool]$Value){Check ($prefix+$Name) $Value|Out-Host}
     function Delivered([string]$Value){
         if($Value -cne 'DELIVERED'){
@@ -78,7 +105,7 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
             $rows=@(Get-Slice4beActivityFiles $Fixture|Where-Object {$_ -cnotin $before}|ForEach-Object{Get-Content $_ -Raw|ConvertFrom-Json})
             $attempt=@($rows|Where-Object OutcomeCode -CEQ 'REQUESTED');$terminal=@($rows|Where-Object OutcomeCode -CEQ 'CONFIRMED')
             $valid=$rows.Count -eq 2 -and $attempt.Count -eq 1 -and $terminal.Count -eq 1
-            if($valid){$valid=$terminal[0].ControlId -ceq $control -and $terminal[0].OwnerId -ceq 'PRODUCTION_RUN_COMPLETION' -and $terminal[0].CatalogVersion -eq 28 -and $terminal[0].DataEffect -ceq 'Unknown' -and $attempt[0].ActivityId -ceq $terminal[0].ActivityId -and $terminal[0].SequenceId -ceq $starts[0].SequenceId -and $terminal[0].Ordinal -eq 1 -and ($terminal[0].SourceEventRefs.EventId -join '|') -ceq ($ids -join '|')}
+            if($valid){$valid=$terminal[0].ControlId -ceq $control -and $terminal[0].OwnerId -ceq 'PRODUCTION_RUN_COMPLETION' -and $terminal[0].CatalogVersion -eq $catalog -and $attempt[0].CatalogVersion -eq $catalog -and $terminal[0].DataEffect -ceq 'Unknown' -and $attempt[0].ActivityId -ceq $terminal[0].ActivityId -and $terminal[0].SequenceId -ceq $starts[0].SequenceId -and $terminal[0].Ordinal -eq 1 -and ($terminal[0].SourceEventRefs.EventId -join '|') -ceq ($ids -join '|')}
             Pass ($Label+'.ExactRecordedCommandAndReferences') $valid
             if(-not $valid){return $null}
             $closed=@(RecordingJournal $starts[0].SequenceId|Where-Object RecordType -CEQ 'Close')
@@ -106,6 +133,25 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
     }
     try{
         SelectTarget $Fixture
+        if($CheckCompleteReplayRefusal){
+            $config=$excel.Workbooks.Open($Fixture.Config,0,$true)
+            try{
+                $warehouse=Table $config 'tblWarehouseConfig'
+                $purpose=$warehouse.DataBodyRange.Cells.Item(1,$warehouse.ListColumns.Item('WarehousePurpose').Index).Value2
+            }finally{$config.Close($false)}
+            if($purpose -cne 'Training'){throw 'A generated Training warehouse is required for replay classification.'}
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            foreach($leaf in $packages.Keys){
+                $archive=[IO.Compression.ZipFile]::OpenRead((Join-Path $inputDeploy $leaf))
+                try{
+                    $reader=[IO.StreamReader]::new($archive.GetEntry('docProps/custom.xml').Open())
+                    try{$props=([xml]$reader.ReadToEnd()).DocumentElement.ChildNodes}finally{$reader.Dispose()}
+                }finally{$archive.Dispose()}
+                $id=($props|Where-Object {$_.GetAttribute('name') -ceq 'invSysBuildIdentity'}).InnerText
+                if($id.Length -ne 32 -or $packages[$leaf].FullName -ine (Join-Path $deploy $leaf) -or (Run 'invSys.Operations.xlam' 'TestCompleteReplay.LoadedBuild' @($leaf)) -cne $id){throw 'Loaded package path or build identity differs.'}
+            }
+            Pass 'FiveLoadedBuildsInGeneratedTraining' ($packages.Count -eq 5)
+        }
         if(-not [bool](Run 'invSys.Core.xlam' 'TestShippingCatalog.ReadPolicyForTest' @($true))){throw 'Complete recording policy unavailable.'}
         SetRecordingPolicy $true
         if(-not [bool](Run 'invSys.Admin.xlam' 'modAdminConsole.PublishReadFixtureForTest')){throw 'Initial owning publication unavailable.'}
@@ -156,6 +202,27 @@ function Test-ProductionCompletePaths($Fixture,$Book,$Decoy,[string]$Canary,[str
         if($fresh.Count -ne 1){throw 'Saved guide unavailable.'}
         $guide=ReadGuideExpectationRecord $fresh[0].FullName;if($null -eq $guide){throw 'Guide integrity unavailable.'}
         Pass 'ImmutableGuideExactSourceAndExplicitConclusion' ($guide.SourceRun.RecordId -ceq $source.Journal.RecordId -and $guide.SourceRun.ContentSha256 -ceq $source.Journal.ContentSha256 -and $guide.Steps[0].SourceActivityId -ceq $source.Terminal.ActivityId -and $guide.ExpectedConclusion.TerminalKind -ceq 'SourceEventsApplied')
+        if($CheckCompleteReplayRefusal){
+            Delivered (Author 'btnCancelGuide' 'Click')
+            BoundOpen;BoundSelect $guide
+            $scope=BoundPins $journalRoot
+            $publicationPin=Hash $eventsPath
+            if((Run 'invSys.Operations.xlam' 'TestCompleteReplay.Counts') -cne '2|2'){throw 'Expected the two observed ordinary completion invocations.'}
+            if($guide.Steps.Count -ne 1 -or $guide.Steps[0].ControlId -cne $control -or $guide.ExpectedConclusion.Steps[0].ControlId -cne $control){throw 'Required Complete Run guide is missing.'}
+            Delivered (BoundControl 'btnConfigureExecution' 'Click')
+            Pass 'ConfigureRefusesUnregisteredStep' ((BoundControl 'lblPublishedGuideStatus' 'Label') -ceq 'Execution is not configured for one or more guide controls. No actions were skipped or run.' -and (BoundControl '' 'Count' '' 'frmActionPathExecution') -ceq '0')
+            CloseRecordingViewer;SelectTarget $Fixture 'config-producer';OpenRecordingViewer
+            Delivered (BoundLibrary 'Open');BoundOpen;BoundSelect $guide
+            if(-not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('PROD_POST','config-producer',$Fixture.Warehouse,'S1'))){throw 'Production operator permission unavailable.'}
+            Delivered (BoundControl 'btnRunHowTo' 'Click')
+            $notice=BoundControl 'lblPublishedGuideStatus' 'Label'
+            if($notice -cne 'Execution not configured for this exact guide version.'){
+                $known=@('Run is unavailable: a required workflow permission is missing.','Run requires the captured generated Training warehouse and its own authority files.','Execution is unavailable: the selected guide is invalid, hidden or incompatible.')
+                Write-Host ('Complete Run refusal diagnostic: '+$(if($notice -cin $known){$notice}else{'Unrecognized status'}))
+            }
+            Pass 'RunRequiresExactLocalProfile' ($notice -ceq 'Execution not configured for this exact guide version.' -and (BoundControl '' 'Count' '' 'frmActionPathRun') -ceq '0')
+            Pass 'RefusalNoDispatchOrHistoryChange' ((Run 'invSys.Operations.xlam' 'TestCompleteReplay.Counts') -ceq '2|2' -and (BoundSame $scope (BoundPins $journalRoot)) -and (Hash $eventsPath) -ceq $publicationPin)
+        }
         CloseRecordingViewer;SelectTarget $Fixture 'config-reader';OpenRecordingViewer
         Pass 'ReaderCannotAuthor' (-not [bool](Run 'invSys.Core.xlam' 'modAuth.CanPerform' @('ACTION_PATH_MAINT','config-reader',$Fixture.Warehouse,'S1')))
         Delivered (BoundLibrary 'Open');if((BoundLibrary 'Select' $observed.Journal.ActionPathId) -cne 'SELECTED'){throw 'Separate observed run unavailable.'}
